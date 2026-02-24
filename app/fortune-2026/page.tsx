@@ -1,52 +1,64 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { FormEvent, useState } from "react"
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { destinyNumberFromBirthdate } from "@/lib/numerology";
 
-type FortuneResponse = {
-  text?: string
-  error?: string
+const BIRTHDATE_KEY = "fortune2026_birthdate";
+const DESTINY_KEY = "fortune2026_destinyNumber";
+
+function isValidDestinyNumber(value: string | null): value is `${1|2|3|4|5|6|7|8|9}` {
+  return value !== null && /^[1-9]$/.test(value);
 }
 
 export default function Fortune2026Page() {
-  const [birthDate, setBirthDate] = useState("")
-  const [result, setResult] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [birthDate, setBirthDate] = useState("");
+  const [error, setError] = useState("");
+  const [checkingStorage, setCheckingStorage] = useState(true);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!birthDate) {
-      setError("生年月日を入力してください。")
-      return
+  useEffect(() => {
+    const savedDestiny = localStorage.getItem(DESTINY_KEY);
+    if (isValidDestinyNumber(savedDestiny)) {
+      router.replace(`/fortune-2026/result/${savedDestiny}`);
+      return;
     }
 
-    setLoading(true)
-    setError("")
-    setResult("")
+    const savedBirthdate = localStorage.getItem(BIRTHDATE_KEY);
+    if (savedBirthdate) {
+      setBirthDate(savedBirthdate);
+    }
+    setCheckingStorage(false);
+  }, [router]);
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+
+    if (!birthDate) {
+      setError("生年月日を入力してください。");
+      return;
+    }
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: `生年月日: ${birthDate}。この人の2026年の運勢を占ってください。総合運・仕事運・恋愛運・金運・健康運を含め、最後に開運アドバイスを3つ示してください。`,
-          mode: "birthdate-2026",
-          history: [],
-        }),
-      })
-
-      const data = (await res.json()) as FortuneResponse
-      if (!res.ok) {
-        throw new Error(data.error ?? "占い結果の取得に失敗しました。")
-      }
-
-      setResult(data.text ?? "")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "通信エラーが発生しました。")
-    } finally {
-      setLoading(false)
+      const destinyNumber = destinyNumberFromBirthdate(birthDate);
+      localStorage.setItem(BIRTHDATE_KEY, birthDate);
+      localStorage.setItem(DESTINY_KEY, String(destinyNumber));
+      router.push(`/fortune-2026/result/${destinyNumber}`);
+    } catch {
+      setError("正しい生年月日を入力してください。");
     }
+  };
+
+  if (checkingStorage) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-rose-50 px-6 py-10 text-amber-950">
+        <div className="mx-auto max-w-2xl rounded-2xl border border-amber-200 bg-white/80 p-6 shadow-sm backdrop-blur">
+          <p className="text-sm text-amber-900/80">読み込み中...</p>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -60,7 +72,7 @@ export default function Fortune2026Page() {
 
         <h1 className="text-2xl font-bold">生年月日で占う2026年の運勢</h1>
         <p className="mt-2 text-sm text-amber-900/80">
-          生年月日を入力すると、占術の説明付きで2026年の運勢を詳しく占います。
+          生年月日から運命数を計算し、2026年の運勢を表示します。
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -77,22 +89,15 @@ export default function Fortune2026Page() {
 
           <button
             type="submit"
-            disabled={loading}
-            className="rounded-full bg-amber-600 px-8 py-3 font-medium text-white shadow-lg transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full bg-amber-600 px-8 py-3 font-medium text-white shadow-lg transition hover:bg-amber-700"
           >
-            {loading ? "占い中..." : "2026年の運勢を占う"}
+            2026年の運勢を占う
           </button>
         </form>
 
         {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
-
-        {result ? (
-          <section className="mt-6 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
-            <h2 className="mb-2 text-lg font-semibold">占い結果</h2>
-            <p className="whitespace-pre-wrap leading-relaxed">{result}</p>
-          </section>
-        ) : null}
       </div>
     </main>
-  )
+  );
 }
+

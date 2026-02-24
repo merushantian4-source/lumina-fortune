@@ -161,7 +161,7 @@ export function getDialogueConversationState(
     if (hasClearGoal) triggerReason = "clear-goal";
     else if (hasRelationshipInfo) triggerReason = "relationship-info";
     else if (affirmativeStreak >= 2) triggerReason = "affirmative-streak";
-    else if (questionStreak >= 3) triggerReason = "question-streak";
+    else if (questionStreak >= 2) triggerReason = "question-streak";
   }
 
   return {

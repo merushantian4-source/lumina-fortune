@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { pickRandomTarotCard, type TarotCardEntry } from "@/src/data/tarotCards";
+import { TarotBackArtwork, TarotCardArtwork } from "@/components/tarot-card-artwork";
+import { type TarotCardEntry } from "@/src/data/tarotCards";
+import { getRandomTarotCard } from "@/lib/tarot";
 
 type DrawnCard = TarotCardEntry & {
   reversed: boolean;
@@ -38,10 +40,11 @@ export default function DailyFortunePage() {
   const [selectedCard, setSelectedCard] = useState<DrawnCard | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
   const [flipFinished, setFlipFinished] = useState(false);
-  const [resultText, setResultText] = useState("");
+  const [summary, setSummary] = useState<string | null>(null);
+  const [fullText, setFullText] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [loadingResult, setLoadingResult] = useState(false);
-  const [error, setError] = useState("");
+  const [isReading, setIsReading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const today = useMemo(() => getTodayLabel(), []);
   const prefersReducedMotion = usePrefersReducedMotion();
   const requestIdRef = useRef(0);
@@ -71,10 +74,11 @@ export default function DailyFortunePage() {
     setSelectedCard(null);
     setIsFlipped(false);
     setFlipFinished(false);
-    setResultText("");
+    setSummary(null);
+    setFullText(null);
     setShowResult(false);
-    setLoadingResult(false);
-    setError("");
+    setIsReading(false);
+    setError(null);
   };
 
   const handlePrepare = () => {
@@ -87,29 +91,31 @@ export default function DailyFortunePage() {
     setSelectedCard(null);
     setIsFlipped(false);
     setFlipFinished(false);
-    setResultText("");
+    setSummary(null);
+    setFullText(null);
     setShowResult(false);
-    setLoadingResult(false);
-    setError("");
+    setIsReading(false);
+    setError(null);
   };
 
   const handleFlip = async () => {
     if (!readyToFlip || isFlipped) return;
 
     const requestId = ++requestIdRef.current;
-    const baseCard = pickRandomTarotCard();
+    const { card: baseCard, isReversed } = getRandomTarotCard();
     const card: DrawnCard = {
       ...baseCard,
-      reversed: Math.random() > 0.75,
+      reversed: isReversed,
     };
 
     setSelectedCard(card);
     setIsFlipped(true);
     setFlipFinished(false);
     setShowResult(false);
-    setResultText("");
-    setError("");
-    setLoadingResult(true);
+    setSummary(card.meaningJa);
+    setFullText(null);
+    setError(null);
+    setIsReading(true);
 
     const flipDelay = prefersReducedMotion ? 0 : 520;
     flipTimerRef.current = window.setTimeout(() => {
@@ -134,13 +140,13 @@ export default function DailyFortunePage() {
         throw new Error(data.error ?? "占い結果の取得に失敗しました。");
       }
       if (requestIdRef.current !== requestId) return;
-      setResultText(data.text ?? "");
+      setFullText(data.text ?? null);
     } catch (err) {
       if (requestIdRef.current !== requestId) return;
       setError(err instanceof Error ? err.message : "通信エラーが発生しました。");
     } finally {
       if (requestIdRef.current === requestId) {
-        setLoadingResult(false);
+        setIsReading(false);
       }
     }
   };
@@ -184,25 +190,23 @@ export default function DailyFortunePage() {
                   aria-hidden="true"
                 >
                   <span className="fortune-card-face fortune-card-back">
-                    <span className="fortune-card-back-mark">LUMINA</span>
-                    <span className="fortune-card-back-stars" />
+                    <TarotBackArtwork
+                      className="fortune-card-back-media"
+                      sizes="(max-width: 768px) 80vw, 320px"
+                    />
                   </span>
 
                   <span className="fortune-card-face fortune-card-front">
                     {selectedCard ? (
                       <>
                         <span className="fortune-card-frame">
-                          {selectedCard.imageUrl ? (
-                            <img
-                              src={selectedCard.imageUrl}
-                              alt={selectedCard.nameJa}
-                              className="h-full w-full rounded-xl object-cover"
-                            />
-                          ) : (
-                            <span className="fortune-card-placeholder" role="img" aria-label={selectedCard.nameJa}>
-                              ✧
-                            </span>
-                          )}
+                          <TarotCardArtwork
+                            imagePath={selectedCard.imagePath}
+                            alt={selectedCard.nameJa}
+                            isReversed={selectedCard.reversed}
+                            className="h-full w-full rounded-xl object-cover"
+                            sizes="(max-width: 768px) 80vw, 320px"
+                          />
                         </span>
                         <span className="mt-3 text-sm font-semibold text-amber-950">
                           {selectedCard.nameJa}
@@ -221,7 +225,7 @@ export default function DailyFortunePage() {
               {isFlipped && !flipFinished ? (
                 <p className="text-sm text-amber-800/80">カードを読み解いています…</p>
               ) : null}
-              {flipFinished && loadingResult && !showResult ? (
+              {flipFinished && isReading && !showResult ? (
                 <p className="text-sm text-amber-800/80">今日のメッセージを整えています…</p>
               ) : null}
             </div>
@@ -231,30 +235,56 @@ export default function DailyFortunePage() {
                 <section className="mt-6 rounded-2xl border border-amber-200 bg-white/70 p-4 shadow-sm">
                   <div className="flex items-start gap-4">
                     <div className="flex h-24 w-16 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-gradient-to-b from-amber-100 to-rose-100 text-2xl shadow-sm">
-                      {selectedCard.imageUrl ? (
-                        <img
-                          src={selectedCard.imageUrl}
-                          alt={selectedCard.nameJa}
-                          className="h-full w-full rounded-xl object-cover"
-                        />
-                      ) : (
-                        <span aria-hidden="true">✧</span>
-                      )}
+                      <TarotCardArtwork
+                        imagePath={selectedCard.imagePath}
+                        alt={selectedCard.nameJa}
+                        isReversed={selectedCard.reversed}
+                        className="h-full w-full rounded-xl object-cover"
+                        sizes="64px"
+                      />
                     </div>
                     <div className="min-w-0">
                       <h2 className="text-base font-semibold">
                         {selectedCard.nameJa}
                         {selectedCard.reversed ? "（逆位置）" : ""}
                       </h2>
-                      <p className="mt-1 text-sm leading-relaxed text-amber-900/85">
-                        {selectedCard.meaningJa}
-                      </p>
+                      {summary ? (
+                        <div className="mt-2 rounded-lg border border-amber-100 bg-amber-50/60 p-2">
+                          <p className="text-[11px] font-semibold tracking-wide text-amber-700">
+                            要約{isReading ? "（先に見えている内容です）" : ""}
+                          </p>
+                          <p className="mt-1 text-sm leading-relaxed text-amber-900/85">{summary}</p>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
-                  {resultText ? (
+                  {error ? (
+                    <div className="mt-4 rounded-xl border border-red-200 bg-red-50/80 p-3">
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>
+                  ) : null}
+
+                  {isReading ? (
+                    <div className="mt-4 rounded-xl border border-amber-200 bg-white/80 p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="reading-spinner" aria-hidden="true" />
+                        <div>
+                          <p className="text-sm font-semibold text-amber-900">リーディング中…</p>
+                          <p className="text-xs text-amber-800/80">
+                            カードのメッセージを言葉にしています…
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {fullText ? (
                     <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50/70 p-3">
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{resultText}</p>
+                      <p className="mb-2 text-xs font-semibold tracking-wide text-amber-700">
+                        リーディング全文
+                      </p>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{fullText}</p>
                     </div>
                   ) : null}
                 </section>
@@ -321,45 +351,13 @@ export default function DailyFortunePage() {
 
         .fortune-card-back {
           overflow: hidden;
-          background:
-            radial-gradient(circle at 20% 20%, rgba(251, 191, 36, 0.35), transparent 48%),
-            radial-gradient(circle at 80% 25%, rgba(251, 113, 133, 0.24), transparent 55%),
-            linear-gradient(160deg, #1f2937 0%, #111827 55%, #0f172a 100%);
-          color: #fef3c7;
+          background: #f8f3e8;
         }
 
-        .fortune-card-back-mark {
-          z-index: 1;
-          letter-spacing: 0.22em;
-          font-size: 0.95rem;
-          font-weight: 700;
-          opacity: 0.92;
-        }
-
-        .fortune-card-back-stars {
-          position: absolute;
-          inset: 10%;
-          border-radius: 1rem;
-          border: 1px solid rgba(255, 251, 235, 0.22);
-          box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.15);
-        }
-
-        .fortune-card-back-stars::before,
-        .fortune-card-back-stars::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background-image:
-            radial-gradient(circle, rgba(255, 251, 235, 0.95) 0 1px, transparent 1.5px),
-            radial-gradient(circle, rgba(251, 191, 36, 0.55) 0 1px, transparent 1.6px);
-          background-size: 28px 28px, 37px 37px;
-          background-position: 0 0, 10px 14px;
-          opacity: 0.45;
-        }
-
-        .fortune-card-back-stars::after {
-          transform: rotate(8deg) scale(1.04);
-          opacity: 0.18;
+        .fortune-card-back-media {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
 
         .fortune-card-front {
@@ -399,6 +397,51 @@ export default function DailyFortunePage() {
           background: rgba(255, 255, 255, 0.5);
         }
 
+        .tarot-image-fallback {
+          position: relative;
+          display: flex;
+          width: 100%;
+          height: 100%;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          border-radius: 0.75rem;
+          border: 1px dashed rgba(180, 83, 9, 0.28);
+          background:
+            radial-gradient(circle at 20% 20%, rgba(251, 191, 36, 0.22), transparent 48%),
+            radial-gradient(circle at 80% 25%, rgba(251, 113, 133, 0.16), transparent 55%),
+            linear-gradient(160deg, rgba(31, 41, 55, 0.92), rgba(17, 24, 39, 0.96));
+          color: #fef3c7;
+          text-align: center;
+          padding: 0.5rem;
+        }
+
+        .tarot-image-fallback__mark {
+          font-size: 0.7rem;
+          letter-spacing: 0.15em;
+          opacity: 0.9;
+          font-weight: 700;
+        }
+
+        .tarot-image-fallback__name {
+          position: absolute;
+          inset-inline: 0.35rem;
+          bottom: 0.45rem;
+          font-size: 0.6rem;
+          line-height: 1.2;
+          color: rgba(255, 251, 235, 0.85);
+        }
+
+        .tarot-image-fallback__ornament {
+          width: 56%;
+          height: 56%;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 251, 235, 0.55);
+          box-shadow:
+            0 0 0 10px rgba(196, 161, 92, 0.14),
+            0 0 0 20px rgba(196, 161, 92, 0.08);
+        }
+
         .fortune-result {
           opacity: 0;
           transform: translateY(8px);
@@ -414,10 +457,31 @@ export default function DailyFortunePage() {
           pointer-events: auto;
         }
 
+        .reading-spinner {
+          width: 1rem;
+          height: 1rem;
+          border-radius: 999px;
+          border: 2px solid rgba(217, 119, 6, 0.25);
+          border-top-color: rgba(217, 119, 6, 0.9);
+          animation: spin 0.9s linear infinite;
+          flex-shrink: 0;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .fortune-card-inner,
           .fortune-result {
             transition-duration: 1ms !important;
+          }
+
+          .reading-spinner {
+            animation-duration: 0.01ms;
+            animation-iteration-count: 1;
           }
         }
       `}</style>

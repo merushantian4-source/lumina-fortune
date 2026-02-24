@@ -11,7 +11,9 @@
     "test:guards": "npx ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" tests/input-guards.test.ts",
     "test:dialogue": "npx ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" tests/dialogue-reply.test.ts",
     "test:dialogue-flow": "npx ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" tests/dialogue-transition.test.ts",
-    "test:fortune-output": "npx ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" tests/fortune-output.test.ts"
+    "test:fortune-output": "npx ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" tests/fortune-output.test.ts",
+    "test:chat-route": "npx ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" tests/chat-route-awaiting.test.ts",
+    "test:numerology": "npx ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" tests/numerology.test.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

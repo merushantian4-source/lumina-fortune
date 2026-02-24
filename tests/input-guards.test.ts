@@ -36,6 +36,8 @@ function run() {
   assert.equal(isFortuneRequestInput("こんにちは、恋愛運みて"), true);
   assert.equal(isFortuneRequestInput("私の仕事運を見てもらえませんか？"), true);
   assert.equal(isFortuneRequestInput("仕事運 占って"), true);
+  assert.equal(isFortuneRequestInput("お願いします"), true);
+  assert.equal(isFortuneRequestInput("見て"), true);
   assert.equal(isFortuneRequestInput("今気になる人がいます"), false);
   assert.equal(isFortuneRequestInput("仕事がうまくいかなくて"), false);
 
