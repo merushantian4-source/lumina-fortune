@@ -11,16 +11,16 @@ interface WelcomeScreenProps {
 export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
   return (
     <div className="relative z-10 flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),rgba(255,247,237,0.75)_40%,rgba(254,215,170,0.35)_100%)]" />
-      <div className="pointer-events-none absolute -top-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/60 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 right-8 h-56 w-56 rounded-full bg-amber-100/60 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.72),rgba(247,250,248,0.56)_42%,rgba(221,231,223,0.24)_100%)]" />
+      <div className="pointer-events-none absolute -top-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-white/55 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 right-8 h-56 w-56 rounded-full bg-emerald-100/45 blur-3xl" />
       <motion.div
-        className="relative w-full max-w-xl rounded-3xl border border-white/70 bg-white/55 p-8 text-center shadow-[0_24px_50px_-24px_rgba(120,53,15,0.45)] backdrop-blur-md"
+        className="lumina-shell relative w-full max-w-xl rounded-3xl p-8 text-center"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <div className="mx-auto mb-5 h-36 w-36 overflow-hidden rounded-full border-4 border-amber-100 bg-amber-50 shadow-[0_18px_30px_-14px_rgba(146,64,14,0.5)] ring-4 ring-white/70">
+        <div className="mx-auto mb-5 h-36 w-36 overflow-hidden rounded-full border-4 border-white/80 bg-white/75 shadow-[0_18px_30px_-14px_rgba(22,37,53,0.35)] ring-4 ring-emerald-100/70">
           <Image
             src="/lumina-icon.png"
             alt="ルミナのアイコン"
@@ -30,18 +30,19 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
             priority
           />
         </div>
-        <p className="mb-1 text-xs tracking-[0.28em] text-amber-700/80">WHITE WITCH ORACLE</p>
-        <h1 className="font-serif text-4xl font-bold text-amber-900 sm:text-5xl">星の導きタロット占い</h1>
-        <p className="mt-4 text-lg leading-relaxed text-amber-900/80">
-          心とハーブを整える占いで、今日のあなたに必要なメッセージを届けます。
+        <p className="mb-1 text-xs tracking-[0.28em] text-slate-600/90">WHITE WITCH TAROT</p>
+        <h1 className="font-serif text-4xl font-bold tracking-[0.08em] text-slate-900 sm:text-5xl">LUMINA</h1>
+        <p className="mt-2 text-base font-medium tracking-[0.08em] text-slate-700/90">光と静けさの占い</p>
+        <p className="mt-4 text-base leading-relaxed text-slate-700/85">
+          来てくださってありがとうございます。今の気持ちにそっと寄り添いながら、
           <br />
-          気になることを質問してみてください。
+          今日のあなたに合う言葉を丁寧にお届けします。
         </p>
         <motion.button
           className="btn btn--primary mt-10"
           onClick={onStart}
         >
-          占いを始める
+          光の導きタロット占い
         </motion.button>
         <motion.div
           className="mt-4"
@@ -53,7 +54,17 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
             href="/fortune-2026"
             className="btn btn--primary"
           >
-            生年月日で占う2026年の運勢
+            2026年の運勢
+          </Link>
+        </motion.div>
+        <motion.div
+          className="mt-3"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.18 }}
+        >
+          <Link href="/fortune-monthly" className="btn btn--primary">
+            毎月の運勢
           </Link>
         </motion.div>
         <motion.div
@@ -64,6 +75,26 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         >
           <Link href="/daily-fortune" className="btn btn--primary">
             毎日の占い
+          </Link>
+        </motion.div>
+        <motion.div
+          className="mt-3"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.24 }}
+        >
+          <Link href="/lucky-wallpapers" className="btn btn--primary">
+            光の待ち受けお守り
+          </Link>
+        </motion.div>
+        <motion.div
+          className="mt-3"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.28 }}
+        >
+          <Link href="/light-work" className="btn btn--primary">
+            光のワーク
           </Link>
         </motion.div>
       </motion.div>

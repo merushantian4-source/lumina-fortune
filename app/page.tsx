@@ -231,6 +231,15 @@ export default function Page() {
     setShowCards(false)
   }, [])
 
+  const handleBackToTop = useCallback(() => {
+    setStarted(false)
+    setMessages([])
+    setIsTyping(false)
+    setBirdActive(false)
+    setShowCards(false)
+    setCurrentCards([])
+  }, [])
+
   return (
     <main className="relative min-h-screen">
       <FloatingFeathers />
@@ -254,7 +263,7 @@ export default function Page() {
             transition={{ duration: 0.5 }}
             className="relative z-10 flex min-h-screen flex-col"
           >
-            <ChatHeader />
+            <ChatHeader onBackToTop={handleBackToTop} />
             <ChatMessages messages={messages} onDrawCards={handleDrawCards} />
             <ChatInput onSend={handleSend} disabled={isTyping} />
           </motion.div>

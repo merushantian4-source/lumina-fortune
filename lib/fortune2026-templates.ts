@@ -1,21 +1,8 @@
-export type Fortune2026Number = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+import { isFortuneNumber, type FortuneNumber, type FortuneTemplate } from "@/lib/fortune/types";
 
-export type Fortune2026Template = {
-  fortuneNumber: Fortune2026Number;
-  introTitle: string;
-  introBody: string;
-  themeCatch: string;
-  firstHalf: string;
-  secondHalf: string;
-  loveSingle: string;
-  lovePartner: string;
-  work: string;
-  relations: string;
-  actions: [string, string, string];
-  powerSpots: [string, string, string];
-  keywords: [string, string, string];
-  blessing: string;
-};
+export type Fortune2026Number = FortuneNumber;
+
+export type Fortune2026Template = FortuneTemplate;
 
 const INTRO_TITLES: Record<Fortune2026Number, string> = {
   1: "はじまりの灯火のあなたへ。",
@@ -597,7 +584,7 @@ export const fortune2026Templates: Record<Fortune2026Number, Fortune2026Template
 };
 
 export function isFortune2026Number(value: number): value is Fortune2026Number {
-  return Number.isInteger(value) && value >= 1 && value <= 9;
+  return isFortuneNumber(value);
 }
 
 export function getFortune2026Template(number: number): Fortune2026Template | null {

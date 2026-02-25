@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TarotBackArtwork, TarotCardArtwork } from "@/components/tarot-card-artwork";
-import { type TarotCardEntry } from "@/src/data/tarotCards";
+import { tarotCards, type TarotCardEntry } from "@/src/data/tarotCards";
 import { getRandomTarotCard } from "@/lib/tarot";
 
 type DrawnCard = TarotCardEntry & {
@@ -15,9 +15,105 @@ type DailyFortuneResponse = {
   error?: string;
 };
 
+const DAILY_FORTUNE_COOKIE_NAME = "lumina_daily_fortune";
+const DAILY_FORTUNE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 2;
+const DAILY_FORTUNE_TIMEZONE = "Asia/Tokyo"; // JST固定で日付キーを生成する
+
+type DailyFortuneCookiePayload = {
+  dateKey: string;
+  result: {
+    cardId: number;
+    reversed: boolean;
+    summary: string;
+    fullText: string;
+  };
+};
+
+function getJstDateParts(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: DAILY_FORTUNE_TIMEZONE,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+  const parts = formatter.formatToParts(date);
+  const year = Number(parts.find((p) => p.type === "year")?.value ?? "0");
+  const month = Number(parts.find((p) => p.type === "month")?.value ?? "0");
+  const day = Number(parts.find((p) => p.type === "day")?.value ?? "0");
+
+  return { year, month, day };
+}
+
+function getJstDateKey(date = new Date()) {
+  const { year, month, day } = getJstDateParts(date);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 function getTodayLabel() {
-  const now = new Date();
-  return `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+  const { year, month, day } = getJstDateParts();
+  return `${year}年${month}月${day}日`;
+}
+
+function encodeCookiePayload(payload: DailyFortuneCookiePayload): string {
+  const json = JSON.stringify(payload);
+  const utf8 = new TextEncoder().encode(json);
+  let binary = "";
+  for (const byte of utf8) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+function decodeCookiePayload(value: string): DailyFortuneCookiePayload | null {
+  try {
+    const binary = atob(value);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const json = new TextDecoder().decode(bytes);
+    const parsed = JSON.parse(json) as DailyFortuneCookiePayload;
+    if (!parsed || typeof parsed !== "object") return null;
+    if (typeof parsed.dateKey !== "string") return null;
+    const result = parsed.result;
+    if (!result || typeof result !== "object") return null;
+    if (!Number.isInteger(result.cardId)) return null;
+    if (typeof result.reversed !== "boolean") return null;
+    if (typeof result.summary !== "string") return null;
+    if (typeof result.fullText !== "string") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function getCookieValue(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function setCookieValue(name: string, value: string, maxAgeSeconds: number) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
+}
+
+function loadSavedDailyFortuneForToday(): { payload: DailyFortuneCookiePayload; card: DrawnCard } | null {
+  const raw = getCookieValue(DAILY_FORTUNE_COOKIE_NAME);
+  if (!raw) return null;
+
+  const payload = decodeCookiePayload(raw);
+  if (!payload) return null;
+  if (payload.dateKey !== getJstDateKey()) return null;
+
+  const baseCard = tarotCards.find((card) => card.id === payload.result.cardId);
+  if (!baseCard) return null;
+
+  return {
+    payload,
+    card: {
+      ...baseCard,
+      reversed: payload.result.reversed,
+    },
+  };
 }
 
 function usePrefersReducedMotion() {
@@ -45,10 +141,28 @@ export default function DailyFortunePage() {
   const [showResult, setShowResult] = useState(false);
   const [isReading, setIsReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasTodayResult, setHasTodayResult] = useState(false);
   const today = useMemo(() => getTodayLabel(), []);
   const prefersReducedMotion = usePrefersReducedMotion();
   const requestIdRef = useRef(0);
   const flipTimerRef = useRef<number | null>(null);
+  const flipLockRef = useRef(false);
+
+  useEffect(() => {
+    const saved = loadSavedDailyFortuneForToday();
+    if (!saved) return;
+
+    setReadyToFlip(true);
+    setSelectedCard(saved.card);
+    setIsFlipped(true);
+    setFlipFinished(true);
+    setSummary(saved.payload.result.summary);
+    setFullText(saved.payload.result.fullText);
+    setShowResult(true);
+    setIsReading(false);
+    setError(null);
+    setHasTodayResult(true);
+  }, []);
 
   useEffect(() => {
     if (flipFinished && selectedCard) {
@@ -65,7 +179,24 @@ export default function DailyFortunePage() {
   }, []);
 
   const resetState = () => {
+    if (hasTodayResult) {
+      const saved = loadSavedDailyFortuneForToday();
+      if (saved) {
+        setReadyToFlip(true);
+        setSelectedCard(saved.card);
+        setIsFlipped(true);
+        setFlipFinished(true);
+        setSummary(saved.payload.result.summary);
+        setFullText(saved.payload.result.fullText);
+        setShowResult(true);
+        setIsReading(false);
+        setError(null);
+        return;
+      }
+    }
+
     requestIdRef.current += 1;
+    flipLockRef.current = false;
     if (flipTimerRef.current !== null) {
       window.clearTimeout(flipTimerRef.current);
       flipTimerRef.current = null;
@@ -79,10 +210,28 @@ export default function DailyFortunePage() {
     setShowResult(false);
     setIsReading(false);
     setError(null);
+    setHasTodayResult(false);
   };
 
   const handlePrepare = () => {
+    if (hasTodayResult) {
+      const saved = loadSavedDailyFortuneForToday();
+      if (saved) {
+        setReadyToFlip(true);
+        setSelectedCard(saved.card);
+        setIsFlipped(true);
+        setFlipFinished(true);
+        setSummary(saved.payload.result.summary);
+        setFullText(saved.payload.result.fullText);
+        setShowResult(true);
+        setIsReading(false);
+        setError(null);
+      }
+      return;
+    }
+
     requestIdRef.current += 1;
+    flipLockRef.current = false;
     if (flipTimerRef.current !== null) {
       window.clearTimeout(flipTimerRef.current);
       flipTimerRef.current = null;
@@ -99,7 +248,24 @@ export default function DailyFortunePage() {
   };
 
   const handleFlip = async () => {
-    if (!readyToFlip || isFlipped) return;
+    if (!readyToFlip || isFlipped || flipLockRef.current || hasTodayResult) return;
+
+    const existing = loadSavedDailyFortuneForToday();
+    if (existing) {
+      setReadyToFlip(true);
+      setSelectedCard(existing.card);
+      setIsFlipped(true);
+      setFlipFinished(true);
+      setSummary(existing.payload.result.summary);
+      setFullText(existing.payload.result.fullText);
+      setShowResult(true);
+      setIsReading(false);
+      setError(null);
+      setHasTodayResult(true);
+      return;
+    }
+
+    flipLockRef.current = true;
 
     const requestId = ++requestIdRef.current;
     const { card: baseCard, isReversed } = getRandomTarotCard();
@@ -140,11 +306,33 @@ export default function DailyFortunePage() {
         throw new Error(data.error ?? "占い結果の取得に失敗しました。");
       }
       if (requestIdRef.current !== requestId) return;
-      setFullText(data.text ?? null);
+      const resolvedText = data.text ?? null;
+      setFullText(resolvedText);
+
+      if (resolvedText) {
+        const payload: DailyFortuneCookiePayload = {
+          dateKey: getJstDateKey(),
+          result: {
+            cardId: card.id,
+            reversed: card.reversed,
+            summary: card.meaningJa,
+            fullText: resolvedText,
+          },
+        };
+        setCookieValue(
+          DAILY_FORTUNE_COOKIE_NAME,
+          encodeCookiePayload(payload),
+          DAILY_FORTUNE_COOKIE_MAX_AGE_SECONDS
+        );
+        setHasTodayResult(true);
+      }
     } catch (err) {
       if (requestIdRef.current !== requestId) return;
       setError(err instanceof Error ? err.message : "通信エラーが発生しました。");
     } finally {
+      if (requestIdRef.current === requestId) {
+        flipLockRef.current = false;
+      }
       if (requestIdRef.current === requestId) {
         setIsReading(false);
       }
@@ -152,30 +340,37 @@ export default function DailyFortunePage() {
   };
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#fff7ed_0%,_#ffedd5_45%,_#ffe4e6_100%)] px-5 py-10 text-amber-950">
-      <div className="mx-auto max-w-2xl rounded-3xl border border-amber-200/80 bg-white/80 p-6 shadow-[0_24px_80px_-32px_rgba(146,64,14,0.35)] backdrop-blur">
+    <main className="lumina-page min-h-screen px-5 py-10 text-slate-900">
+      <div className="lumina-shell mx-auto max-w-2xl rounded-3xl p-6">
         <div className="mb-4">
-          <Link href="/" className="text-sm text-amber-700 underline-offset-4 hover:underline">
+          <Link href="/" className="lumina-link text-sm underline-offset-4 hover:underline">
             トップへ戻る
           </Link>
         </div>
 
-        <h1 className="text-2xl font-bold tracking-tight">毎日の占い</h1>
-        <p className="mt-2 text-sm text-amber-900/80">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">毎日の占い</h1>
+        <p className="lumina-muted mt-2 text-sm">
           {today}の運勢を、タロット1枚引きで見ます。
         </p>
+        {hasTodayResult ? (
+          <p className="mt-2 text-sm text-slate-700/80">
+            今日は占い済みです。JSTの0:00以降に新しい結果を占えます。
+          </p>
+        ) : null}
 
         {!readyToFlip ? (
           <div className="mt-6">
             <button type="button" onClick={handlePrepare} className="btn btn--primary">
-              今日の運勢を占う
+              {hasTodayResult ? "今日の結果を見る" : "今日の運勢を占う"}
             </button>
           </div>
         ) : (
           <section className="mt-6">
             <div className="flex flex-col items-center gap-4">
               <p className="text-sm text-amber-900/80">
-                カードをタップして、今日の1枚をめくってください。
+                {hasTodayResult
+                  ? "保存された今日の結果を表示しています。"
+                  : "カードをタップして、今日の1枚をめくってください。"}
               </p>
 
               <button
@@ -293,7 +488,7 @@ export default function DailyFortunePage() {
 
             <div className="mt-6">
               <button type="button" onClick={resetState} className="btn btn--primary">
-                もう一度占う
+                {hasTodayResult ? "今日の結果を見直す" : "もう一度占う"}
               </button>
             </div>
           </section>

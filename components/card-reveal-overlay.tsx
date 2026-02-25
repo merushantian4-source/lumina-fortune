@@ -18,7 +18,7 @@ export function CardRevealOverlay({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-amber-900/50 p-4 backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4 backdrop-blur-md"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -44,7 +44,7 @@ export function CardRevealOverlay({
             ))}
           </motion.div>
           <button
-            className="absolute right-4 top-4 rounded-full bg-white/90 px-4 py-2 text-amber-900 transition hover:bg-white"
+            className="absolute right-4 top-4 rounded-full border border-slate-200/70 bg-white/90 px-4 py-2 text-slate-900 transition hover:bg-white"
             onClick={onClose}
           >
             閉じる

@@ -12,7 +12,7 @@ export function WhiteBirdAnimation({ isActive, onComplete }: WhiteBirdAnimationP
     <AnimatePresence>
       {isActive && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-amber-900/30 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/25 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
