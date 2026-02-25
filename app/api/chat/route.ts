@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { pickRandomCards } from "@/lib/fortune-data";
+import { pickRandomCards as pickDailyFortuneCards } from "@/lib/fortune-data";
 import {
   buildBirthdate2026Prompt,
   buildChatPrompt,
   buildDialoguePrompt,
   buildDailyFortunePrompt,
-  buildTarotPrompt,
 } from "@/lib/prompt-builder";
 import { ensureFortuneOutputFormat } from "@/lib/fortune-output";
+import { buildTarotChatPrompt } from "@/lib/prompts/tarotChatPrompt";
 import { greetingMessage, greetingResponse } from "@/lib/greeting-message";
 import {
   buildFortuneOfferReply,
@@ -28,6 +28,8 @@ import {
 } from "@/lib/input-guards";
 import { sanitizeChatReply, sanitizeDialogueReply } from "@/lib/pre-fortune-reply";
 import { replyStyle } from "@/lib/reply-style";
+import { drawTarotSpread, toUiTarotCardData, type DrawnTarotCard } from "@/lib/tarot/deck";
+import { ensureTarotChatOutputFormat } from "@/lib/tarot/tarot-chat-output";
 
 type RequestBody = {
   message?: string;
@@ -164,6 +166,7 @@ export async function POST(request: Request) {
 
     let prompt = "";
     let cards = existingCards;
+    let tarotSpread: DrawnTarotCard[] | null = null;
     let usedDialogueMode = false;
 
     if (resolvedMode === "chat") {
@@ -182,19 +185,15 @@ export async function POST(request: Request) {
       prompt = buildBirthdate2026Prompt(trimmedMessage);
     } else {
       // タロット占いモード
-      const isWorkFortuneRequest = /仕事運|学業運|仕事/.test(fortunePromptMessage);
-      const fallbackCount =
-        resolvedMode === "daily-fortune" || (resolvedMode === "fortune" && isWorkFortuneRequest)
-          ? 1
-          : 3;
-      if (!cards || cards.length !== fallbackCount) {
-        cards = pickRandomCards(fallbackCount);
-      }
-
       if (resolvedMode === "daily-fortune") {
+        if (!cards || cards.length !== 1) {
+          cards = pickDailyFortuneCards(1);
+        }
         prompt = buildDailyFortunePrompt(fortunePromptMessage, cards);
       } else {
-        prompt = buildTarotPrompt(fortunePromptMessage, cards);
+        tarotSpread = drawTarotSpread();
+        cards = tarotSpread.map(toUiTarotCardData);
+        prompt = buildTarotChatPrompt(fortunePromptMessage, tarotSpread);
       }
     }
 
@@ -213,7 +212,9 @@ export async function POST(request: Request) {
           ? usedDialogueMode
             ? sanitizeDialogueReply(trimmedMessage, rawText)
             : sanitizeChatReply(trimmedMessage, rawText)
-        : resolvedMode === "fortune" || resolvedMode === "daily-fortune"
+        : resolvedMode === "fortune"
+          ? ensureTarotChatOutputFormat(rawText, tarotSpread ?? drawTarotSpread())
+        : resolvedMode === "daily-fortune"
           ? ensureFortuneOutputFormat(rawText, cards ?? [])
           : rawText;
     const immediateFortuneLeadIn =
