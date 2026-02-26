@@ -16,26 +16,21 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-noto-serif-jp);
+  --font-serif: var(--font-noto-serif-jp);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background-color: var(--background);
-  background-image:
-    linear-gradient(
-      to bottom,
-      rgba(250, 251, 250, 0.58),
-      rgba(246, 248, 247, 0.64)
-    ),
-    url("/main_back.png");
-  background-size: cover;
-  background-position: center top;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
   color: var(--foreground);
-  font-family: var(--font-geist-sans), "Hiragino Sans", "Yu Gothic UI", sans-serif;
+  font-family: var(--font-noto-serif-jp), "Hiragino Mincho ProN", "Yu Mincho", serif;
   min-height: 100vh;
+}
+
+h1,
+h2 {
+  font-weight: 600;
 }
 
 .btn {

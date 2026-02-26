@@ -1,5 +1,7 @@
 import type { DrawnTarotCard } from "@/lib/tarot/deck";
 
+type TarotOutputTheme = "love" | "marriage" | "work" | "money" | "health" | "relationship" | "future" | null;
+
 const REQUIRED_HEADERS = [
   "1. 引いたカード",
   "2. カードの象徴",
@@ -7,6 +9,15 @@ const REQUIRED_HEADERS = [
   "4. 近い未来の可能性",
   "5. 心を整えるアドバイス",
   "6. アファメーション",
+] as const;
+
+const HEALTH_REQUIRED_HEADERS = [
+  "1. 引いたカード",
+  "2. 体の流れ・エネルギー状態の象徴",
+  "3. 今の心身バランスの読み解き",
+  "4. 近い未来の体調傾向（断定禁止）",
+  "5. 今日からできる整え方（具体的だが医療的でない）",
+  "6. アファメーション（体と調和する言葉）",
 ] as const;
 
 const MIMETIC_WORDS = [
@@ -65,6 +76,31 @@ function fallbackTemplate(cards: DrawnTarotCard[]): string {
   ].join("\n");
 }
 
+function healthFallbackTemplate(cards: DrawnTarotCard[]): string {
+  return [
+    `1. 引いたカード`,
+    cardLine(cards),
+    ``,
+    `2. 体の流れ・エネルギー状態の象徴`,
+    symbolLines(cards),
+    ``,
+    `3. 今の心身バランスの読み解き`,
+    "今は心と体のリズムにずれが出やすく、がんばり方に対して回復が追いつきにくい流れが見えます。どの時間帯なら少し力を抜けそうでしょうか？ まずは『休む前提』で一日の配分を整えると、心身の緊張がほどけやすくなります。",
+    ``,
+    `4. 近い未来の体調傾向（断定禁止）`,
+    "- 休息の質を意識すると、重さが少しずつほどける方向へ向かう可能性があります。",
+    "- 無理を詰め込みすぎると、心身のだるさとして出やすくなる可能性もあります。",
+    ``,
+    `5. 今日からできる整え方（具体的だが医療的でない）`,
+    "- 寝る前の10分だけ光を落として、呼吸をゆっくり整えてください。",
+    "- 体を冷やしすぎないよう、首元や足元の温度をやさしく整えてください。",
+    "- 予定の合間に1回、何もしない時間を短く入れて回復の余白を作ってください。",
+    ``,
+    `6. アファメーション（体と調和する言葉）`,
+    "私は自分の体の声を静かに聴き、やさしく整えていけます。",
+  ].join("\n");
+}
+
 function capMimetics(text: string, maxCount = 3): string {
   let count = 0;
   let out = text;
@@ -114,7 +150,7 @@ function softenEndingRuns(text: string): string {
 function ensureQuestion(text: string): string {
   if (/[？?]/.test(text)) return text;
   const lines = text.split("\n");
-  const idx = lines.findIndex((line) => line.trim() === "3. 今の状況への読み解き");
+  const idx = lines.findIndex((line) => /^3\.\s/.test(line.trim()));
   if (idx >= 0) {
     lines.splice(idx + 1, 0, "ここで、あなたが本当に守りたいものは何でしょうか？");
     return lines.join("\n");
@@ -124,7 +160,7 @@ function ensureQuestion(text: string): string {
 
 function ensureAffirmation(text: string): string {
   const lines = text.split("\n");
-  const idx = lines.findIndex((line) => line.trim() === "6. アファメーション");
+  const idx = lines.findIndex((line) => /^6\.\sアファメーション/.test(line.trim()));
   if (idx < 0) return `${text}\n\n6. アファメーション\n私は落ち着いて、自分に合う選択を重ねていけます。`;
   const next = lines.slice(idx + 1).find((line) => line.trim());
   if (next) return text;
@@ -146,10 +182,22 @@ function hasAllHeaders(text: string): boolean {
   return REQUIRED_HEADERS.every((header) => text.includes(header));
 }
 
-export function ensureTarotChatOutputFormat(rawText: string, cards: DrawnTarotCard[]): string {
+function hasAllHealthHeaders(text: string): boolean {
+  return HEALTH_REQUIRED_HEADERS.every((header) => text.includes(header));
+}
+
+export function ensureTarotChatOutputFormat(
+  rawText: string,
+  cards: DrawnTarotCard[],
+  theme: TarotOutputTheme = null
+): string {
   let text = normalizeLegacyDailyLabels(normalize(rawText));
 
-  if (!hasAllHeaders(text)) {
+  if (theme === "health") {
+    if (!hasAllHealthHeaders(text)) {
+      text = healthFallbackTemplate(cards);
+    }
+  } else if (!hasAllHeaders(text)) {
     text = fallbackTemplate(cards);
   }
 

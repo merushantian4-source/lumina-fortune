@@ -136,10 +136,15 @@ const NUMBER_PROFILES: Record<FortuneNumber, NumberProfile> = {
 type MonthMeta = {
   seasonTheme: string;
   focusPeriod: string;
-  dailyExamples: [string, string, string];
-  loveScenes: [string, string, string];
-  workScenes: [string, string, string];
-  relationsScenes: [string, string, string];
+  dailyExamples: readonly [string, string, ...string[]];
+  loveScenes: readonly [string, string, string, ...string[]];
+  workScenes: readonly [string, string, string, ...string[]];
+  relationsScenes: readonly [string, string, string, ...string[]];
+  decisionTips: {
+    hesitation: string;
+    decisionKey: string;
+    overlookedSign: string;
+  };
   actionChallenge: string;
   powerSpots: [string, string, string];
 };
@@ -149,9 +154,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "年始の切り替えと再始動",
     focusPeriod: "年始で予定が増えやすいタイミング",
     dailyExamples: ["年始の連絡が一気に返ってくる", "予定変更が重なって段取りが崩れる", "返信の温度差が気になる"],
-    loveScenes: ["新年会", "初詣の帰り道", "久しぶりの連絡からのやり取り"],
-    workScenes: ["年始のキックオフ", "提出期限の再設定", "学習計画の立て直し"],
-    relationsScenes: ["家族との予定調整", "友人への返信タイミング", "親しい相手との温度差"],
+    loveScenes: ["新年会", "初詣の帰り道", "久しぶりの連絡からのやり取り", "年始のあいさつメッセージ"],
+    workScenes: ["年始のキックオフ", "提出期限の再設定", "学習計画の立て直し", "目標共有の場面"],
+    relationsScenes: ["家族との予定調整", "友人への返信タイミング", "親しい相手との温度差", "帰省まわりの連絡"],
+    decisionTips: {
+      hesitation: "勢いで全部を同時に始めるか、様子見で止まるか",
+      decisionKey: "最初の一歩だけ決めて、次は動いてから考える",
+      overlookedSign: "予定が増えた時ほど、優先順位を言葉にしていない",
+    },
     actionChallenge: "後回しにしていた連絡を1件だけ返す",
     powerSpots: ["朝の光が入る窓辺", "落ち着いた神社や公園", "静かに集中できるカフェ"],
   },
@@ -159,9 +169,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "寒さの中でペースを整える",
     focusPeriod: "疲れが出やすく、ペース調整が大切な時期",
     dailyExamples: ["返事を考えすぎて送信が遅れる", "寒さで外出がおっくうになる", "頼まれごとに即答して疲れる"],
-    loveScenes: ["寒い日の帰り道", "落ち着いたカフェ", "少人数の集まり"],
-    workScenes: ["中だるみしやすい業務", "試験前の調整", "見直し作業"],
-    relationsScenes: ["気遣いが増える連絡", "断りづらい誘い", "本音が後ろに回る会話"],
+    loveScenes: ["寒い日の帰り道", "落ち着いたカフェ", "少人数の集まり", "あたたかい店内での待ち時間"],
+    workScenes: ["中だるみしやすい業務", "試験前の調整", "見直し作業", "進捗の遅れを整える相談"],
+    relationsScenes: ["気遣いが増える連絡", "断りづらい誘い", "本音が後ろに回る会話", "返信をためた後のやり取り"],
+    decisionTips: {
+      hesitation: "相手に合わせるか、自分の都合を優先するか",
+      decisionKey: "即答せず、返答期限を先に伝えてから選ぶ",
+      overlookedSign: "優しさのつもりで、疲れを説明せずに引き受けている",
+    },
     actionChallenge: "頼まれごとに即答せず一度だけ保留にする",
     powerSpots: ["温かい飲み物をゆっくり飲める場所", "図書館の静かな席", "水辺の見える散歩道"],
   },
@@ -169,9 +184,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "春の気配で気持ちがほどける",
     focusPeriod: "春の気配で気持ちが動きやすい時期",
     dailyExamples: ["新しい予定が増えて気持ちが散りやすい", "久しぶりの人から連絡が来る", "春の買い物で予定が延びる"],
-    loveScenes: ["送別会や歓迎会", "学びの場", "春服を見に行く時間"],
-    workScenes: ["新しい役割の相談", "資料作成", "環境の切り替え準備"],
-    relationsScenes: ["新旧の人間関係が混ざる場面", "連絡先の整理", "距離感を測る会話"],
+    loveScenes: ["送別会や歓迎会", "学びの場", "春服を見に行く時間", "外で過ごす週末の予定"],
+    workScenes: ["新しい役割の相談", "資料作成", "環境の切り替え準備", "引き継ぎの会話"],
+    relationsScenes: ["新旧の人間関係が混ざる場面", "連絡先の整理", "距離感を測る会話", "久々の再連絡"],
+    decisionTips: {
+      hesitation: "面白そうな流れを全部取るか、絞って形にするか",
+      decisionKey: "わくわくするものを残しつつ、今月の主役を1つ決める",
+      overlookedSign: "楽しい会話のあとに、約束や締切を言葉にしていない",
+    },
     actionChallenge: "気になっている場所に自分から足を運ぶ",
     powerSpots: ["花のある公園", "本屋の新刊コーナー", "光の入る商業施設"],
   },
@@ -179,9 +199,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "新生活のリズムを作る",
     focusPeriod: "新生活の流れで土台づくりが必要な時期",
     dailyExamples: ["新しい通勤通学ルートにまだ慣れない", "役割分担が曖昧で負担が偏る", "生活時間が少し乱れる"],
-    loveScenes: ["通勤通学の新ルート", "職場や学校の休憩時間", "新しい店に立ち寄った時"],
-    workScenes: ["新年度の段取り", "ルール確認", "習慣化のスタート"],
-    relationsScenes: ["役割分担の相談", "新メンバーとの距離感調整", "連絡の優先順位づけ"],
+    loveScenes: ["通勤通学の新ルート", "職場や学校の休憩時間", "新しい店に立ち寄った時", "同じ時間帯に顔を合わせる場所"],
+    workScenes: ["新年度の段取り", "ルール確認", "習慣化のスタート", "引き継ぎ後の運用調整"],
+    relationsScenes: ["役割分担の相談", "新メンバーとの距離感調整", "連絡の優先順位づけ", "はじめましての自己紹介後の会話"],
+    decisionTips: {
+      hesitation: "新しい環境に合わせるか、自分のペースを守るか",
+      decisionKey: "全部を最適化せず、毎日続く基準を先に作る",
+      overlookedSign: "慣れていない疲れを軽く見て、約束を増やしている",
+    },
     actionChallenge: "毎朝3分だけ予定を確認して優先順位を決める",
     powerSpots: ["整ったデスク周り", "朝の駅近くのカフェ", "新緑のある並木道"],
   },
@@ -189,9 +214,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "外へ広がる勢いを整える",
     focusPeriod: "行動力が上がり、外へ広げやすい時期",
     dailyExamples: ["誘いが重なって予定が埋まりやすい", "急な遠出の話が出る", "新しい情報に気持ちが動く"],
-    loveScenes: ["イベント会場", "遠出の途中", "友人経由の紹介"],
-    workScenes: ["企画提案", "新しい案件", "学びの申し込み"],
-    relationsScenes: ["人付き合いが増える週", "予定の優先順位調整", "連絡の返し方の差"],
+    loveScenes: ["イベント会場", "遠出の途中", "友人経由の紹介", "屋外の集まりやフェス"],
+    workScenes: ["企画提案", "新しい案件", "学びの申し込み", "比較検討が必要な選択"],
+    relationsScenes: ["人付き合いが増える週", "予定の優先順位調整", "連絡の返し方の差", "複数の誘いが重なる週末"],
+    decisionTips: {
+      hesitation: "面白い誘いを全部受けるか、軸に合うものを選ぶか",
+      decisionKey: "広げる前に目的を1つ置き、終わった後の余力で判断する",
+      overlookedSign: "楽しさ優先で、移動時間や回復時間を見積もっていない",
+    },
     actionChallenge: "初めての場所や会に1回参加してみる",
     powerSpots: ["風が通る高台", "大きな駅周辺", "新しくできた店や施設"],
   },
@@ -199,9 +229,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "前半の振り返りと気持ちの整え",
     focusPeriod: "前半の振り返りで整える力が生きる時期",
     dailyExamples: ["梅雨どきで気分が重くなる日がある", "家での会話が長くなりやすい", "進捗の見直しが増える"],
-    loveScenes: ["雨の日の連絡", "家での会話", "落ち着いた食事の時間"],
-    workScenes: ["進捗整理", "チーム調整", "前半の総点検"],
-    relationsScenes: ["親しい相手との言葉足らず", "気遣いが行き違う場面", "家族との段取り相談"],
+    loveScenes: ["雨の日の連絡", "家での会話", "落ち着いた食事の時間", "予定変更後のやり取り"],
+    workScenes: ["進捗整理", "チーム調整", "前半の総点検", "遅れのフォロー相談"],
+    relationsScenes: ["親しい相手との言葉足らず", "気遣いが行き違う場面", "家族との段取り相談", "雨で予定が変わった日の連絡"],
+    decisionTips: {
+      hesitation: "相手を優先して無理するか、ペースを落とすか",
+      decisionKey: "感情が重い日は結論を急がず、まず状況共有をする",
+      overlookedSign: "気遣いのつもりで、本音や疲れを伏せている",
+    },
     actionChallenge: "感謝を短い言葉で1回伝える",
     powerSpots: ["雨音が落ち着く場所", "静かな喫茶店", "花や緑のある店先"],
   },
@@ -209,9 +244,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "暑さの中で集中力を守る",
     focusPeriod: "集中力が上がり、深掘りしやすい時期",
     dailyExamples: ["暑さで集中の波が出やすい", "連絡を後回しにしてしまう", "一人時間を強く欲しくなる"],
-    loveScenes: ["少人数の食事", "学びの場", "静かな夜のやり取り"],
-    workScenes: ["分析作業", "設計の見直し", "試験・資格勉強"],
-    relationsScenes: ["一人時間の説明が必要な場面", "返信が遅れて誤解されやすい時", "距離感の再調整"],
+    loveScenes: ["少人数の食事", "学びの場", "静かな夜のやり取り", "ゆっくり話せる帰り道"],
+    workScenes: ["分析作業", "設計の見直し", "試験・資格勉強", "静かな環境での集中作業"],
+    relationsScenes: ["一人時間の説明が必要な場面", "返信が遅れて誤解されやすい時", "距離感の再調整", "予定を詰めたくない日の断り方"],
+    decisionTips: {
+      hesitation: "深く考えてから動くか、動きながら考えるか",
+      decisionKey: "一人で整理した後に、短い相談で方向だけ確認する",
+      overlookedSign: "説明不足のまま距離を取り、相手に不安を残している",
+    },
     actionChallenge: "本音を一文だけメモに書く",
     powerSpots: ["図書館", "静かな神社仏閣", "人の少ない自然スポット"],
   },
@@ -219,9 +259,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "成果を取りに行く判断の月",
     focusPeriod: "成果を取りに行きやすく、判断力が問われる時期",
     dailyExamples: ["締切が重なり判断を急ぎたくなる", "数字や結果が気になりやすい", "強めの言い方になりやすい"],
-    loveScenes: ["仕事終わりの会話", "紹介の場", "少し背筋が伸びる場所"],
-    workScenes: ["評価面談", "数字の確認", "締切案件の加速"],
-    relationsScenes: ["意見がぶつかりやすい会話", "判断を急ぐ場面", "役割の押し出しが強くなる時"],
+    loveScenes: ["仕事終わりの会話", "紹介の場", "少し背筋が伸びる場所", "目的のある食事の場"],
+    workScenes: ["評価面談", "数字の確認", "締切案件の加速", "役割の主導権を決める場面"],
+    relationsScenes: ["意見がぶつかりやすい会話", "判断を急ぐ場面", "役割の押し出しが強くなる時", "結果の共有タイミング"],
+    decisionTips: {
+      hesitation: "結果を急いで押し切るか、説明を入れて進めるか",
+      decisionKey: "結論の前に目的と条件を共有して、納得感を作る",
+      overlookedSign: "正しさに集中しすぎて、相手の温度差を見ていない",
+    },
     actionChallenge: "今日の目標を1つだけ先に紙へ書く",
     powerSpots: ["展望の良い場所", "ホテルラウンジ", "集中できるワークスペース"],
   },
@@ -229,9 +274,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "切り替え前の整理と余白づくり",
     focusPeriod: "切り替えの気配が出て、手放しが効く時期",
     dailyExamples: ["昔の連絡先を見返す機会がある", "仕上げ作業が増える", "情で引き受けたことを見直したくなる"],
-    loveScenes: ["久しぶりの再会", "価値観の話ができる時間", "静かな散歩時間"],
-    workScenes: ["仕上げ作業", "引き継ぎ", "タスクの整理"],
-    relationsScenes: ["情で抱えた役割の見直し", "連絡先や付き合いの整理", "距離を取りたい相談"],
+    loveScenes: ["久しぶりの再会", "価値観の話ができる時間", "静かな散歩時間", "少し長めの会話ができる夜"],
+    workScenes: ["仕上げ作業", "引き継ぎ", "タスクの整理", "役割の終了・継続判断"],
+    relationsScenes: ["情で抱えた役割の見直し", "連絡先や付き合いの整理", "距離を取りたい相談", "昔のつながりからの連絡"],
+    decisionTips: {
+      hesitation: "情で続けるか、今に合う形へ整え直すか",
+      decisionKey: "嫌いだから切るのではなく、必要量で関わる",
+      overlookedSign: "断れない理由が優しさではなく、罪悪感になっている",
+    },
     actionChallenge: "使っていない予定や物を1つ手放す",
     powerSpots: ["空が広く見える場所", "夕方の公園", "静かな散歩道"],
   },
@@ -239,9 +289,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "収穫を定着させる秋の流れ",
     focusPeriod: "結果が見え始め、定着させると強い時期",
     dailyExamples: ["評価や反応が返ってきやすい", "忙しくて連絡が事務的になる", "成果を次につなげる判断が必要"],
-    loveScenes: ["秋のイベント", "落ち着いた食事", "将来の話がしやすい時間"],
-    workScenes: ["評価反映の確認", "継続案件の相談", "学習成果の確認"],
-    relationsScenes: ["忙しさの中の連絡", "役割の固定化", "感謝の伝え漏れ"],
+    loveScenes: ["秋のイベント", "落ち着いた食事", "将来の話がしやすい時間", "少し長めの週末デート"],
+    workScenes: ["評価反映の確認", "継続案件の相談", "学習成果の確認", "次期計画の相談"],
+    relationsScenes: ["忙しさの中の連絡", "役割の固定化", "感謝の伝え漏れ", "頼られ役が定着した場面"],
+    decisionTips: {
+      hesitation: "評価を守るために抱え込むか、再配分するか",
+      decisionKey: "成果を言語化してから次を選ぶと、無理な継続を減らせる",
+      overlookedSign: "できていることを共有せず、次の負担だけ増えている",
+    },
     actionChallenge: "うまくいったことを1つ言語化して残す",
     powerSpots: ["美術館や展示", "静かなレストラン", "紅葉の見える場所"],
   },
@@ -249,9 +304,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "年末前の回復と最終調整",
     focusPeriod: "回復と最終調整で無理を減らしたい時期",
     dailyExamples: ["疲れから言葉がきつくなりやすい", "確認作業が続いて集中が切れる", "休みたいのに予定を入れがち"],
-    loveScenes: ["落ち着いた家時間", "短い通話", "静かなカフェ"],
-    workScenes: ["詰め作業", "再確認", "体調を見ながらの進行"],
-    relationsScenes: ["疲れが出る会話", "短い返事で誤解される場面", "断るタイミングに迷う時"],
+    loveScenes: ["落ち着いた家時間", "短い通話", "静かなカフェ", "予定を詰めない日の散歩"],
+    workScenes: ["詰め作業", "再確認", "体調を見ながらの進行", "優先順位の再設定"],
+    relationsScenes: ["疲れが出る会話", "短い返事で誤解される場面", "断るタイミングに迷う時", "休みたい日の誘い"],
+    decisionTips: {
+      hesitation: "無理してこなすか、休みを優先して守るか",
+      decisionKey: "回復を予定に入れてから残りを配置する",
+      overlookedSign: "疲れているのに、元気なふりで返事をしている",
+    },
     actionChallenge: "寝る前に明日の優先順位を2つだけ決める",
     powerSpots: ["あたたかい光のある部屋", "静かなカフェ", "ゆっくり歩ける公園"],
   },
@@ -259,9 +319,14 @@ const MONTH_META: Record<FortuneMonth, MonthMeta> = {
     seasonTheme: "年末の締めくくりと感謝",
     focusPeriod: "締めくくりと感謝で流れを整える時期",
     dailyExamples: ["予定が重なって返信が遅れやすい", "年末の片付けで疲れが出る", "来年準備に気持ちが先走る"],
-    loveScenes: ["年末の集まり", "帰省のタイミング", "一区切りの会話"],
-    workScenes: ["締切対応", "片付けと振り返り", "来年準備"],
-    relationsScenes: ["予定調整の連絡", "感謝を伝える機会", "会えない相手とのやり取り"],
+    loveScenes: ["年末の集まり", "帰省のタイミング", "一区切りの会話", "今年を振り返る食事"],
+    workScenes: ["締切対応", "片付けと振り返り", "来年準備", "最終共有・引き継ぎ"],
+    relationsScenes: ["予定調整の連絡", "感謝を伝える機会", "会えない相手とのやり取り", "年始前の挨拶メッセージ"],
+    decisionTips: {
+      hesitation: "最後まで詰めるか、締め方を整えて終えるか",
+      decisionKey: "完了の基準を先に決めて、感謝を言葉にして締める",
+      overlookedSign: "来年の準備を優先しすぎて、今月の区切りを作れていない",
+    },
     actionChallenge: "今年お世話になった人へ短い感謝を送る",
     powerSpots: ["イルミネーションの見える場所", "静かな神社", "部屋の整ったデスク周り"],
   },
@@ -730,6 +795,69 @@ const januaryTemplates: Record<FortuneNumber, FortuneMonthlyTemplate> = {
   }),
 };
 
+const monthlyOverrides: Partial<Record<FortuneMonth, Record<FortuneNumber, FortuneMonthlyTemplate>>> = {
+  // 3月だけ差し替えた例（運命数7のみ手書き）
+  3: {
+    ...Object.fromEntries(
+      ([1, 2, 3, 4, 5, 6, 8, 9] as FortuneNumber[]).map((n) => [n, generateMonthlyTemplate(3, n)])
+    ) as Record<FortuneNumber, FortuneMonthlyTemplate>,
+    7: createTemplate(7, `${fortuneNumberNames[7]}のあなたへ。`, {
+      introBody:
+        "3月は季節の切り替えで心がゆるみやすく、あなたの洞察力が静かに働く月です。周りが動き出す空気に合わせて、考えが散っていませんか？\n" +
+        "今月は一気に進めるより、再始動したいことを一つに絞って小さく始めるほど、選ぶ力が冴えてきます。",
+      themeCatch: "3月のテーマは「静かに選ぶ、小さく再始動する」",
+      firstHalf:
+        "前半は、歓迎会や予定調整の連絡が増えて、外の流れに引っぱられやすい時期です。LINEの返信を後回しにしたくなる日は、考える時間が必要なサインかもしれません。\n" +
+        "たとえば「新しい予定が増えて気持ちが散りやすい」「久しぶりの人から連絡が来る」「春の買い物で予定が延びる」といった場面に、今月の課題と強みが出やすくなります。\n\n" +
+        "- 前半の鍵：再始動したいことを一つ決める\n" +
+        "- 意識したい姿勢：結論を急がず、先に整理する\n" +
+        "- 見落としやすいサイン：楽しい流れのあとに、約束や締切を言葉にしないままにしてしまう",
+      secondHalf:
+        "後半は、前半に拾った違和感の正体が見えてきて、選別が進みやすくなります。全部に乗る必要はなく、『今の自分に合うもの』だけ残せば十分です。\n" +
+        "相談や予定変更が入っても、まず方向だけ決めてから返事をすると、無理なく流れを保てます。\n\n" +
+        "- 伸びる行動：短い相談、比較、優先順位の言語化\n" +
+        "- 注意点：考えすぎて返事そのものを止めてしまうこと\n" +
+        "- 次月への準備：続けたい習慣を一つだけ残す",
+      loveSingle:
+        "3月の恋愛運（シングル）は、にぎやかな場よりも、話の中身が見える場所でご縁が育ちやすい流れです。歓迎会や送別会で会った人でも、二次会のにぎわいより帰り際の会話や後日のLINEで相性が見えやすくなります。\n" +
+        "学びの場や本屋、春服を見に行く時間のように、相手の選び方が見える場面にもヒントがあります。\n\n" +
+        "- 出会いやすい場面：送別会や歓迎会／学びの場／春服を見に行く時間／外で過ごす週末の予定\n" +
+        "- 行動のヒント：その場で判断せず、当日中に短いお礼LINEを送って会話をつなぐ\n" +
+        "- 注意点：沈黙が心地いい相手を、反応が薄いと早合点しない",
+      lovePartner:
+        "関係を深めるには、気持ちがほどけやすい時期だからこそ、言わなくても伝わる前提を減らすのが大切です。静かに考えてから話したいあなたの良さを、先にひと言共有しておくとすれ違いが減ります。\n\n" +
+        "- 会話テーマ：今の気分、ひとり時間の取り方、春の予定\n" +
+        "- すれ違い回避：黙る前に『少し考えてから話したい』と伝える\n" +
+        "- 愛情表現：長文より、短くても本音を言葉にする",
+      work:
+        "仕事・学業では、新しい役割の相談や引き継ぎ、資料作成などで『まず判断して』と言われる場面が増えやすい3月です。ここで急いで結論を出すより、条件を一度整理してから返すほうが、あなたの強みがよく生きます。\n" +
+        "たとえば歓迎会の予定で夜が埋まりやすい週は、日中の集中時間を先に確保しておくと作業の質が落ちにくくなります。\n\n" +
+        "- 伸ばしたい点：確認力と選別の精度\n" +
+        "- 力を入れたい時期：前半で整理、後半で着手\n" +
+        "- 起きやすい場面：新しい役割の相談／資料作成／環境の切り替え準備／引き継ぎの会話\n" +
+        "- 行動：返事の前に『目的・期限・条件』を3行でメモする",
+      relations:
+        "人間関係では、新旧のつながりが混ざるぶん、距離感の見極めが大切になります。久しぶりの連絡にうれしさがあっても、今の自分のペースに合う関わり方を選んで構いません。\n" +
+        "『今日は返せないけれど、明日なら落ち着いて話せる』のように伝えると、やさしさを保ったまま自分も守れます。\n\n" +
+        "- 距離感の整え方：広げる前に、深めたい相手を選ぶ\n" +
+        "- 起きやすい場面：新旧の人間関係が混ざる場面／連絡先の整理／距離感を測る会話／久々の再連絡\n" +
+        "- 伝え方：結論を急がず、今の状況を先に添える\n" +
+        "- 注意点：疲れた時に急に連絡を切ってしまうこと",
+      actions: [
+        "通知を切って5分だけ考えを整理する時間を作る",
+        "歓迎会や集まりの予定は、行く前に『早く帰る基準』を決めておく",
+        "再始動したいことを一つだけ選び、最初の作業を10分で始める",
+      ],
+      powerSpots: ["静かな本屋の奥の棚", "光の入るカフェの窓際", "少し遠回りできる散歩道"],
+      keywords: ["洞察", "内省", "選別"],
+      blessing:
+        "3月のあなたは、静かに見極めるほど流れを整えられます。小さく始めたことが、あとから確かな手応えになります。\n" +
+        "あなたの静けさは、前へ進むための力です。\n" +
+        "私は、落ち着いて選び、必要な一歩を進められる。",
+    }),
+  } as Record<FortuneNumber, FortuneMonthlyTemplate>,
+};
+
 function generateMonthlyTemplate(month: FortuneMonth, fortuneNumber: FortuneNumber): FortuneMonthlyTemplate {
   const monthInfo = MONTH_THEMES[month];
   const monthMeta = MONTH_META[month];
@@ -745,12 +873,20 @@ function generateMonthlyTemplate(month: FortuneMonth, fortuneNumber: FortuneNumb
 
   const dailyExampleA = pickMonthItem(monthMeta.dailyExamples, fortuneNumber);
   const dailyExampleB = pickMonthItem(monthMeta.dailyExamples, fortuneNumber + 1);
+  const dailyExampleC = pickMonthItem(monthMeta.dailyExamples, fortuneNumber + 2);
   const loveSceneA = pickMonthItem(monthMeta.loveScenes, fortuneNumber);
   const loveSceneB = pickMonthItem(monthMeta.loveScenes, fortuneNumber + 1);
+  const loveSceneC = pickMonthItem(monthMeta.loveScenes, fortuneNumber + 2);
   const workSceneA = pickMonthItem(monthMeta.workScenes, fortuneNumber);
   const workSceneB = pickMonthItem(monthMeta.workScenes, fortuneNumber + 1);
+  const workSceneC = pickMonthItem(monthMeta.workScenes, fortuneNumber + 2);
   const relationsSceneA = pickMonthItem(monthMeta.relationsScenes, fortuneNumber);
   const relationsSceneB = pickMonthItem(monthMeta.relationsScenes, fortuneNumber + 1);
+  const relationsSceneC = pickMonthItem(monthMeta.relationsScenes, fortuneNumber + 2);
+
+  const formatList = (items: readonly string[]) => items.join("／");
+  const uniqueExamples = Array.from(new Set([dailyExampleA, dailyExampleB, dailyExampleC]));
+  const dailyExampleText = uniqueExamples.map((example) => `「${example}」`).join("、");
 
   const introLead =
     variant === 0
@@ -768,31 +904,41 @@ function generateMonthlyTemplate(month: FortuneMonth, fortuneNumber: FortuneNumb
 
   const secondHalfLead =
     variant === 0
-      ? `月後半は、前半で整えたことが効いてきて手応えを感じやすくなります。`
+      ? `月後半は${monthMeta.seasonTheme}の流れが「整える」から「動かす」に変わり、前半で整えたことが効いて手応えを感じやすくなります。`
       : variant === 1
-        ? `後半に入ると、前半に見直したことが少しずつ形になってきます。`
-        : `月後半は、選び直した行動が流れを安定させるタイミングです。`;
+        ? `後半に入ると、${monthMeta.seasonTheme}の空気の中で前半に見直したことが少しずつ形になってきます。`
+        : `月後半は${monthMeta.seasonTheme}を活かして、選び直した行動が流れを安定させるタイミングです。`;
 
   const loveSingleLead =
     variant === 0
-      ? `${monthLabel}の恋愛運（シングル）は、${loveSceneA}のような場面で自然な会話から縁が育ちやすいです。`
+      ? `${monthLabel}の恋愛運（シングル）は、${monthMeta.seasonTheme}の空気に乗って${loveSceneA}のような場面で自然な会話から縁が育ちやすいです。`
       : variant === 1
-        ? `${monthLabel}の恋愛運（シングル）は、${loveSceneA}や${loveSceneB}で肩の力を抜いて話せる相手に注目したい流れです。`
-        : `${monthLabel}の恋愛運（シングル）は、${loveSceneA}など「日常の少し外側」でご縁が入りやすくなります。`;
+        ? `${monthLabel}の恋愛運（シングル）は、${monthMeta.seasonTheme}の影響で${loveSceneA}や${loveSceneB}で肩の力を抜いて話せる相手に注目したい流れです。`
+        : `${monthLabel}の恋愛運（シングル）は、${monthMeta.seasonTheme}を追い風に${loveSceneA}など「日常の少し外側」でご縁が入りやすくなります。`;
 
   const workLead =
     variant === 0
-      ? `${monthLabel}の仕事・学業は、${workSceneA}の場面で${profile.workStyle}力が活きやすい流れです。`
+      ? `${monthLabel}の仕事・学業は、${monthMeta.seasonTheme}を背景に${workSceneA}の場面で${profile.workStyle}力が活きやすい流れです。`
       : variant === 1
-        ? `${monthLabel}の仕事・学業は、${workSceneA}や${workSceneB}で準備の質が差になりやすい時期です。`
-        : `${monthLabel}の仕事・学業は、${workSceneA}をどう進めるかで月全体の安定感が変わりやすくなります。`;
+        ? `${monthLabel}の仕事・学業は、${monthMeta.seasonTheme}の流れで${workSceneA}や${workSceneB}の準備の質が差になりやすい時期です。`
+        : `${monthLabel}の仕事・学業は、${monthMeta.seasonTheme}の中で${workSceneA}をどう進めるかで月全体の安定感が変わりやすくなります。`;
 
   const relationsLead =
     variant === 0
-      ? `${monthLabel}の人間関係は、${relationsSceneA}のような場面で${profile.relationKey}が効きやすいです。`
+      ? `${monthLabel}の人間関係は、${monthMeta.seasonTheme}の影響で${relationsSceneA}のような場面で${profile.relationKey}が効きやすいです。`
       : variant === 1
-        ? `${monthLabel}の人間関係は、${relationsSceneA}や${relationsSceneB}で言葉の順番を整えると空気がやわらぎます。`
-        : `${monthLabel}の人間関係は、${relationsSceneA}が起きやすいぶん、伝え方を少し工夫すると関係が安定しやすくなります。`;
+        ? `${monthLabel}の人間関係は、${monthMeta.seasonTheme}らしく${relationsSceneA}や${relationsSceneB}で言葉の順番を整えると空気がやわらぎます。`
+        : `${monthLabel}の人間関係は、${monthMeta.seasonTheme}で${relationsSceneA}が起きやすいぶん、伝え方を少し工夫すると関係が安定しやすくなります。`;
+
+  /*
+   * 生成サンプル（抜粋 / 運命数5）
+   * 4月 loveSingle:
+   *   「新生活のリズムを作る」の影響で、職場や学校の休憩時間や新しい店に立ち寄った時...
+   *   - 出会いやすい場面：通勤通学の新ルート／職場や学校の休憩時間／新しい店に立ち寄った時／同じ時間帯に顔を合わせる場所
+   * 5月 loveSingle:
+   *   「外へ広がる勢いを整える」の影響で、遠出の途中や友人経由の紹介...
+   *   - 出会いやすい場面：イベント会場／遠出の途中／友人経由の紹介／屋外の集まりやフェス
+   */
 
   return {
     fortuneNumber,
@@ -803,22 +949,22 @@ function generateMonthlyTemplate(month: FortuneMonth, fortuneNumber: FortuneNumb
     themeCatch: `${monthLabel}のテーマは「${monthInfo.focus}」と「${titleName}らしさの活用」`,
     firstHalf:
       `${firstHalfLead}${relationsSceneA}では、${profile.caution}が出やすくなるかもしれません。\n` +
-      `例えば「${dailyExampleA}」「${dailyExampleB}」のような日常に、その月の課題と強みが表れやすくなります。\n\n` +
+      `例えば${dailyExampleText}のような日常に、その月の課題と強みが表れやすくなります。迷いやすいのは「${monthMeta.decisionTips.hesitation}」の場面です。\n\n` +
       `- 前半の鍵：${monthInfo.focus}の優先順位を決める\n` +
       `- 意識したい姿勢：${monthInfo.mood}\n` +
-      `- ドキッとポイント：${profile.caution}のサインを見逃していませんか？`,
+      `- 見落としやすいサイン：${monthMeta.decisionTips.overlookedSign}`,
     secondHalf:
-      `${secondHalfLead}予定変更や相談が入っても、選択肢を持って対応すると流れを保ちやすいです。\n` +
-      `${profile.relationKey}を意識すると、無理のない前進がしやすくなります。\n\n` +
+      `${secondHalfLead}予定変更や相談が入っても、${monthMeta.decisionTips.decisionKey}を意識して選択肢を持つと流れを保ちやすいです。\n` +
+      `${profile.relationKey}を意識しつつ、${relationsSceneC}のような場面で言い方を整えると無理のない前進がしやすくなります。\n\n` +
       `- 伸びる行動：短い相談、共有、確認\n` +
-      `- 注意点：勢いだけで予定を増やすこと\n` +
+      `- 注意点：${monthMeta.decisionTips.hesitation}で迷ったまま増やしすぎること\n` +
       `- 次月への準備：続けることを1つ言葉にする`,
     loveSingle:
       `${loveSingleLead}${profile.loveStyle}流れなので、会話の温度感を大事にしてみてください。\n` +
-      `たとえば${loveSceneB}で話した相手に、その日のうちに短くお礼を送るだけでも縁がつながりやすくなります。\n\n` +
-      `- 出会いやすい場面：${monthMeta.loveScenes.join("／")}\n` +
+      `たとえば${loveSceneB}や${loveSceneC}で話した相手に、その日のうちに短くお礼を送るだけでも縁がつながりやすくなります。${monthMeta.decisionTips.decisionKey}を恋愛にも応用すると、相性の見極めがしやすくなります。\n\n` +
+      `- 出会いやすい場面：${formatList(monthMeta.loveScenes)}\n` +
       `- 行動のヒント：自分から一言だけ次につながる言葉を送る\n` +
-      `- 注意点：反応の速さや見た目だけで判断しない`,
+      `- 注意点：${monthMeta.decisionTips.hesitation}を恋愛で繰り返し、判断を先延ばしにしない`,
     lovePartner:
       `${monthLabel}の恋愛運（パートナーあり）は、関係を整える会話の質がポイントです。忙しい時ほど『今どう感じているか』を短く共有すると、すれ違いを小さくできます。\n` +
       `ふわっとした不安を放置せず、言葉にすると安心感が戻りやすくなります。\n\n` +
@@ -827,14 +973,16 @@ function generateMonthlyTemplate(month: FortuneMonth, fortuneNumber: FortuneNumb
       `- 愛情表現：具体的な予定や行動で安心を渡す`,
     work:
       `${workLead}準備の質があとで大きく効いてきます。\n` +
-      `うっかり焦って先に動きたくなる日ほど、「${dailyExampleA}」のようなズレが出やすいので、確認を一つ入れると安定します。\n\n` +
+      `うっかり焦って先に動きたくなる日ほど、「${dailyExampleA}」のようなズレが出やすいので、${workSceneB}や${workSceneC}の前に確認を一つ入れると安定します。決断のコツは「${monthMeta.decisionTips.decisionKey}」です。\n\n` +
       `- 伸ばしたい点：優先順位と共有の明確さ\n` +
       `- 力を入れたい時期：前半の整え＋後半の実行\n` +
+      `- 起きやすい場面：${formatList(monthMeta.workScenes)}\n` +
       `- 行動：今日の最重要1件を先に決める`,
     relations:
-      `${relationsLead}${relationsSceneB}でも、言葉を少し整えるだけで空気が変わります。\n` +
-      `例えば『今日は難しいですが、明日なら返せます』のように選択肢を示すと、相手も受け取りやすくなります。\n\n` +
+      `${relationsLead}${relationsSceneB}や${relationsSceneC}でも、言葉を少し整えるだけで空気が変わります。\n` +
+      `例えば『今日は難しいですが、明日なら返せます』のように選択肢を示すと、相手も受け取りやすくなります。${monthMeta.decisionTips.hesitation}で迷う時ほど、${monthMeta.decisionTips.decisionKey}が効きます。\n\n` +
       `- 距離感の整え方：会う頻度・返信速度の基準を持つ\n` +
+      `- 起きやすい場面：${formatList(monthMeta.relationsScenes)}\n` +
       `- 伝え方：短く・明るく・具体的に\n` +
       `- 注意点：疲れている時に無理な約束をしない`,
     actions: [
@@ -856,11 +1004,14 @@ function buildAllMonthlyTemplates(): Record<FortuneMonth, Record<FortuneNumber, 
   for (let month = 1; month <= 12; month += 1) {
     const monthKey = month as FortuneMonth;
     const monthly = {} as Record<FortuneNumber, FortuneMonthlyTemplate>;
+    const monthOverride = monthKey >= 3 ? monthlyOverrides[monthKey] : undefined;
 
     for (let number = 1; number <= 9; number += 1) {
       const numberKey = number as FortuneNumber;
       monthly[numberKey] =
-        monthKey === 1 ? januaryTemplates[numberKey] : generateMonthlyTemplate(monthKey, numberKey);
+        monthKey === 1
+          ? januaryTemplates[numberKey]
+          : monthOverride?.[numberKey] ?? generateMonthlyTemplate(monthKey, numberKey);
     }
 
     result[monthKey] = monthly;
@@ -876,7 +1027,16 @@ export function getFortuneMonthlyTemplate(month: number, number: number): Fortun
     return null;
   }
 
-  return fortuneMonthlyTemplates[month][number];
+  if (month === 1) {
+    return januaryTemplates[number];
+  }
+
+  const override = month >= 3 ? monthlyOverrides[month]?.[number] : undefined;
+  if (override != null) {
+    return override;
+  }
+
+  return generateMonthlyTemplate(month, number);
 }
 
 export { isFortuneMonth };
