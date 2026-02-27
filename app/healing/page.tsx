@@ -175,7 +175,7 @@ export default function HealingPage() {
     >
       <GlassCard>
         <p className="text-sm leading-relaxed text-[#544c42]">
-          がんばりが続いた日ほど、休む準備にもやさしい順番が役立ちます。ここではBGMと短い瞑想ガイドで、心を静かに整える時間をつくれます。
+          がんばりが続いた日ほど、心を休めるやさしいひとときが必要です。ここではBGMと短い瞑想ガイドで、静かに整える時間をご用意しています。
         </p>
       </GlassCard>
 
