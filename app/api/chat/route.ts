@@ -73,21 +73,29 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const LUMINA_SYSTEM_PROMPT = `あなたは白の魔女ルミナです。占い師として丁寧で落ち着いた口調を保ってください。
-タロットは、高次元の存在から届く声を聴き、今の流れ・心の向き・向き合い方を読み解くものです。
-医療・生死・試験の合否など、現実の専門的な判断や確かな見立てが必要なことは占いで言い切らないでください。
-そのような相談には、突き放さずに、まず気持ちに寄り添い、占いでは触れられない理由を静かに伝え、代わりに運気や流れ・向き合い方なら見られることを提案し、見てよいかをやさしく確認してください。
-相談者の恋愛や人間関係の当事者は相談者本人であり、あなたは第三者・伴走者として助言と質問に徹してください。
-「私も〜したい」「一緒に〜しよう」「私も興味がある」のように、あなた自身が当事者化する表現は禁止です。
+const LUMINA_SYSTEM_PROMPT = `あなたは白の魔女ルミナです。占い師として常に謙虚で温和にふるまい、ご相談者さまの絶対的な味方でいてください。
+語り口は、25〜54歳の女性に届く品格と共感性を重視し、魂に静かに響く丁寧な表現にしてください。
+断定表現（必ず・確定・絶対・100%など）は避け、可能性として寄り添って伝えてください。
+お相手について言及する場合は、必ず「お相手さま」と呼んでください。
+ご相談者さまが迷いや不安を示したときは、「あなたは何も間違っていない」「自分を誇りに思って」という肯定メッセージを自然に含めてください。
+
+タロットは、今の流れ・心の向き・向き合い方を読み解くために使います。医療・生死・子宝の時期・犯罪（犯人探し/浮気の特定）・病気の診断・当てもの（合否/勝敗）など、専門領域や断定が必要な内容は鑑定しないでください。
+そのような相談には、理由を静かに伝えたうえで、次の代案を提案してください:
+- 合格するための戦略
+- 相性の良い方角や環境の整え方
+- 心の持ち方や日々の行動の整え方
+そして「その視点で見てみましょうか？」と、次の相談へやさしくつないでください。
+
+同じ悩みでの再相談は拒まず、「今のあなたの波動に合わせた最新のメッセージ」として誠実に鑑定してください。
+一度で完結させすぎず、自然な深掘りの余地を残してください。
+相談者の恋愛や人間関係の当事者は相談者本人であり、あなたは第三者・伴走者として助言に徹してください。
+「私も〜したい」「一緒に〜しよう」「私も興味がある」のような当事者化表現は禁止です。
 雑談は雑談として返し、勝手に占いへ変換しないでください。
 ユーザーが恋愛と言っていないのに恋愛鑑定を始めてはいけません。
 占いは、テーマ確定と許可が取れてから開始してください。
 「うん / はい / お願い / OK」などの肯定返答を受けた直後は、質問を増やさずに鑑定へ進んでください。
 鑑定は「今日限定」ではなく、今の流れ・近い未来・助言として伝えてください。
-病気の診断や治療判断・生死・試験の合否・法律や投資など専門家判断が必要なことは、占いで断定しないでください。
-医療系の相談では、健康そのものは断定せず、健康運や日々の向き合い方として読む姿勢を保ってください。
-ですます調を保ち、同じ語尾の連続を避け、過度な誘導をしないでください。
-最後に短いアファメーションを1行添えてください。`;
+ですます調を保ち、同じ語尾の連続を避け、過度な誘導をしないでください。`;
 
 const FORTUNE_DECLARATION_RE = /少しカードを引いてみますね。少しだけお待ちください。/;
 const FORTUNE_OFFER_CONFIRM_RE =
@@ -105,7 +113,7 @@ function isAwaitingFortuneResultFromHistory(history: ChatHistoryItem[]): boolean
 
 function buildImmediateFortuneLeadIn(message: string): string | null {
   if (/(相手|お相手).*(気持ち)/.test(message) || /(気持ち).*(占って|見て|みて)/.test(message)) {
-    return "そうなんですね。お相手様の気持ちを見てみましょう。";
+    return "そうなんですね。お相手さまのお気持ちを見てみましょう。";
   }
   return null;
 }
@@ -126,6 +134,7 @@ function buildFortuneRequestFromOfferConfirmation(assistantMessage: string | nul
 
   if (/結婚運/.test(text)) return "結婚運を占って";
   if (/(恋愛運|お相手の気持ち)/.test(text)) return "恋愛運を占って";
+  if (/(健康運|健康|体調|頭痛|痛い|不調|どこか悪い|病気)/.test(text)) return "健康運を占って";
   if (/仕事運/.test(text)) return "仕事運を占って";
   if (/金運/.test(text)) return "金運を占って";
   return "占って";
@@ -152,13 +161,16 @@ const MEDICAL_DIAGNOSIS_RE =
   /(腎臓|病気|病名|がん|癌|診断|治療|治りますか|治る|医者|医師|うつ|鬱|発達障害|障害|妊娠|不妊|余命)/;
 const LIFE_DEATH_RE = /(死ぬ|死亡|生きる|寿命|生死|いつ死|亡くなる|助かる|死期)/;
 const EXAM_PASS_FAIL_RE = /(試験|受験|面接|資格試験|国家試験).*(合格|不合格|受かる|落ちる)|((合格|不合格|受かる|落ちる).*(試験|受験|面接|資格))/;
+const WIN_LOSE_PREDICTION_RE = /(勝敗|勝つ|負ける|どっちが勝つ|優勝|当選|落選|的中|当たる|当たり|外れる)/;
 const LEGAL_PRO_RE = /(法律|訴訟|裁判|弁護士|違法|合法|慰謝料|相続|契約|法的|投資判断|投資すべき|株を買うべき|診断書|医師の判断|専門家の判断)/;
-const RESTRICTED_TAROT_FIXED_REPLY = `「◯◯のことが気になっているのですね。
+const FERTILITY_TIMING_RE = /(子宝|妊娠の時期|いつ妊娠|授かる時期|妊活.*時期)/;
+const CRIME_IDENTIFICATION_RE = /(犯人|誰が犯人|浮気.*(特定|断定|誰)|不倫.*(特定|断定|誰)|犯人探し)/;
+const RESTRICTED_TAROT_FIXED_REPLY = `◯◯のことが気になっているのですね。
 体のことは、少しの違和感でも不安になりますよね。
 
 けれど——
 
-病気そのものの有無や、具体的な状態を断定することは、
+生死にかかわることや、病気の有無や、具体的な状態を断定することは、
 わたしが触れられる領域ではないのです。
 
 それは医療の専門家が向き合う、大切な現実の領域。
@@ -170,7 +182,7 @@ const RESTRICTED_TAROT_FIXED_REPLY = `「◯◯のことが気になっている
 体との向き合い方についてなら、
 タロットを通して静かにお伝えできます。
 
-その視点で、見てみましょうか。」`;
+その視点で、見てみましょうか。`;
 const HEALTH_THEME_FORBIDDEN_OUTPUT_RE =
   /(LINE|返信|彼氏|彼女|復縁|相手の気持ち|片思い|プロポーズ)/;
 
@@ -254,18 +266,79 @@ type RestrictedTarotTopic =
   | "medical"
   | "life_death"
   | "exam"
-  | "legal";
+  | "legal"
+  | "fertility"
+  | "crime";
 
 function detectRestrictedTarotTopic(input: string): RestrictedTarotTopic | null {
   if (MEDICAL_DIAGNOSIS_RE.test(input)) return "medical";
   if (LIFE_DEATH_RE.test(input)) return "life_death";
-  if (EXAM_PASS_FAIL_RE.test(input)) return "exam";
+  if (EXAM_PASS_FAIL_RE.test(input) || WIN_LOSE_PREDICTION_RE.test(input)) return "exam";
   if (LEGAL_PRO_RE.test(input)) return "legal";
+  if (FERTILITY_TIMING_RE.test(input)) return "fertility";
+  if (CRIME_IDENTIFICATION_RE.test(input)) return "crime";
   return null;
 }
 
-function buildRestrictedTarotReply(_kind: RestrictedTarotTopic): string {
+function buildRestrictedTarotReply(kind: RestrictedTarotTopic): string {
+  if (kind === "fertility") {
+    return `そのことが気になっているのですね。
+ご不安なお気持ち、とても自然なことです。
+
+子宝の時期を断定することは、占いで言い切れない領域です。
+ただ、授かりやすい心身の整え方や、日々の流れの読み解きなら丁寧にお手伝いできます。
+
+たとえば、
+- 心身の負荷を減らす生活リズム
+- 相性の良い方角や過ごし方
+- 焦りを和らげる心の整え方
+
+その視点で、見てみましょうか。`;
+  }
+  if (kind === "crime") {
+    return `そのことが気になっているのですね。
+胸が落ち着かないお気持ち、よく伝わってきます。
+
+犯人探しや浮気の特定を断定することは、占いで扱えない領域です。
+ただ、あなたが自分を守るための行動戦略や、心の整え方を一緒に読み解くことはできます。
+
+たとえば、
+- 状況整理のための確認ポイント
+- 距離感と境界線の整え方
+- 気持ちを守るための行動の優先順位
+
+その視点で、見てみましょうか。`;
+  }
+  if (kind === "exam") {
+    return `そのことが気になっているのですね。
+結果が気になる時期は、心が揺れやすいですよね。
+
+合否や勝敗の断定は占いで言い切れません。
+ただ、結果に近づくための戦略や、当日までの整え方なら読み解けます。
+
+たとえば、
+- 合格・勝利に向けた行動の優先順位
+- 集中力が高まりやすい時間帯や環境
+- 本番で力を出し切るための心の持ち方
+
+その視点で、見てみましょうか。`;
+  }
   return RESTRICTED_TAROT_FIXED_REPLY.replace("◯◯", "そのこと");
+}
+
+function enforceFortuneClosing(text: string): string {
+  let out = text.trim();
+  out = out.replace(/お相手様/g, "お相手さま");
+  if (/お相手(?!さま)/.test(out)) {
+    out = out.replace(/お相手(?!さま)/g, "お相手さま");
+  }
+  if (!/魂の決意/.test(out)) {
+    out = `${out}\n\nご相談者さまの魂の決意を、今日ここでひとつ選んでみてください。`;
+  }
+  if (!/また迷ったときは、いつでも頼ってくださいね。/.test(out)) {
+    out = `${out}\nまた迷ったときは、いつでも頼ってくださいね。`;
+  }
+  return out;
 }
 
 function themeLabel(theme: TarotChatTheme): string {
@@ -346,7 +419,7 @@ function inferThemeFromOfferMessage(assistantMessage: string | null): TarotChatT
   if (!assistantMessage) return null;
   if (/結婚運/.test(assistantMessage)) return "marriage";
   if (/恋愛運|お相手の気持ち/.test(assistantMessage)) return "love";
-  if (/健康運/.test(assistantMessage)) return "health";
+  if (/(健康運|健康|体調|頭痛|痛い|不調|どこか悪い|病気)/.test(assistantMessage)) return "health";
   if (/仕事運/.test(assistantMessage)) return "work";
   if (/金運/.test(assistantMessage)) return "money";
   return null;
@@ -750,16 +823,20 @@ export async function POST(request: Request) {
         : resolvedMode === "daily-fortune"
           ? ensureFortuneOutputFormat(rawText, cards ?? [])
           : rawText;
+    const enforcedText =
+      resolvedMode === "fortune" || resolvedMode === "daily-fortune"
+        ? enforceFortuneClosing(formattedText)
+        : formattedText;
     const immediateFortuneLeadIn =
       resolvedMode === "fortune" && mode === "chat" && !awaitingFortuneResult
         ? buildImmediateFortuneLeadIn(trimmedMessage)
         : null;
     const text =
       resolvedMode === "fortune" && awaitingFortuneResult && shouldAddAwaitingBridge
-        ? `ありがとうございます。では、カードから見えたことをお伝えしますね。\n${formattedText}`
+        ? `ありがとうございます。では、カードから見えたことをお伝えしますね。\n${enforcedText}`
         : immediateFortuneLeadIn
-          ? `${immediateFortuneLeadIn}\n${formattedText}`
-          : formattedText;
+          ? `${immediateFortuneLeadIn}\n${enforcedText}`
+          : enforcedText;
 
     return NextResponse.json({
       text,
