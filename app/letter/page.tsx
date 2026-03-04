@@ -35,6 +35,7 @@ function countChars(input: string): number {
 export default function LetterPage() {
   const [nickname, setNickname] = useState(() => loadProfileForLetter().nickname ?? "");
   const [message, setMessage] = useState("");
+  const [luminaReply, setLuminaReply] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -65,10 +66,11 @@ export default function LetterPage() {
           message: trimmed,
         }),
       });
-      const data = (await response.json()) as { ok?: boolean; error?: string };
+      const data = (await response.json()) as { ok?: boolean; error?: string; reply?: string };
       if (!response.ok || !data.ok) {
         throw new Error(data.error ?? "送信に失敗しました。");
       }
+      setLuminaReply(typeof data.reply === "string" ? data.reply : "");
       setSubmitted(true);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "送信に失敗しました。");
@@ -88,10 +90,8 @@ export default function LetterPage() {
     >
       {submitted ? (
         <GlassCard className="rounded-3xl space-y-4">
-          <p className="text-base leading-relaxed text-[#544c42]">
-            あなたの言葉は確かに受け取りました。
-            もしもう少し深く心を整理したいときは、
-            個人鑑定でゆっくりお話を聞かせてください。
+          <p className="text-base leading-relaxed text-[#544c42] whitespace-pre-line">
+            {luminaReply || "あなたの言葉は確かに受け取りました。無理しすぎず、今日はひとつだけ心がほどける時間を作ってみてください。"}
           </p>
           <LuminaButton asChild className="rounded-xl px-6">
             <Link href="/consultation">個人鑑定を依頼する</Link>
