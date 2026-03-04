@@ -38,7 +38,7 @@ export default async function FortuneMonthlyResultIndexPage() {
       maxWidth="content"
       title={`${fortuneName}の毎月の運勢`}
       description="見たい月を選んでください。"
-      backHref="/fortune-monthly"
+      backHref="/fortune-monthly?edit=1"
       backLabel="生年月日入力へ戻る"
       headerRight={<LuminaLinkButton href="/" tone="secondary">トップへ戻る</LuminaLinkButton>}
     >

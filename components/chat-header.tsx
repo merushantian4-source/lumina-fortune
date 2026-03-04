@@ -22,7 +22,7 @@ export function ChatHeader({ onBackToTop }: ChatHeaderProps) {
           <div className="h-10 w-10 overflow-hidden rounded-full bg-gradient-to-br from-white via-[#f9f5ec] to-[#efe8d8] ring-2 ring-[#e1d5bf]/75">
             <Image
               src="/lumina-icon.png"
-              alt="ルミナのアイコン"
+              alt="白の魔女ルミナのアイコン"
               width={40}
               height={40}
               className="h-full w-full object-cover"
@@ -31,15 +31,16 @@ export function ChatHeader({ onBackToTop }: ChatHeaderProps) {
           </div>
           <div>
             <h2 className="font-medium text-[#2e2a26]">白の魔女ルミナ</h2>
-            <p className="text-xs text-[#544c42]">光とハーブを操るやさしい案内役</p>
+            <p className="text-xs text-[#544c42]">光とハーブを操るやさしい魔女</p>
           </div>
         </div>
         <button
           type="button"
           onClick={handleBack}
-          className="lumina-btn lumina-btn-secondary pointer-events-auto !min-h-0 rounded-full px-3 py-1.5 text-xs"
+          className="group pointer-events-auto inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#c6b497]/80 bg-[linear-gradient(160deg,rgba(255,252,246,0.96),rgba(247,239,226,0.92))] px-4 py-2 text-[13px] font-medium tracking-[0.02em] text-[#675b4a] shadow-[0_10px_22px_-18px_rgba(82,69,53,0.45)] transition hover:border-[#bca883]/85 hover:bg-[#faf3e7] hover:text-[#544c42] active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b9ab93]/45"
         >
-          ← トップへ戻る
+          <span aria-hidden>←</span>
+          <span>トップへ戻る</span>
         </button>
       </div>
     </header>

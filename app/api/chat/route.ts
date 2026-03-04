@@ -5,9 +5,10 @@ import {
   buildBirthdate2026Prompt,
   buildChatPrompt,
   buildDialoguePrompt,
-  buildDailyFortunePrompt,
 } from "@/lib/prompt-builder";
-import { ensureFortuneOutputFormat } from "@/lib/fortune-output";
+import { buildDailyFortunePrompt } from "@/lib/daily-fortune-prompt";
+import { ensureFortuneOutputFormat } from "@/lib/daily-fortune-output";
+import { getPreviousDailyCard, saveDailyCardForDate } from "@/lib/daily-fortune-history";
 import { buildTarotChatPrompt } from "@/lib/prompts/tarotChatPrompt";
 import { greetingMessage, greetingResponse } from "@/lib/greeting-message";
 import {
@@ -34,6 +35,11 @@ type RequestBody = {
   message?: string;
   cards?: { name: string; reversed?: boolean }[];
   mode?: string;
+  profile?: {
+    nickname?: string;
+    job?: string;
+    loveStatus?: "single" | "married" | "complicated" | "unrequited" | string;
+  };
   history?: ChatHistoryItem[];
   conversationState?: {
     phase?: string;
@@ -72,6 +78,31 @@ type TarotChatConversationState = {
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const JA_WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
+
+function getJstNowParts(base = new Date()) {
+  const formatter = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  });
+  const parts = formatter.formatToParts(base);
+  const year = parts.find((p) => p.type === "year")?.value ?? "0000";
+  const month = parts.find((p) => p.type === "month")?.value ?? "01";
+  const day = parts.find((p) => p.type === "day")?.value ?? "01";
+  const weekdayRaw = parts.find((p) => p.type === "weekday")?.value ?? "日";
+  const weekdayJa = JA_WEEKDAYS.find((v) => weekdayRaw.includes(v)) ?? "日";
+  return { dateKey: `${year}-${month}-${day}`, weekdayJa };
+}
+
+function resolveDailyFortuneUserKey(profile: RequestBody["profile"]): string {
+  const nickname = profile?.nickname?.trim();
+  if (!nickname) return "guest";
+  return `nickname:${nickname.toLowerCase()}`;
+}
 
 const LUMINA_SYSTEM_PROMPT = `あなたは白の魔女ルミナです。占い師として常に謙虚で温和にふるまい、ご相談者さまの絶対的な味方でいてください。
 語り口は、25〜54歳の女性に届く品格と共感性を重視し、魂に静かに響く丁寧な表現にしてください。
@@ -332,12 +363,6 @@ function enforceFortuneClosing(text: string): string {
   if (/お相手(?!さま)/.test(out)) {
     out = out.replace(/お相手(?!さま)/g, "お相手さま");
   }
-  if (!/魂の決意/.test(out)) {
-    out = `${out}\n\nご相談者さまの魂の決意を、今日ここでひとつ選んでみてください。`;
-  }
-  if (!/また迷ったときは、いつでも頼ってくださいね。/.test(out)) {
-    out = `${out}\nまた迷ったときは、いつでも頼ってくださいね。`;
-  }
   return out;
 }
 
@@ -391,16 +416,28 @@ function toFortunePromptMessage(theme: TarotChatTheme | null, userMessage: strin
 
 function hasAllHealthHeaders(text: string): boolean {
   return [
-    "1. 引いたカード",
-    "2. 体の流れ・エネルギー状態の象徴",
-    "3. 今の心身バランスの読み解き",
-    "4. 近い未来の体調傾向（断定禁止）",
-    "5. 今日からできる整え方（具体的だが医療的でない）",
-    "6. アファメーション（体と調和する言葉）",
+    "🌿 健康運の鑑定結果",
+    "🕊 引いたカード",
+    "🌿 今の体と心の状態",
+    "🌿 今、整えるとよいこと",
+    "🌿 これからの流れ",
+    "🌿 今日からできる整え方",
+    "🌿 今日のことば",
   ].every((header) => text.includes(header));
 }
 
-function normalizeTarotReadingOutputHeadings(text: string): string {
+function normalizeTarotReadingOutputHeadings(text: string, theme: TarotChatTheme | null): string {
+  if (theme === "health") {
+    return text
+      .replace(/^1\. 引いたカード（3枚）$/m, "🕊 引いたカード")
+      .replace(/^1\. 引いたカード$/m, "🕊 引いたカード")
+      .replace(/^2\. 体の流れ・エネルギー状態の象徴$/m, "🌿 今の体と心の状態")
+      .replace(/^3\. 今の心身バランスの読み解き$/m, "🌿 今、整えるとよいこと")
+      .replace(/^4\. 近い未来の体調傾向（断定禁止）$/m, "🌿 これからの流れ")
+      .replace(/^5\. 今日からできる整え方（具体的だが医療的でない）$/m, "🌿 今日からできる整え方")
+      .replace(/^6\. アファメーション（体と調和する言葉）$/m, "🌿 今日のことば");
+  }
+
   let normalized = text
     .replace(/^1\. 引いたカード（3枚）$/m, "1. 引いたカード")
     .replace(/^2\. カードの象徴$/m, "2. カードの気配")
@@ -439,7 +476,7 @@ function toRecentHistoryMessages(history: ChatHistoryItem[]) {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as RequestBody;
-    const { message, cards: existingCards, mode = "chat" } = body;
+    const { message, cards: existingCards, mode = "chat", profile } = body;
     const history = Array.isArray(body.history) ? body.history : [];
     const incomingConversationState = normalizeTarotChatConversationState(body.conversationState);
     const trimmedMessage = message?.trim() || "こんにちは";
@@ -735,6 +772,12 @@ export async function POST(request: Request) {
     let cards = existingCards;
     let tarotSpread: DrawnTarotCard[] | null = null;
     let usedDialogueMode = false;
+    const { dateKey: dailyDateKey, weekdayJa } = getJstNowParts();
+    const dailyFortuneUserKey = resolveDailyFortuneUserKey(profile);
+    const previousDailyCard =
+      resolvedMode === "daily-fortune"
+        ? await getPreviousDailyCard(dailyFortuneUserKey, dailyDateKey)
+        : null;
 
     if (resolvedMode === "chat") {
       if (
@@ -756,7 +799,18 @@ export async function POST(request: Request) {
         if (!cards || cards.length !== 1) {
           cards = pickDailyFortuneCards(1);
         }
-        prompt = buildDailyFortunePrompt(fortunePromptMessage, cards);
+        prompt = buildDailyFortunePrompt(fortunePromptMessage, cards, {
+          nickname: profile?.nickname,
+          job: profile?.job,
+          loveStatus: profile?.loveStatus,
+          weekdayJa,
+          previousCard: previousDailyCard
+            ? {
+                name: previousDailyCard.cardName,
+                reversed: previousDailyCard.reversed,
+              }
+            : null,
+        });
       } else {
         tarotSpread = drawTarotSpread();
         cards = tarotSpread.map(toUiTarotCardData);
@@ -812,16 +866,28 @@ export async function POST(request: Request) {
     }
 
       const formattedText =
-        resolvedMode === "chat"
+      resolvedMode === "chat"
           ? usedDialogueMode
             ? sanitizeDialogueReply(trimmedMessage, rawText)
             : sanitizeChatReply(trimmedMessage, rawText)
         : resolvedMode === "fortune"
           ? normalizeTarotReadingOutputHeadings(
-              ensureTarotChatOutputFormat(rawText, tarotSpread ?? drawTarotSpread(), nextConversationState.topic)
+              ensureTarotChatOutputFormat(rawText, tarotSpread ?? drawTarotSpread(), nextConversationState.topic),
+              nextConversationState.topic
             )
         : resolvedMode === "daily-fortune"
-          ? ensureFortuneOutputFormat(rawText, cards ?? [])
+          ? ensureFortuneOutputFormat(rawText, cards ?? [], {
+              nickname: profile?.nickname,
+              job: profile?.job,
+              loveStatus: profile?.loveStatus,
+              weekdayJa,
+              previousCard: previousDailyCard
+                ? {
+                    name: previousDailyCard.cardName,
+                    reversed: previousDailyCard.reversed,
+                  }
+                : null,
+            })
           : rawText;
     const enforcedText =
       resolvedMode === "fortune" || resolvedMode === "daily-fortune"
@@ -837,6 +903,18 @@ export async function POST(request: Request) {
         : immediateFortuneLeadIn
           ? `${immediateFortuneLeadIn}\n${enforcedText}`
           : enforcedText;
+
+    if (resolvedMode === "daily-fortune" && cards?.[0]) {
+      try {
+        await saveDailyCardForDate(dailyFortuneUserKey, {
+          dateKey: dailyDateKey,
+          cardName: cards[0].name,
+          reversed: Boolean(cards[0].reversed),
+        });
+      } catch {
+        // Do not block response on persistence failure.
+      }
+    }
 
     return NextResponse.json({
       text,

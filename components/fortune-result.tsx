@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import type { FortuneTemplate } from "@/lib/fortune/types";
 import { PageShell } from "@/components/ui/page-shell";
 import { GlassCard } from "@/components/ui/glass-card";
-import { LuminaButton } from "@/components/ui/button";
+import { LuminaButton, LuminaLinkButton } from "@/components/ui/button";
 
 type Props = {
   template: FortuneTemplate;
@@ -19,12 +19,13 @@ type Props = {
   halfYearSectionTitle?: string;
   firstHalfTitle?: string;
   secondHalfTitle?: string;
+  bottomLinkHref?: string;
+  bottomLinkLabel?: string;
 };
 
 export default function FortuneResult({
   template,
   pageTitle,
-  variantLabel,
   topLinkHref = "/",
   topLinkLabel = "トップへ戻る",
   resetHref,
@@ -33,6 +34,8 @@ export default function FortuneResult({
   halfYearSectionTitle = "⏳ 上半期・下半期",
   firstHalfTitle = "上半期",
   secondHalfTitle = "下半期",
+  bottomLinkHref,
+  bottomLinkLabel,
 }: Props) {
   const router = useRouter();
 
@@ -58,22 +61,16 @@ export default function FortuneResult({
       }
     >
       <GlassCard>
-
-        <header className="lumina-header-panel rounded-2xl p-5 hidden">
-          <p className="lumina-kicker text-xs font-semibold">{variantLabel}</p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{pageTitle}</h1>
-        </header>
-
-        <div className="space-y-8">
-          <GlassCard className="p-5">
-            <SectionHeading>🕊 導入</SectionHeading>
+        <div className="space-y-6 sm:space-y-7">
+          <GlassCard className="border-[#ddd0b8]/75 bg-[linear-gradient(160deg,rgba(255,252,246,0.95),rgba(248,242,231,0.88))] p-5 shadow-[0_14px_30px_-24px_rgba(82,69,53,0.32)]">
+            <SectionHeading>🕊 はじめに</SectionHeading>
             <h2 className="mt-3 text-lg font-medium text-[#2e2a26] sm:text-xl">{template.introTitle}</h2>
             <div className="mt-3">
-              <MarkdownText text={template.introBody} />
+              <MarkdownText text={stripDuplicateLeadingHeading(template.introBody, "はじめに")} />
             </div>
           </GlassCard>
 
-          <section className="rounded-2xl border border-[#d7c894]/60 bg-gradient-to-br from-white/82 via-[#f8f3e7]/68 to-[#eef4ef]/62 p-5 shadow-sm sm:p-6">
+          <section className="rounded-2xl border border-[#dcc99f]/65 bg-[linear-gradient(145deg,rgba(255,252,245,0.9),rgba(247,240,226,0.86),rgba(236,245,238,0.74))] p-5 shadow-[0_12px_26px_-24px_rgba(82,69,53,0.42)] sm:p-6">
             <SectionHeading>🌟 全体テーマ</SectionHeading>
             <p className="mt-4 text-xl font-medium leading-relaxed text-[#2e2a26] sm:text-2xl">{template.themeCatch}</p>
           </section>
@@ -81,12 +78,8 @@ export default function FortuneResult({
           <GlassCard className="p-5">
             <SectionHeading>{halfYearSectionTitle}</SectionHeading>
             <TwoColumnGrid className="mt-4">
-              <InfoCard title={firstHalfTitle}>
-                <MarkdownText text={template.firstHalf} />
-              </InfoCard>
-              <InfoCard title={secondHalfTitle}>
-                <MarkdownText text={template.secondHalf} />
-              </InfoCard>
+              <InfoCardMarkdown title={firstHalfTitle} text={template.firstHalf} />
+              <InfoCardMarkdown title={secondHalfTitle} text={template.secondHalf} />
             </TwoColumnGrid>
           </GlassCard>
 
@@ -94,10 +87,10 @@ export default function FortuneResult({
             <SectionHeading>💗 恋愛運</SectionHeading>
             <TwoColumnGrid className="mt-4">
               <InfoCard title="シングル" description="出会い・進展・心の整え方のヒント">
-                <MarkdownText text={template.loveSingle} />
+                <MarkdownText text={stripDuplicateLoveLead(template.loveSingle, "シングル")} />
               </InfoCard>
               <InfoCard title="パートナーあり" description="関係を育てる対話と行動のヒント">
-                <MarkdownText text={template.lovePartner} />
+                <MarkdownText text={stripDuplicateLoveLead(template.lovePartner, "パートナーあり")} />
               </InfoCard>
             </TwoColumnGrid>
           </GlassCard>
@@ -105,21 +98,18 @@ export default function FortuneResult({
           <TextSection title="💼 仕事・学業運" body={template.work} />
           <TextSection title="🤝 人間関係" body={template.relations} />
 
-          <section className="rounded-2xl border border-emerald-200/70 bg-emerald-50/45 p-5">
+          <section className="rounded-2xl border border-emerald-200/85 bg-[linear-gradient(160deg,rgba(244,252,247,0.8),rgba(232,246,238,0.74))] p-5 shadow-[0_12px_24px_-24px_rgba(16,102,71,0.38)]">
             <SectionHeading>🍀 開運パート</SectionHeading>
 
-            <div className="mt-4 rounded-xl border border-emerald-100/80 bg-white/80 p-4">
-              <h3 className="text-sm font-semibold text-emerald-900">■ 開運アクション</h3>
+            <div className="mt-4 rounded-xl border border-emerald-100/90 bg-white/88 p-4">
+              <h3 className="text-sm font-semibold tracking-wide text-emerald-900">■ 開運アクション</h3>
               <ul className="mt-3 space-y-3">
                 {template.actions.slice(0, 3).map((action, index) => (
                   <li
                     key={`${template.fortuneNumber}-action-${index + 1}`}
-                    className="rounded-lg border border-emerald-100/80 bg-emerald-50/35 px-4 py-3"
+                    className="rounded-lg border border-emerald-100/85 bg-[linear-gradient(165deg,rgba(248,255,251,0.88),rgba(236,249,241,0.72))] px-4 py-3"
                   >
-                    <p className="text-xs font-semibold tracking-wide text-emerald-800">
-                      {index === 0 ? "・色" : index === 1 ? "・習慣" : "・小さな挑戦"}
-                    </p>
-                    <div className="mt-1">
+                    <div>
                       <MarkdownText text={action} />
                     </div>
                   </li>
@@ -127,16 +117,15 @@ export default function FortuneResult({
               </ul>
             </div>
 
-            <div className="mt-4 rounded-xl border border-emerald-100/80 bg-white/80 p-4">
-              <h3 className="text-sm font-semibold text-emerald-900">■ 開運場所</h3>
+            <div className="mt-4 rounded-xl border border-emerald-100/90 bg-white/88 p-4">
+              <h3 className="text-sm font-semibold tracking-wide text-emerald-900">■ 開運場所</h3>
               <ul className="mt-3 space-y-2">
                 {template.powerSpots.slice(0, 3).map((spot, index) => (
                   <li
                     key={`${template.fortuneNumber}-spot-${index + 1}`}
-                    className="rounded-lg border border-emerald-100/80 bg-emerald-50/35 px-4 py-3"
+                    className="rounded-lg border border-emerald-100/85 bg-[linear-gradient(165deg,rgba(248,255,251,0.88),rgba(236,249,241,0.72))] px-4 py-3"
                   >
-                    <p className="text-xs font-semibold tracking-wide text-emerald-800">・場所{index + 1}</p>
-                    <div className="mt-1">
+                    <div>
                       <MarkdownText text={spot} />
                     </div>
                   </li>
@@ -159,12 +148,20 @@ export default function FortuneResult({
             </div>
           </GlassCard>
 
-          <section className="rounded-2xl border border-rose-200/70 bg-rose-50/40 p-5">
+          <section className="rounded-2xl border border-rose-200/80 bg-[linear-gradient(155deg,rgba(255,249,251,0.82),rgba(254,240,245,0.72))] p-5 shadow-[0_12px_24px_-24px_rgba(163,77,106,0.35)]">
             <SectionHeading>✨ ルミナからの祝福</SectionHeading>
             <div className="mt-4 rounded-xl border border-rose-100/80 bg-white/80 p-4">
               <MarkdownText text={template.blessing} />
             </div>
           </section>
+
+          {bottomLinkHref && bottomLinkLabel ? (
+            <section className="flex justify-center pt-2">
+              <LuminaLinkButton href={bottomLinkHref} tone="secondary" className="min-w-[220px]">
+                {bottomLinkLabel}
+              </LuminaLinkButton>
+            </section>
+          ) : null}
         </div>
       </GlassCard>
     </PageShell>
@@ -172,7 +169,7 @@ export default function FortuneResult({
 }
 
 function SectionHeading({ children }: { children: ReactNode }) {
-  return <h2 className="text-base font-medium tracking-wide text-[#2e2a26]">{children}</h2>;
+  return <h2 className="text-base font-semibold tracking-wide text-[#2e2a26]">{children}</h2>;
 }
 
 function TextSection({ title, body }: { title: string; body: string }) {
@@ -200,19 +197,51 @@ function InfoCard({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-[#e1d5bf]/72 bg-white/70 p-4">
-      <h3 className="text-sm font-medium text-[#2e2a26]">{title}</h3>
+    <div className="rounded-xl border border-[#e1d5bf]/76 bg-[linear-gradient(165deg,rgba(255,254,250,0.88),rgba(250,245,235,0.72))] p-4 shadow-[0_10px_20px_-24px_rgba(82,69,53,0.5)]">
+      <h3 className="text-sm font-semibold text-[#2e2a26]">{title}</h3>
       {description ? <p className="mt-1 text-xs leading-relaxed text-[#544c42]">{description}</p> : null}
       <div className="mt-3">{children}</div>
     </div>
   );
 }
 
+function stripDuplicateLeadingHeading(text: string, title: string): string {
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle) return text;
+
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const firstNonEmptyIndex = lines.findIndex((line) => line.trim().length > 0);
+  if (firstNonEmptyIndex < 0) return text;
+
+  if (lines[firstNonEmptyIndex].trim() !== normalizedTitle) return text;
+  lines.splice(firstNonEmptyIndex, 1);
+  return lines.join("\n").replace(/^\n+/, "");
+}
+
+function stripDuplicateLoveLead(text: string, title: string): string {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const firstNonEmptyIndex = lines.findIndex((line) => line.trim().length > 0);
+  if (firstNonEmptyIndex < 0) return text;
+
+  const first = lines[firstNonEmptyIndex].trim();
+  const normalized = first.replace(/\s+/g, "");
+  const isSingleLead = /^シングル[:：]?$/.test(normalized) || first === "シングルの方へ";
+  const isPartnerLead = /^パートナーあり[:：]?$/.test(normalized) || first === "パートナーがいる方へ";
+  const isDuplicate =
+    first === title.trim() ||
+    (title.trim() === "シングル" && isSingleLead) ||
+    (title.trim() === "パートナーあり" && isPartnerLead);
+
+  if (!isDuplicate) return text;
+  lines.splice(firstNonEmptyIndex, 1);
+  return lines.join("\n").replace(/^\n+/, "");
+}
+
 function MarkdownText({ text }: { text: string }) {
   const blocks = parseMarkdownLikeBlocks(text);
 
   return (
-    <div className="space-y-3 leading-relaxed text-[#544c42]">
+    <div className="space-y-3 text-[15px] leading-relaxed text-[#544c42]">
       {blocks.map((block, index) => {
         if (block.type === "list") {
           return (
@@ -233,6 +262,22 @@ function MarkdownText({ text }: { text: string }) {
         );
       })}
     </div>
+  );
+}
+
+function InfoCardMarkdown({
+  title,
+  description,
+  text,
+}: {
+  title: string;
+  description?: string;
+  text: string;
+}) {
+  return (
+    <InfoCard title={title} description={description}>
+      <MarkdownText text={stripDuplicateLeadingHeading(text, title)} />
+    </InfoCard>
   );
 }
 

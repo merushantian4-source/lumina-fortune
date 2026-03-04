@@ -15,6 +15,19 @@ function normalizeText(text: string): string {
   return text.replace(/\r\n/g, "\n").trim();
 }
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeOrientationMentions(text: string, card?: LiteCard): string {
+  if (!card || !card.name) return text;
+  const opposite = card.reversed ? "正位置" : "逆位置";
+  const expected = card.reversed ? "逆位置" : "正位置";
+  const escapedName = escapeRegExp(card.name);
+  const directPattern = new RegExp(`${escapedName}\\s*[（(]\\s*${opposite}\\s*[）)]`, "g");
+  return text.replace(directPattern, `${card.name}（${expected}）`);
+}
+
 function cardLabel(card?: LiteCard): string {
   if (!card) return "カード（正位置）";
   return `${card.name}（${card.reversed ? "逆位置" : "正位置"}）`;
@@ -112,7 +125,8 @@ function clampText(text: string): string {
 }
 
 export function ensureFortuneOutputFormat(text: string, cards: LiteCard[]): string {
-  const normalized = softenAnxiety(removeQuestions(normalizeText(text)));
+  const orientationAligned = normalizeOrientationMentions(normalizeText(text), cards[0]);
+  const normalized = softenAnxiety(removeQuestions(orientationAligned));
   const { bodyParagraphs, hints, closing } = splitBodyAndHints(normalized);
 
   const paragraphs = ensureBodyLength(

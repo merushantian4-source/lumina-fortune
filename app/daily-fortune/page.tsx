@@ -17,10 +17,39 @@ type DailyFortuneResponse = {
   error?: string;
 };
 
+type SaveWordResponse = {
+  record?: {
+    id: string;
+  };
+  error?: string;
+};
+
+type RecentDailyCardItem = {
+  label: "今日" | "昨日" | "一昨日";
+  dateKey: string;
+  cardName: string | null;
+};
+
+type RecentDailyCardResponse = {
+  history?: RecentDailyCardItem[];
+};
+
+type DailyFortuneProfile = {
+  nickname?: string;
+  job?: string;
+  occupation?: string;
+  loveStatus?: "single" | "married" | "complicated" | "unrequited" | string;
+};
+
+type BookmarkShareState = {
+  text: string;
+  dateLabel: string;
+};
+
 const DAILY_FORTUNE_COOKIE_NAME = "lumina_daily_fortune";
 const DAILY_FORTUNE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 2;
 const DAILY_FORTUNE_TIMEZONE = "Asia/Tokyo"; // JST固定で日付キーを生成する
-
+const PROFILE_STORAGE_KEY = "lumina_profile";
 type DailyFortuneCookiePayload = {
   dateKey: string;
   result: {
@@ -30,6 +59,85 @@ type DailyFortuneCookiePayload = {
     fullText: string;
   };
 };
+
+function loadProfileForDailyFortune(): DailyFortuneProfile {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as DailyFortuneProfile;
+    const resolvedJob =
+      typeof parsed.job === "string"
+        ? parsed.job
+        : typeof parsed.occupation === "string"
+          ? parsed.occupation
+          : undefined;
+    return {
+      nickname: typeof parsed.nickname === "string" ? parsed.nickname : undefined,
+      job: resolvedJob,
+      loveStatus: typeof parsed.loveStatus === "string" ? parsed.loveStatus : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeOrientationMentions(text: string, card: { nameJa: string; reversed: boolean }): string {
+  const opposite = card.reversed ? "正位置" : "逆位置";
+  const expected = card.reversed ? "逆位置" : "正位置";
+  const escapedName = escapeRegExp(card.nameJa);
+  const directPattern = new RegExp(`${escapedName}\\s*[・・]\\s*${opposite}\\s*[・・]`, "g");
+  return text.replace(directPattern, `${card.nameJa}（${expected}）`);
+}
+
+function sanitizeFortuneText(text: string): string {
+  const mojibakeLike = /(縺|繧|繝|荳|蜈|蝗|螳|隱|讒|髮|蜊|窶ｦ|竊・){2,}/;
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const cleaned = lines.filter((line) => !mojibakeLike.test(line.trim()));
+  const normalized = cleaned.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return normalized || text;
+}
+
+function extractTopWhisper(fullText: string, fallbackSummary: string): string {
+  const normalized = fullText.replace(/\r\n/g, "\n").trim();
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const themeLine = lines.find((line) => /今日は.+の日です/.test(line));
+  if (themeLine) {
+    return themeLine;
+  }
+  const cleaned = normalized
+    .replace(/\*\*/g, "")
+    .replace(/[「」]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cleaned.length > 0) {
+    return cleaned.slice(0, 90);
+  }
+  return fallbackSummary;
+}
+
+function extractBookmarkMessage(fullText: string, fallbackSummary: string): string {
+  const normalized = fullText.replace(/\r\n/g, "\n").trim();
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const preferredLine =
+    lines.find((line) => line.includes("今日は") && line.includes("日です")) ??
+    lines.find((line) => line.length >= 12 && line.length <= 80 && !line.includes("【")) ??
+    "";
+
+  const source = preferredLine || fallbackSummary || "";
+  return source.replace(/\*\*/g, "").replace(/[「」]/g, "").trim();
+}
 
 function getJstDateParts(date = new Date()) {
   const formatter = new Intl.DateTimeFormat("ja-JP", {
@@ -149,26 +257,68 @@ export default function DailyFortunePage() {
   const [isReading, setIsReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasTodayResult, setHasTodayResult] = useState(false);
+  const [saveWordMessage, setSaveWordMessage] = useState<string | null>(null);
+  const [isSavingWord, setIsSavingWord] = useState(false);
+  const [bookmarkShare, setBookmarkShare] = useState<BookmarkShareState | null>(null);
+  const [bookmarkStatus, setBookmarkStatus] = useState<string | null>(null);
+  const [isRenderingBookmark, setIsRenderingBookmark] = useState(false);
+  const [recentCards, setRecentCards] = useState<RecentDailyCardItem[]>([
+    { label: "今日", dateKey: "", cardName: null },
+    { label: "昨日", dateKey: "", cardName: null },
+    { label: "一昨日", dateKey: "", cardName: null },
+  ]);
   const today = useMemo(() => getTodayLabel(), []);
   const prefersReducedMotion = usePrefersReducedMotion();
   const requestIdRef = useRef(0);
   const flipTimerRef = useRef<number | null>(null);
   const flipLockRef = useRef(false);
+  const bookmarkCardRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const saved = loadSavedDailyFortuneForToday();
-    if (!saved) return;
-
+  const applySavedResult = (saved: { payload: DailyFortuneCookiePayload; card: DrawnCard }) => {
+    const normalizedFullText = sanitizeFortuneText(
+      normalizeOrientationMentions(saved.payload.result.fullText, saved.card)
+    );
     setReadyToFlip(true);
     setSelectedCard(saved.card);
     setIsFlipped(true);
     setFlipFinished(true);
     setSummary(saved.payload.result.summary);
-    setFullText(saved.payload.result.fullText);
+    setFullText(normalizedFullText);
     setShowResult(true);
     setIsReading(false);
     setError(null);
     setHasTodayResult(true);
+  };
+
+  const fetchRecentCards = async () => {
+    try {
+      const profile = loadProfileForDailyFortune();
+      const res = await fetch("/api/daily-fortune-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile: { nickname: profile.nickname },
+        }),
+      });
+      const data = (await res.json()) as RecentDailyCardResponse;
+      if (!res.ok || !Array.isArray(data.history)) return;
+      const normalized = data.history.slice(0, 3);
+      if (normalized.length === 3) {
+        setRecentCards(normalized);
+      }
+    } catch {
+      // Keep fallback display.
+    }
+  };
+
+  useEffect(() => {
+    const saved = loadSavedDailyFortuneForToday();
+    if (!saved) return;
+    applySavedResult(saved);
+  }, []);
+
+  useEffect(() => {
+    void fetchRecentCards();
   }, []);
 
   useEffect(() => {
@@ -189,15 +339,7 @@ export default function DailyFortunePage() {
     if (hasTodayResult) {
       const saved = loadSavedDailyFortuneForToday();
       if (saved) {
-        setReadyToFlip(true);
-        setSelectedCard(saved.card);
-        setIsFlipped(true);
-        setFlipFinished(true);
-        setSummary(saved.payload.result.summary);
-        setFullText(saved.payload.result.fullText);
-        setShowResult(true);
-        setIsReading(false);
-        setError(null);
+        applySavedResult(saved);
         return;
       }
     }
@@ -244,15 +386,7 @@ export default function DailyFortunePage() {
     if (hasTodayResult) {
       const saved = loadSavedDailyFortuneForToday();
       if (saved) {
-        setReadyToFlip(true);
-        setSelectedCard(saved.card);
-        setIsFlipped(true);
-        setFlipFinished(true);
-        setSummary(saved.payload.result.summary);
-        setFullText(saved.payload.result.fullText);
-        setShowResult(true);
-        setIsReading(false);
-        setError(null);
+        applySavedResult(saved);
       }
       return;
     }
@@ -279,16 +413,7 @@ export default function DailyFortunePage() {
 
     const existing = loadSavedDailyFortuneForToday();
     if (existing) {
-      setReadyToFlip(true);
-      setSelectedCard(existing.card);
-      setIsFlipped(true);
-      setFlipFinished(true);
-      setSummary(existing.payload.result.summary);
-      setFullText(existing.payload.result.fullText);
-      setShowResult(true);
-      setIsReading(false);
-      setError(null);
-      setHasTodayResult(true);
+      applySavedResult(existing);
       return;
     }
 
@@ -318,12 +443,14 @@ export default function DailyFortunePage() {
     }, flipDelay);
 
     try {
+      const profile = loadProfileForDailyFortune();
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: `${today}の毎日の運勢を1枚引きで占ってください。`,
+          message: `${today}の毎日の占いを、1枚引きの結果で読み解いてください。`,
           mode: "daily-fortune",
+          profile,
           cards: [{ name: card.nameJa, reversed: card.reversed }],
         }),
       });
@@ -333,10 +460,13 @@ export default function DailyFortunePage() {
         throw new Error(data.error ?? "占い結果の取得に失敗しました。");
       }
       if (requestIdRef.current !== requestId) return;
-      const resolvedText = data.text ?? null;
+      const resolvedText = data.text
+        ? sanitizeFortuneText(normalizeOrientationMentions(data.text, card))
+        : null;
       setFullText(resolvedText);
 
       if (resolvedText) {
+        const topWhisper = extractTopWhisper(resolvedText, card.meaningJa);
         const payload: DailyFortuneCookiePayload = {
           dateKey: getJstDateKey(),
           result: {
@@ -351,7 +481,24 @@ export default function DailyFortunePage() {
           encodeCookiePayload(payload),
           DAILY_FORTUNE_COOKIE_MAX_AGE_SECONDS
         );
+        try {
+          await fetch("/api/daily-fortune-whisper", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "save",
+              profile: { nickname: profile.nickname },
+              payload: {
+                dateKey: getJstDateKey(),
+                message: topWhisper,
+              },
+            }),
+          });
+        } catch {
+          // Do not block daily result when whisper save fails.
+        }
         setHasTodayResult(true);
+        void fetchRecentCards();
       }
     } catch (err) {
       if (requestIdRef.current !== requestId) return;
@@ -364,6 +511,94 @@ export default function DailyFortunePage() {
         setIsReading(false);
       }
     }
+  };
+
+  const handleSaveTodayWord = async () => {
+    if (!selectedCard || !fullText) return;
+
+    const profile = loadProfileForDailyFortune();
+    const nickname = profile.nickname?.trim();
+    if (!nickname) {
+      setSaveWordMessage("プロフィール登録後に保存できます。");
+      return;
+    }
+
+    setIsSavingWord(true);
+    setSaveWordMessage(null);
+    try {
+      const res = await fetch("/api/light-records", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "save",
+          profile: { nickname },
+          payload: {
+            dateKey: getJstDateKey(),
+            cardName: selectedCard.nameJa,
+            message: fullText,
+          },
+        }),
+      });
+      const data = (await res.json()) as SaveWordResponse;
+      if (!res.ok || !data.record?.id) {
+        throw new Error(data.error ?? "保存に失敗しました。");
+      }
+      setSaveWordMessage("今日の言葉を保存しました。");
+    } catch (err) {
+      setSaveWordMessage(err instanceof Error ? err.message : "保存に失敗しました。");
+    } finally {
+      setIsSavingWord(false);
+    }
+  };
+
+  const handleCreateBookmark = () => {
+    const message = extractBookmarkMessage(fullText ?? "", summary ?? "");
+    if (!message) {
+      setBookmarkStatus("しおりに入れる言葉が見つかりませんでした。");
+      return;
+    }
+    setBookmarkShare({
+      text: message,
+      dateLabel: today,
+    });
+    setBookmarkStatus("光のしおりを整えました。");
+  };
+
+  const handleSaveBookmarkImage = async () => {
+    if (!bookmarkCardRef.current) {
+      setBookmarkStatus("しおりカードの生成に失敗しました。");
+      return;
+    }
+    setIsRenderingBookmark(true);
+    setBookmarkStatus(null);
+    try {
+      const htmlToImage = await import("html-to-image");
+      const dataUrl = await htmlToImage.toPng(bookmarkCardRef.current, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: "#f8f3e8",
+      });
+      const anchor = document.createElement("a");
+      anchor.href = dataUrl;
+      anchor.download = `lumina-hikari-shiori-${getJstDateKey()}.png`;
+      anchor.click();
+      setBookmarkStatus("画像として保存しました。");
+    } catch {
+      setBookmarkStatus("画像生成に失敗しました。時間をおいて再度お試しください。");
+    } finally {
+      setIsRenderingBookmark(false);
+    }
+  };
+
+  const handleShareOnX = () => {
+    if (!bookmarkShare?.text) {
+      setBookmarkStatus("先に「光のしおりを作る」を押してください。");
+      return;
+    }
+    const shareText = `🌙 今日のルミナのささやき\n${bookmarkShare.text}\n#LUMINA #今日の占い`;
+    const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/daily-fortune` : "/daily-fortune";
+    const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+    window.open(intentUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -380,14 +615,14 @@ export default function DailyFortunePage() {
         </p>
         {hasTodayResult ? (
           <p className="mt-2 text-sm text-slate-700/80">
-            今日は占い済みです。JSTの0:00以降に新しい結果を占えます。
+            本日の結果は表示済みです。次回はJST 0:00以降に更新されます。
           </p>
         ) : null}
 
         {!readyToFlip ? (
           <div className="mt-6">
             <LuminaButton type="button" onClick={handlePrepare} tone="primary">
-              {hasTodayResult ? "今日の結果を見る" : "今日の運勢を占う"}
+              {hasTodayResult ? "今日の結果を見る" : "今日の占いを引く"}
             </LuminaButton>
           </div>
         ) : (
@@ -395,7 +630,7 @@ export default function DailyFortunePage() {
             <div className="flex flex-col items-center gap-4">
               <p className="text-sm text-[#6f6556]">
                 {hasTodayResult
-                  ? "保存された今日の結果を表示しています。"
+                  ? "すでに今日の結果を表示しています。"
                   : "カードをタップして、今日の1枚をめくってください。"}
               </p>
 
@@ -403,7 +638,7 @@ export default function DailyFortunePage() {
                 type="button"
                 onClick={handleFlip}
                 disabled={isFlipped}
-                aria-label={isFlipped ? "カードがめくられました" : "カードをめくる"}
+                aria-label={isFlipped ? "カードは表示済みです" : "カードをめくる"}
                 className="fortune-card-button group"
               >
                 <span
@@ -472,7 +707,7 @@ export default function DailyFortunePage() {
                       {summary ? (
                         <div className="mt-2 rounded-lg border border-[#e6dac5]/80 bg-white/60 p-2">
                           <p className="text-[11px] font-medium tracking-wide text-[#7d6d5a]">
-                            要約{isReading ? "（先に見えている内容です）" : ""}
+                            {isReading ? "読み解き中..." : ""}
                           </p>
                           <p className="mt-1 text-sm leading-relaxed text-[#544c42]">{summary}</p>
                         </div>
@@ -512,7 +747,15 @@ export default function DailyFortunePage() {
               ) : null}
             </div>
 
-            <div className="mt-6">
+            <div className="mt-6 flex flex-wrap gap-3">
+              <LuminaButton
+                type="button"
+                onClick={handleSaveTodayWord}
+                tone="secondary"
+                disabled={!selectedCard || !fullText || isSavingWord}
+              >
+                今日の言葉を保存
+              </LuminaButton>
               {hasTodayResult ? (
                 <LuminaButton type="button" onClick={handleRedrawToday} tone="primary">
                   再確認のカードを引く
@@ -523,8 +766,76 @@ export default function DailyFortunePage() {
                 </LuminaButton>
               )}
             </div>
+            {saveWordMessage ? (
+              <p className="mt-2 text-sm text-[#544c42]">{saveWordMessage}</p>
+            ) : null}
+
+            {showResult && (fullText || summary) ? (
+              <section className="mt-6 rounded-2xl border border-[#e1d5bf]/75 bg-white/55 p-4">
+                <h3 className="text-base font-medium text-[#2e2a26]">光のしおり</h3>
+                <p className="mt-1 text-sm text-[#544c42]">
+                  今日の言葉を、やさしいしおりに整えて保存できます。
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <LuminaButton type="button" onClick={handleCreateBookmark} tone="secondary">
+                    🌙 光のしおりを作る
+                  </LuminaButton>
+                  <LuminaButton
+                    type="button"
+                    onClick={handleSaveBookmarkImage}
+                    tone="secondary"
+                    disabled={!bookmarkShare || isRenderingBookmark}
+                  >
+                    画像として保存
+                  </LuminaButton>
+                  <LuminaButton
+                    type="button"
+                    onClick={handleShareOnX}
+                    tone="secondary"
+                    disabled={!bookmarkShare}
+                  >
+                    Xで共有
+                  </LuminaButton>
+                </div>
+
+                {bookmarkStatus ? (
+                  <p className="mt-2 text-sm text-[#544c42]">{bookmarkStatus}</p>
+                ) : null}
+
+                {bookmarkShare ? (
+                  <div className="mt-4 flex justify-center">
+                    <div
+                      ref={bookmarkCardRef}
+                      className="w-full max-w-[520px] rounded-2xl border border-[#d9ccb3]/80 bg-[linear-gradient(158deg,rgba(255,252,246,0.96),rgba(247,240,228,0.9))] px-6 py-7 text-center shadow-[0_12px_24px_-20px_rgba(96,80,60,0.22)]"
+                    >
+                      <p className="text-xs tracking-[0.24em] text-[#766e62]">LUMINA</p>
+                      <p className="mt-2 text-sm text-[#7d6d5a]">{bookmarkShare.dateLabel}</p>
+                      <p className="mt-4 whitespace-pre-wrap text-base leading-relaxed text-[#544c42]">
+                        {bookmarkShare.text}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
           </section>
         )}
+      </GlassCard>
+
+      <GlassCard className="mt-4">
+        <h2 className="text-base font-medium text-[#2e2a26]">最近のカード履歴</h2>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {recentCards.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-xl border border-[#e1d5bf]/75 bg-white/55 px-3 py-2"
+            >
+              <p className="text-xs tracking-wide text-[#7d6d5a]">{item.label}</p>
+              <p className="mt-1 text-sm text-[#2e2a26]">{item.cardName ?? "—"}</p>
+            </div>
+          ))}
+        </div>
       </GlassCard>
 
       <style jsx>{`
@@ -715,3 +1026,6 @@ export default function DailyFortunePage() {
     </PageShell>
   );
 }
+
+
+

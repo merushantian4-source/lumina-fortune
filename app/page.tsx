@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { AnimatePresence, motion } from "framer-motion"
+import { useSearchParams } from "next/navigation"
 import { FloatingFeathers } from "@/components/floating-feathers"
 import { WelcomeScreen } from "@/components/welcome-screen"
 import { ChatHeader } from "@/components/chat-header"
@@ -28,6 +29,7 @@ type ChatConversationState = {
 }
 
 export default function Page() {
+  const searchParams = useSearchParams()
   const [started, setStarted] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
@@ -35,34 +37,7 @@ export default function Page() {
   const [showCards, setShowCards] = useState(false)
   const [currentCards, setCurrentCards] = useState<TarotCardData[]>([])
   const [conversationState, setConversationState] = useState<ChatConversationState | null>(null)
-
-  const addLuminaMessage = useCallback((text: string, cards?: TarotCardData[]) => {
-    setIsTyping(true)
-
-    const typingId = `typing-${Date.now()}`
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: typingId,
-        sender: "lumina",
-        text: "",
-        time: getCurrentTime(),
-        isTyping: true,
-      },
-    ])
-
-    const delay = 1500 + Math.random() * 1500
-    setTimeout(() => {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === typingId
-            ? { ...m, text, isTyping: false, cards, showCardButton: !!cards }
-            : m
-        )
-      )
-      setIsTyping(false)
-    }, delay)
-  }, [])
+  const autoStartedRef = useRef(false)
 
   const handleStart = useCallback(async () => {
     setStarted(true)
@@ -249,6 +224,13 @@ export default function Page() {
     setConversationState(null)
   }, [])
 
+  useEffect(() => {
+    if (autoStartedRef.current || started) return
+    if (searchParams.get("start") !== "tarot") return
+    autoStartedRef.current = true
+    void handleStart()
+  }, [searchParams, started, handleStart])
+
   return (
     <main className="relative min-h-screen">
       <FloatingFeathers />
@@ -262,7 +244,7 @@ export default function Page() {
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.4 }}
           >
-            <WelcomeScreen onStart={handleStart} />
+            <WelcomeScreen />
           </motion.div>
         ) : (
           <motion.div

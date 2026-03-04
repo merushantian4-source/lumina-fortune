@@ -42,13 +42,15 @@ export default async function FortuneMonthlyResultPage({ params }: PageProps) {
     <FortuneResult
       template={template}
       variantLabel="NUMEROLOGY MONTHLY"
-      pageTitle={`${fortuneName}の${parsedMonth}月鑑定結果`}
-      topLinkHref="/fortune-monthly/result"
-      topLinkLabel="月一覧へ戻る"
-      resetHref="/fortune-monthly"
+      pageTitle={`${fortuneName}の${parsedMonth}月の運勢`}
+      topLinkHref="/"
+      topLinkLabel="Topに戻る"
+      resetHref="/fortune-monthly?edit=1"
       halfYearSectionTitle={`⏳ ${parsedMonth}月前半・後半`}
       firstHalfTitle={`${parsedMonth}月前半`}
       secondHalfTitle={`${parsedMonth}月後半`}
+      bottomLinkHref="/fortune-monthly/result"
+      bottomLinkLabel="月一覧に戻る"
     />
   );
 }

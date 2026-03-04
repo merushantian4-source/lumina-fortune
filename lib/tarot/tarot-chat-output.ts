@@ -12,12 +12,13 @@ const REQUIRED_HEADERS = [
 ] as const;
 
 const HEALTH_REQUIRED_HEADERS = [
-  "1. 引いたカード",
-  "2. 体の流れ・エネルギー状態の象徴",
-  "3. 今の心身バランスの読み解き",
-  "4. 近い未来の体調傾向（断定禁止）",
-  "5. 今日からできる整え方（具体的だが医療的でない）",
-  "6. アファメーション（体と調和する言葉）",
+  "🌿 健康運の鑑定結果",
+  "🕊 引いたカード",
+  "🌿 今の体と心の状態",
+  "🌿 今、整えるとよいこと",
+  "🌿 これからの流れ",
+  "🌿 今日からできる整え方",
+  "🌿 今日のことば",
 ] as const;
 
 const MIMETIC_WORDS = [
@@ -42,6 +43,15 @@ function cardLine(cards: DrawnTarotCard[]): string {
     .join(" / ");
 }
 
+function healthCardLines(cards: DrawnTarotCard[]): string[] {
+  const roleOrder = ["現状", "課題", "助言"] as const;
+  return roleOrder.map((role) => {
+    const card = cards.find((c) => c.position === role);
+    if (!card) return `${role}：-`;
+    return `${role}：${card.card.nameJa}（${card.reversed ? "逆位置" : "正位置"}）`;
+  });
+}
+
 function symbolLines(cards: DrawnTarotCard[]): string {
   return cards
     .map((c) => {
@@ -60,44 +70,57 @@ function fallbackTemplate(cards: DrawnTarotCard[]): string {
     symbolLines(cards),
     ``,
     `3. 今の状況への読み解き`,
-    "今のあなたは、気持ちを丁寧に扱いながらも、少し肩に力が入りやすい状態です。少しだけ力を抜いたほうが、言葉は自然に届きやすくなります。",
+    "カードが映し出すのは、今のあなたが大切なものを丁寧に守ろうとしている姿です。",
+    "その真剣さゆえに、知らず知らず力が入りすぎていることもあるかもしれません。",
+    "ここで少し立ち止まって、「今の自分が本当に望んでいること」を見つめてみませんか。",
     ``,
     `4. 近い未来の可能性`,
-    "- 軽い一言がきっかけになって、距離が近づく流れがあります。",
-    "- 安心できる場に身を置くほど、関係が整いやすくなる可能性が見えます。",
+    "- 肩の力を少し抜いたとき、言葉や気持ちが自然と相手に届きやすくなる流れが見えます。",
+    "- 安心できる環境や人と過ごす時間が、今後の方向性を静かに整えてくれそうです。",
     ``,
     `5. 心を整えるヒント`,
-    "- \"ちゃんとしなきゃ\" を少しゆるめてみてください。",
-    "- 感情を分析しすぎず、まずはそのまま感じてみてください。",
-    "- 落ち着ける相手や場所との時間を大切にしてください。",
+    "- 「正しくやらなければ」という緊張をひとつ手放してみると、動きやすくなります。",
+    "- 感情を整理しようとするより、まずそのまま感じることを許してあげてください。",
+    "- 信頼できる場所や人との時間を、意識的に確保してみましょう。",
     ``,
     `6. アファメーション`,
-    "私は、落ち着いた愛を受け取り、やさしい関係を育てていきます。",
+    "私は、今この瞬間を丁寧に生きています。",
+    "自分を信じることが、やさしい未来へとつながっています。",
   ].join("\n");
 }
 
 function healthFallbackTemplate(cards: DrawnTarotCard[]): string {
+  const [currentLine, challengeLine, adviceLine] = healthCardLines(cards);
   return [
-    `1. 引いたカード`,
-    cardLine(cards),
+    `🌿 健康運の鑑定結果`,
+    `🕊 引いたカード`,
+    "",
+    currentLine,
+    challengeLine,
+    adviceLine,
     ``,
-    `2. 体の流れ・エネルギー状態の象徴`,
-    symbolLines(cards),
+    `🌿 今の体と心の状態`,
+    "カードは、あなたの体が今、正直にサインを出しやすい時期であることを伝えています。",
+    "大きく崩れているわけではないけれど、小さな疲れや違和感を「まだ大丈夫」で後回しにしていることはありませんか。",
+    "今のあなたの体は、少し立ち止まることを必要としているようです。",
     ``,
-    `3. 今の心身バランスの読み解き`,
-    "今は心と体のリズムにずれが出やすく、がんばり方に対して回復が追いつきにくい流れが見えます。どの時間帯なら少し力を抜けそうでしょうか？ まずは『休む前提』で一日の配分を整えると、心身の緊張がほどけやすくなります。",
+    `🌿 今、整えるとよいこと`,
+    "「周りに合わせること」より「自分を整えること」を先に置けていますか。",
+    "誰かのために動く時間と同じくらい、自分のために使う時間を意識的に確保することが、今は大切です。",
     ``,
-    `4. 近い未来の体調傾向（断定禁止）`,
-    "- 休息の質を意識すると、重さが少しずつほどける方向へ向かう可能性があります。",
-    "- 無理を詰め込みすぎると、心身のだるさとして出やすくなる可能性もあります。",
+    `🌿 これからの流れ`,
+    "急いで何かを変える必要はありません。",
+    "ただ、「休む時間を予定に組み込む」ことができるかどうかで、これからの体の軽さが変わってきます。",
+    "予定をこなし終わってから休むのではなく、休みを先に置く意識が整えの鍵になります。",
     ``,
-    `5. 今日からできる整え方（具体的だが医療的でない）`,
-    "- 寝る前の10分だけ光を落として、呼吸をゆっくり整えてください。",
-    "- 体を冷やしすぎないよう、首元や足元の温度をやさしく整えてください。",
-    "- 予定の合間に1回、何もしない時間を短く入れて回復の余白を作ってください。",
+    `🌿 今日からできる整え方`,
+    "・眠る前の15分、画面から離れて部屋を少し暗くする",
+    "・吐く息を吸う息より長くする深呼吸を、1日3回",
+    "・今日のどこかに「何もしなくてよい5分」を意識して置く",
     ``,
-    `6. アファメーション（体と調和する言葉）`,
-    "私は自分の体の声を静かに聴き、やさしく整えていけます。",
+    `🌿 今日のことば`,
+    "私は、自分の体の声を大切に聴きます。",
+    "休むことは、前へ進む力を育てることです。",
   ].join("\n");
 }
 
@@ -147,7 +170,8 @@ function softenEndingRuns(text: string): string {
     .join("");
 }
 
-function ensureQuestion(text: string): string {
+function ensureQuestion(text: string, theme: TarotOutputTheme = null): string {
+  if (theme === "health") return text;
   if (/[？?]/.test(text)) return text;
   const lines = text.split("\n");
   const idx = lines.findIndex((line) => /^3\.\s/.test(line.trim()));
@@ -158,7 +182,18 @@ function ensureQuestion(text: string): string {
   return `${text}\n\nここで、あなたが本当に守りたいものは何でしょうか？`;
 }
 
-function ensureAffirmation(text: string): string {
+function ensureAffirmation(text: string, theme: TarotOutputTheme = null): string {
+  if (theme === "health") {
+    if (!text.includes("🌿 今日のことば")) {
+      return `${text}\n\n🌿 今日のことば\n私は、自分の体の声をやさしく受け取ります。`;
+    }
+    const lines = text.split("\n");
+    const idx = lines.findIndex((line) => line.trim() === "🌿 今日のことば");
+    const next = idx >= 0 ? lines.slice(idx + 1).find((line) => line.trim()) : null;
+    if (next) return text;
+    lines.push("私は、自分の体の声をやさしく受け取ります。");
+    return lines.join("\n");
+  }
   const lines = text.split("\n");
   const idx = lines.findIndex((line) => /^6\.\sアファメーション/.test(line.trim()));
   if (idx < 0) return `${text}\n\n6. アファメーション\n私は落ち着いて、自分に合う選択を重ねていけます。`;
@@ -172,15 +207,12 @@ function applyLuminaVoiceRules(text: string): string {
   return text
     .replace(/カードの象徴/g, "カードの気配")
     .replace(/心を整えるアドバイス/g, "心を整えるヒント")
-    .replace(/描かれています/g, "気配があります")
-    .replace(/示しています/g, "伝えています")
-    .replace(/必ず/g, "近づく流れがあります")
-    .replace(/絶対に/g, "その可能性が見えます")
     .replace(/LINEで[^。]*。/g, "軽い一言がきっかけになります。")
     .replace(/今週[^。]*(イベント|参加)[^。]*。/g, "安心できる場に身を置いてみてください。");
 }
 
-function ensureCalmClosing(text: string): string {
+function ensureCalmClosing(text: string, theme: TarotOutputTheme = null): string {
+  if (theme === "health") return text;
   const closingLines = [
     "あなたは、もう十分に整っています。",
     "焦らなくて大丈夫です。",
@@ -225,20 +257,21 @@ export function ensureTarotChatOutputFormat(
     text = fallbackTemplate(cards);
   }
 
-  if (!/1\. 引いたカード[\s\S]*?(現状|課題|助言):/.test(text)) {
-    text = text.replace(/1\. 引いたカード\s*\n(?:.*\n)?/, `1. 引いたカード\n${cardLine(cards)}\n`);
+  if (theme !== "health") {
+    if (!/1\. 引いたカード[\s\S]*?(現状|課題|助言):/.test(text)) {
+      text = text.replace(/1\. 引いたカード\s*\n(?:.*\n)?/, `1. 引いたカード\n${cardLine(cards)}\n`);
+    }
+
+    if (!/2\. カードの気配[\s\S]*?(描|人物|絵|姿|気配|伝え)/.test(text)) {
+      text = text.replace(/2\. カードの気配[\s\S]*?(?=\n3\. 今の状況への読み解き)/, `2. カードの気配\n${symbolLines(cards)}\n`);
+    }
   }
 
-  if (!/2\. カードの気配[\s\S]*?(描|人物|絵|姿|気配|伝え)/.test(text)) {
-    text = text.replace(/2\. カードの気配[\s\S]*?(?=\n3\. 今の状況への読み解き)/, `2. カードの気配\n${symbolLines(cards)}\n`);
-  }
-
-  text = ensureQuestion(text);
-  text = ensureAffirmation(text);
+  text = ensureQuestion(text, theme);
+  text = ensureAffirmation(text, theme);
   text = applyLuminaVoiceRules(text);
   text = capMimetics(text);
   text = softenEndingRuns(text);
-  text = ensureCalmClosing(text);
 
   return text.replace(/\n{3,}/g, "\n\n").trim();
 }
