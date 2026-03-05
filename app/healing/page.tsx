@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
@@ -251,48 +252,54 @@ export default function HealingPage() {
         </div>
       </GlassCard>
 
-      <GlassCard className="mt-4">
-        <h2 className="text-xl font-medium text-[#2e2a26]">瞑想ガイド</h2>
-        <p className="mt-2 text-sm text-[#544c42]">3分・5分・10分から選んで、いまの呼吸に合うペースで整えます。</p>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {MEDITATION_TABS.map((tab) => (
-            <LuminaButton
-              key={tab.key}
-              type="button"
-              tone={tabKey === tab.key ? "primary" : "secondary"}
-              onClick={() => {
-                setTabKey(tab.key);
-                setIsMeditating(false);
-                setRemainingSeconds(tab.seconds);
-              }}
-            >
-              {tab.label}
-            </LuminaButton>
-          ))}
+      <GlassCard className="relative mt-4 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0">
+          <Image src="/gazou/meisou.jpg" alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 960px" />
+          <div className="absolute inset-0 bg-[rgba(255,252,246,0.82)]" />
         </div>
+        <div className="relative z-10">
+          <h2 className="text-xl font-medium text-[#2e2a26]">瞑想ガイド</h2>
+          <p className="mt-2 text-sm text-[#544c42]">3分・5分・10分から選んで、いまの呼吸に合うペースで整えます。</p>
 
-        <div className="mt-4 rounded-xl border border-[#e1d5bf]/72 bg-white/65 p-4">
-          <p className="text-xs font-medium tracking-wide text-[#847967]">残り時間</p>
-          <p className="mt-1 text-3xl font-medium text-[#2e2a26]">{formatTime(remainingSeconds)}</p>
-
-          <div className="mt-4 flex gap-2">
-            <LuminaButton type="button" onClick={() => setIsMeditating((prev) => !prev)}>
-              {isMeditating ? "停止" : "開始"}
-            </LuminaButton>
-            <LuminaButton
-              type="button"
-              tone="secondary"
-              onClick={() => {
-                setIsMeditating(false);
-                setRemainingSeconds(selectedMeditation.seconds);
-              }}
-            >
-              リセット
-            </LuminaButton>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {MEDITATION_TABS.map((tab) => (
+              <LuminaButton
+                key={tab.key}
+                type="button"
+                tone={tabKey === tab.key ? "primary" : "secondary"}
+                onClick={() => {
+                  setTabKey(tab.key);
+                  setIsMeditating(false);
+                  setRemainingSeconds(tab.seconds);
+                }}
+              >
+                {tab.label}
+              </LuminaButton>
+            ))}
           </div>
 
-          <p className="mt-4 text-sm leading-relaxed text-[#544c42]">{MEDITATION_GUIDES[tabKey]}</p>
+          <div className="mt-4 rounded-xl border border-[#e1d5bf]/72 bg-white/65 p-4">
+            <p className="text-xs font-medium tracking-wide text-[#847967]">残り時間</p>
+            <p className="mt-1 text-3xl font-medium text-[#2e2a26]">{formatTime(remainingSeconds)}</p>
+
+            <div className="mt-4 flex gap-2">
+              <LuminaButton type="button" onClick={() => setIsMeditating((prev) => !prev)}>
+                {isMeditating ? "停止" : "開始"}
+              </LuminaButton>
+              <LuminaButton
+                type="button"
+                tone="secondary"
+                onClick={() => {
+                  setIsMeditating(false);
+                  setRemainingSeconds(selectedMeditation.seconds);
+                }}
+              >
+                リセット
+              </LuminaButton>
+            </div>
+
+            <p className="mt-4 text-sm leading-relaxed text-[#544c42]">{MEDITATION_GUIDES[tabKey]}</p>
+          </div>
         </div>
       </GlassCard>
     </PageShell>

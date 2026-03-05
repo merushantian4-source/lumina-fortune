@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
+import { WishAnimationOverlay } from "@/components/WishAnimationOverlay";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
@@ -39,6 +40,9 @@ export default function LetterPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [animationOpen, setAnimationOpen] = useState(false);
+  const [animationText, setAnimationText] = useState("");
+  const [pendingReply, setPendingReply] = useState("");
 
   const charCount = useMemo(() => countChars(message), [message]);
 
@@ -70,13 +74,23 @@ export default function LetterPage() {
       if (!response.ok || !data.ok) {
         throw new Error(data.error ?? "送信に失敗しました。");
       }
-      setLuminaReply(typeof data.reply === "string" ? data.reply : "");
-      setSubmitted(true);
+      setPendingReply(typeof data.reply === "string" ? data.reply : "");
+      setAnimationText(trimmed);
+      setAnimationOpen(true);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "送信に失敗しました。");
     } finally {
       setSending(false);
     }
+  };
+
+  const handleAnimationComplete = () => {
+    setAnimationOpen(false);
+    setLuminaReply(
+      pendingReply || "あなたの言葉は確かに受け取りました。無理しすぎず、今日はひとつだけ心がほどける時間を作ってみてください。"
+    );
+    setPendingReply("");
+    setSubmitted(true);
   };
 
   return (
@@ -126,8 +140,8 @@ export default function LetterPage() {
               <p className="text-xs text-[#847967]">
                 {charCount}/{MAX_MESSAGE_LENGTH}文字
               </p>
-              <LuminaButton type="submit" disabled={sending} className="rounded-xl px-6">
-                {sending ? "送信中..." : "送信する"}
+              <LuminaButton type="submit" disabled={sending || animationOpen} className="rounded-xl px-6">
+                {sending || animationOpen ? "届けています..." : "送信する"}
               </LuminaButton>
             </div>
 
@@ -136,6 +150,7 @@ export default function LetterPage() {
           </form>
         </GlassCard>
       )}
+      <WishAnimationOverlay open={animationOpen} text={animationText} onComplete={handleAnimationComplete} />
     </PageShell>
   );
 }

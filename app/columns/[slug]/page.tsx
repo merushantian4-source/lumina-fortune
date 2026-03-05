@@ -34,6 +34,11 @@ function normalizeText(input: string): string {
   return input.replace(/\s+/g, "").trim();
 }
 
+function isTodayPhraseLabel(paragraph: string): boolean {
+  const normalized = normalizeText(paragraph).replace(/^🌿/, "");
+  return normalized === "今日のひとこと";
+}
+
 export default async function ColumnDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const article = getColumnArticle(slug);
@@ -55,9 +60,20 @@ export default async function ColumnDetailPage({ params }: PageProps) {
     return acc;
   }, []);
   const quote = paragraphs[0] ?? article.lead;
-  const bodyParagraphs = paragraphs.length > 0 ? paragraphs.slice(1) : [];
-  const readMinutes = estimateReadMinutes(paragraphs.length > 0 ? paragraphs : rawParagraphs);
-  const affirmation = bodyParagraphs[bodyParagraphs.length - 1] ?? quote;
+  const baseBodyParagraphs = paragraphs.length > 0 ? paragraphs.slice(1) : [];
+  let affirmation = baseBodyParagraphs[baseBodyParagraphs.length - 1] ?? quote;
+  let bodyParagraphs = baseBodyParagraphs;
+
+  const todayLabelIndex = baseBodyParagraphs.findIndex((paragraph) => isTodayPhraseLabel(paragraph));
+  if (todayLabelIndex >= 0) {
+    const next = baseBodyParagraphs[todayLabelIndex + 1];
+    if (next && normalizeText(next)) {
+      affirmation = next;
+    }
+    bodyParagraphs = baseBodyParagraphs.filter((_, index) => index !== todayLabelIndex && index !== todayLabelIndex + 1);
+  }
+
+  const readMinutes = article.readMinutes ?? estimateReadMinutes(paragraphs.length > 0 ? paragraphs : rawParagraphs);
   const related = listColumnArticles(article.category)
     .filter((item) => item.slug !== article.slug)
     .slice(0, 3);

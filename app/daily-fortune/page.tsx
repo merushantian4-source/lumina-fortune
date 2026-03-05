@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TarotBackArtwork, TarotCardArtwork } from "@/components/tarot-card-artwork";
 import { tarotCards, type TarotCardEntry } from "@/src/data/tarotCards";
@@ -46,10 +47,19 @@ type BookmarkShareState = {
   dateLabel: string;
 };
 
+type PrayerCardShareState = {
+  imageUrl: string;
+  themeText: string;
+  closingText: string;
+  hashtags: string;
+  dateLabel: string;
+};
+
 const DAILY_FORTUNE_COOKIE_NAME = "lumina_daily_fortune";
 const DAILY_FORTUNE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 2;
 const DAILY_FORTUNE_TIMEZONE = "Asia/Tokyo"; // JST固定で日付キーを生成する
 const PROFILE_STORAGE_KEY = "lumina_profile";
+const PRAYER_CARD_HASHTAGS = "#白の庭の祈り #LUMINA #今日の導き";
 type DailyFortuneCookiePayload = {
   dateKey: string;
   result: {
@@ -137,6 +147,19 @@ function extractBookmarkMessage(fullText: string, fallbackSummary: string): stri
 
   const source = preferredLine || fallbackSummary || "";
   return source.replace(/\*\*/g, "").replace(/[「」]/g, "").trim();
+}
+
+function extractClosingGuidanceLine(fullText: string, fallbackSummary: string): string {
+  const normalized = fullText.replace(/\r\n/g, "\n").trim();
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.startsWith("🌿") && line !== "今日のひとこと");
+  const candidate = [...lines]
+    .reverse()
+    .find((line) => line.length >= 10 && line.length <= 120 && !line.includes("【"));
+  return (candidate ?? fallbackSummary ?? "").replace(/\*\*/g, "").replace(/[「」]/g, "").trim();
 }
 
 function getJstDateParts(date = new Date()) {
@@ -262,6 +285,10 @@ export default function DailyFortunePage() {
   const [bookmarkShare, setBookmarkShare] = useState<BookmarkShareState | null>(null);
   const [bookmarkStatus, setBookmarkStatus] = useState<string | null>(null);
   const [isRenderingBookmark, setIsRenderingBookmark] = useState(false);
+  const [prayerCard, setPrayerCard] = useState<PrayerCardShareState | null>(null);
+  const [prayerCardStatus, setPrayerCardStatus] = useState<string | null>(null);
+  const [isGeneratingPrayerCard, setIsGeneratingPrayerCard] = useState(false);
+  const [isSharingPrayerCard, setIsSharingPrayerCard] = useState(false);
   const [recentCards, setRecentCards] = useState<RecentDailyCardItem[]>([
     { label: "今日", dateKey: "", cardName: null },
     { label: "昨日", dateKey: "", cardName: null },
@@ -332,8 +359,11 @@ export default function DailyFortunePage() {
       if (flipTimerRef.current !== null) {
         window.clearTimeout(flipTimerRef.current);
       }
+      if (prayerCard?.imageUrl) {
+        URL.revokeObjectURL(prayerCard.imageUrl);
+      }
     };
-  }, []);
+  }, [prayerCard]);
 
   const resetState = () => {
     if (hasTodayResult) {
@@ -601,6 +631,100 @@ export default function DailyFortunePage() {
     window.open(intentUrl, "_blank", "noopener,noreferrer");
   };
 
+  const handleCreatePrayerCard = async () => {
+    const sourceText = (fullText ?? "").trim();
+    const fallback = (summary ?? "").trim();
+    if (!sourceText && !fallback) {
+      setPrayerCardStatus("祈り札に入れる言葉が見つかりませんでした。");
+      return;
+    }
+
+    const themeText = extractTopWhisper(sourceText || fallback, fallback || "今日の導き");
+    const closingText = extractClosingGuidanceLine(sourceText || fallback, fallback || "明日に委ねて。");
+    setIsGeneratingPrayerCard(true);
+    setPrayerCardStatus(null);
+    try {
+      const response = await fetch("/api/share-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dateLabel: today,
+          themeText,
+          closingText,
+          bodyText: sourceText || fallback,
+          hashtags: PRAYER_CARD_HASHTAGS,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("祈り札の生成に失敗しました。");
+      }
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setPrayerCard((previous) => {
+        if (previous?.imageUrl) {
+          URL.revokeObjectURL(previous.imageUrl);
+        }
+        return {
+          imageUrl: objectUrl,
+          themeText,
+          closingText,
+          hashtags: PRAYER_CARD_HASHTAGS,
+          dateLabel: today,
+        };
+      });
+      setPrayerCardStatus("祈り札を整えました。");
+    } catch (err) {
+      setPrayerCardStatus(err instanceof Error ? err.message : "祈り札の生成に失敗しました。");
+    } finally {
+      setIsGeneratingPrayerCard(false);
+    }
+  };
+
+  const handleSavePrayerCard = () => {
+    if (!prayerCard?.imageUrl) {
+      setPrayerCardStatus("先に「祈り札を作る」を押してください。");
+      return;
+    }
+    const anchor = document.createElement("a");
+    anchor.href = prayerCard.imageUrl;
+    anchor.download = `lumina-prayer-card-${getJstDateKey()}.png`;
+    anchor.click();
+    setPrayerCardStatus("祈り札を保存しました。");
+  };
+
+  const handleSharePrayerCard = async () => {
+    if (!prayerCard) {
+      setPrayerCardStatus("先に「祈り札を作る」を押してください。");
+      return;
+    }
+    const shareText = `${prayerCard.themeText}\n${prayerCard.closingText}\n${prayerCard.hashtags}`;
+    const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/daily-fortune` : "/daily-fortune";
+
+    setIsSharingPrayerCard(true);
+    try {
+      if (navigator.share) {
+        const blob = await fetch(prayerCard.imageUrl).then((res) => res.blob());
+        const file = new File([blob], `lumina-prayer-card-${getJstDateKey()}.png`, { type: "image/png" });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({
+            title: "白の庭の祈り",
+            text: shareText,
+            files: [file],
+          });
+          setPrayerCardStatus("共有ダイアログを開きました。");
+          return;
+        }
+      }
+      const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+      window.open(intentUrl, "_blank", "noopener,noreferrer");
+      setPrayerCardStatus("共有用リンクを開きました。");
+    } catch {
+      setPrayerCardStatus("共有に失敗しました。時間をおいて再度お試しください。");
+    } finally {
+      setIsSharingPrayerCard(false);
+    }
+  };
+
   return (
     <PageShell
       maxWidth="narrow"
@@ -814,6 +938,43 @@ export default function DailyFortunePage() {
                       <p className="mt-4 whitespace-pre-wrap text-base leading-relaxed text-[#544c42]">
                         {bookmarkShare.text}
                       </p>
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
+
+            {showResult && (fullText || summary) ? (
+              <section className="mt-6 rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(160deg,rgba(255,252,246,0.88),rgba(248,242,231,0.82))] p-4">
+                <h3 className="text-base font-medium text-[#2e2a26]">白の庭の祈り札</h3>
+                <p className="mt-1 text-sm text-[#544c42]">
+                  今日の導きを、シェア用の祈り札（1080×1350 PNG）として整えます。
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <LuminaButton type="button" onClick={handleCreatePrayerCard} tone="secondary" disabled={isGeneratingPrayerCard}>
+                    {isGeneratingPrayerCard ? "生成中..." : "祈り札を作る"}
+                  </LuminaButton>
+                  <LuminaButton type="button" onClick={handleSavePrayerCard} tone="secondary" disabled={!prayerCard}>
+                    保存
+                  </LuminaButton>
+                  <LuminaButton type="button" onClick={handleSharePrayerCard} tone="secondary" disabled={!prayerCard || isSharingPrayerCard}>
+                    {isSharingPrayerCard ? "共有中..." : "共有"}
+                  </LuminaButton>
+                </div>
+                <p className="mt-2 text-xs text-[#6f6556]">{PRAYER_CARD_HASHTAGS}</p>
+                {prayerCardStatus ? <p className="mt-2 text-sm text-[#544c42]">{prayerCardStatus}</p> : null}
+
+                {prayerCard ? (
+                  <div className="mt-4 flex justify-center">
+                    <div className="w-full max-w-[360px] overflow-hidden rounded-2xl border border-[#d9ccb3]/80 bg-white/70 shadow-[0_12px_24px_-20px_rgba(96,80,60,0.22)]">
+                      <Image
+                        src={prayerCard.imageUrl}
+                        alt="白の庭の祈り札プレビュー"
+                        width={1080}
+                        height={1350}
+                        unoptimized
+                        className="h-auto w-full"
+                      />
                     </div>
                   </div>
                 ) : null}

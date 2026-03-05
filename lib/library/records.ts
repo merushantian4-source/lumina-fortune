@@ -31,7 +31,7 @@ export const recordChapters: RecordChapter[] = [
   },
   {
     slug: "lumina",
-    title: "ルミナ人物設定",
+    title: "ルミナについて",
     subtitle: "白き魔女の静かな輪郭",
     icon: "🌙",
     sections: [

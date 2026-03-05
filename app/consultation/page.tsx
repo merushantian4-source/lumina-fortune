@@ -3,7 +3,6 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
@@ -267,7 +266,17 @@ export default function ConsultationPage() {
     >
       <GlassCard className="rounded-3xl">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <section className="rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(160deg,rgba(255,251,245,0.92),rgba(248,241,229,0.88))] p-4">
+          <section className="relative overflow-hidden rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(160deg,rgba(255,251,245,0.92),rgba(248,241,229,0.88))] p-4">
+            <div className="pointer-events-none absolute -right-6 -top-8 hidden md:block">
+              <Image
+                src="/gazou/stamp.png"
+                alt=""
+                aria-hidden
+                width={140}
+                height={140}
+                className="rotate-[14deg] opacity-30"
+              />
+            </div>
             <h2 className="text-base font-medium text-[#2e2a26]">🌙 ルミナに相談する</h2>
             <div className="mt-3 space-y-3 text-sm leading-relaxed text-[#544c42]">
               <p>
@@ -358,6 +367,7 @@ export default function ConsultationPage() {
                 <li>生死に関わること</li>
                 <li>子宝の時期</li>
                 <li>犯人探しや浮気の特定</li>
+                <li>他人の不幸を願う内容</li>
                 <li>病気の診断</li>
                 <li>合否・勝敗・ギャンブルなどの当てもの</li>
               </ul>
@@ -371,14 +381,30 @@ export default function ConsultationPage() {
           <section className="rounded-2xl border border-[#e1d5bf]/75 bg-white/70 p-4">
             <h2 className="text-base font-medium text-[#2e2a26]">🌙 タロット鑑定例：20代女性　人生全体を総合的に見てほしい</h2>
             <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
-              <div className="mx-auto w-full max-w-[260px] overflow-hidden rounded-xl border border-[#e1d5bf]/70 bg-white/80 p-2">
-                <Image
-                  src="/gazou/tarotkanteirei.jpg"
-                  alt="タロット鑑定例のイメージ"
-                  width={900}
-                  height={1200}
-                  className="h-auto w-full rounded-lg"
-                />
+              <div className="mx-auto w-full max-w-[260px] space-y-3">
+                <div className="overflow-hidden rounded-xl border border-[#e1d5bf]/70 bg-white/80 p-2">
+                  <Image
+                    src="/gazou/tarotkanteirei.jpg"
+                    alt="タロット鑑定例のイメージ"
+                    width={900}
+                    height={1200}
+                    className="h-auto w-full rounded-lg"
+                  />
+                </div>
+                <div className="rounded-xl border border-[#e1d5bf]/70 bg-[rgba(255,252,247,0.86)] p-2">
+                  <p className="px-1 text-xs font-medium tracking-[0.03em] text-[#6a6054]">鑑定書PDFサンプル</p>
+                  <div className="mt-2 overflow-hidden rounded-lg border border-[#e7dcc7]/80 bg-white/90">
+                    <iframe src="/PDF/kanteisyo.pdf#view=FitH" title="鑑定書PDFサンプル" className="h-[250px] w-full" />
+                  </div>
+                  <a
+                    href="/PDF/kanteisyo.pdf"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-block px-1 text-xs text-[#6f6556] underline decoration-[#b7a98f] underline-offset-4"
+                  >
+                    PDFを別タブで開く
+                  </a>
+                </div>
               </div>
               <div className="rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-3">
                 <p className="max-h-[560px] overflow-y-auto whitespace-pre-line pr-1 text-sm leading-relaxed text-[#544c42]">
@@ -389,9 +415,9 @@ export default function ConsultationPage() {
           </section>
 
           <section className="rounded-2xl border border-[#e1d5bf]/75 bg-white/70 p-4">
-            <h2 className="text-base font-medium text-[#2e2a26]">🌙 お客様の声</h2>
-            <div className="mt-3 space-y-4 text-sm leading-relaxed text-[#544c42]">
-              <div className="rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-3">
+            <h2 className="text-base font-medium text-[#2e2a26]">🌙 白の館に届いた声</h2>
+            <div className="mt-3 grid grid-cols-1 gap-4 text-sm leading-relaxed text-[#544c42] md:grid-cols-3">
+              <div className="flex min-h-[320px] flex-col rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-4">
                 <p className="font-medium text-[#2e2a26]">30代女性 / 恋愛相談</p>
                 <p className="mt-2 whitespace-pre-line">
                   {`ルミナさんの鑑定を読んで、
@@ -405,7 +431,7 @@ export default function ConsultationPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-3">
+              <div className="flex min-h-[320px] flex-col rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-4">
                 <p className="font-medium text-[#2e2a26]">20代女性 / 人生相談</p>
                 <p className="mt-2 whitespace-pre-line">
                   {`今の仕事を続けるべきか迷っていたのですが、
@@ -416,7 +442,7 @@ export default function ConsultationPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-3">
+              <div className="flex min-h-[320px] flex-col rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-4">
                 <p className="font-medium text-[#2e2a26]">40代女性 / 人間関係</p>
                 <p className="mt-2 whitespace-pre-line">
                   {`人間関係で悩んでいたのですが、
@@ -430,7 +456,22 @@ export default function ConsultationPage() {
             </div>
           </section>
 
-          <h2 className="pt-1 text-base font-medium text-[#2e2a26]">🌙 個人鑑定を依頼する</h2>
+          <section className="relative overflow-hidden rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(160deg,rgba(255,251,245,0.92),rgba(248,241,229,0.88))] p-4">
+            <div className="pointer-events-none absolute -right-5 -top-6">
+              <Image
+                src="/gazou/stamp.png"
+                alt=""
+                aria-hidden
+                width={108}
+                height={108}
+                className="rotate-[8deg] opacity-35"
+              />
+            </div>
+            <h2 className="text-base font-medium text-[#2e2a26]">🌙 個人鑑定を依頼する</h2>
+            <p className="mt-2 pr-20 text-xs leading-relaxed text-[#6a6054]">
+              内容は白の館で厳重に保管され、鑑定以外の目的では使用しません。
+            </p>
+          </section>
 
           <label className="block text-sm font-medium text-[#2e2a26]">
             ニックネーム（必須）
@@ -539,12 +580,6 @@ export default function ConsultationPage() {
 
           {error ? <p className="text-sm text-[#8b5e5e]">{error}</p> : null}
           {requestId ? <p className="text-sm text-[#5f6b52]">受付ID: {requestId}</p> : null}
-
-          <div className="pt-2 text-center">
-            <Link href="/" className="text-sm text-[#5f5a78] underline decoration-[#9a92b2] underline-offset-4">
-              Topページに戻る
-            </Link>
-          </div>
         </form>
       </GlassCard>
     </PageShell>

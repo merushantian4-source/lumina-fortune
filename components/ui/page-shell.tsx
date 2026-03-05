@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { LuminaLinkButton } from "@/components/ui/button";
 
 type PageShellProps = {
   children: ReactNode;
@@ -10,6 +11,7 @@ type PageShellProps = {
   backLabel?: string;
   headerRight?: ReactNode;
   className?: string;
+  showBottomHomeButton?: boolean;
 };
 
 const widthClassMap: Record<NonNullable<PageShellProps["maxWidth"]>, string> = {
@@ -27,6 +29,7 @@ export function PageShell({
   backLabel,
   headerRight,
   className = "",
+  showBottomHomeButton = true,
 }: PageShellProps) {
   const widthClass = widthClassMap[maxWidth];
 
@@ -50,8 +53,14 @@ export function PageShell({
           </header>
         )}
         {children}
+        {showBottomHomeButton ? (
+          <div className="mt-6 pb-1 text-center">
+            <LuminaLinkButton href="/" tone="secondary" className="px-6">
+              トップへ戻る
+            </LuminaLinkButton>
+          </div>
+        ) : null}
       </div>
     </main>
   );
 }
-

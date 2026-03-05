@@ -35,9 +35,9 @@ type SocialLink = {
 };
 
 const heroActions = [
-  { label: "今日の占いを見る", href: "/daily-fortune", tone: "primary" as const },
+  { label: "プロフィール", href: "/profile", tone: "primary" as const },
   { label: "基本性格", href: "/basic-personality", tone: "secondary" as const },
-  { label: "プロフィール", href: "/profile", tone: "secondary" as const },
+  { label: "2026年の運勢", href: "/fortune-2026", tone: "secondary" as const },
 ];
 
 const groupedMenus: MenuGroup[] = [
@@ -159,6 +159,7 @@ function SocialIcon({ name }: { name: SocialLink["name"] }) {
 export function WelcomeScreen() {
   const [dailyWhisper, setDailyWhisper] = useState(DEFAULT_WHISPER_MESSAGE);
   const [greetingName, setGreetingName] = useState("ゲスト");
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const [visitStreak, setVisitStreak] = useState<VisitStreakRecord>({
     streak: 1,
     lastVisited: "",
@@ -220,6 +221,16 @@ export function WelcomeScreen() {
     visitStreak.monthlyVisitCount >= 7 || visitStreak.monthlyClaimed
       ? "七つめの光が満ちました。贈り物を受け取れます"
       : `白（ハク）が、七つめの光を集めています。あと${remainingDays}日です`;
+  const mobileQuickMenus = [
+    { label: "今日の占い", href: "/daily-fortune" },
+    { label: "光の導きタロット", href: "/fortune-monthly" },
+    { label: "白の庭の記録", href: "/library/records" },
+    { label: "個人鑑定", href: "/consultation" },
+  ];
+  const mobileFortuneMenu = groupedMenus.find((group) => group.heading === "星読みの間");
+  const mobileHiddenGroups = groupedMenus.filter((group) =>
+    ["心を整える間", "光の書庫", "ルミナの相談室"].includes(group.heading)
+  );
 
   return (
     <div className="relative min-h-screen overflow-hidden px-4 py-8 sm:py-10">
@@ -233,7 +244,7 @@ export function WelcomeScreen() {
           className="lumina-shell relative overflow-hidden rounded-3xl border border-[#e4dbc9]/85 bg-[linear-gradient(155deg,rgba(255,255,251,0.9),rgba(248,242,231,0.84))] px-5 py-8 shadow-[0_18px_34px_-26px_rgba(82,69,53,0.24)] sm:px-8 sm:py-10"
         >
           <div className="pointer-events-none absolute inset-0">
-            <Image src="/gazou/IMG_4221.webp" alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 1024px" />
+            <Image src="/gazou/yakata.jpg" alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 1024px" />
             <div className="absolute inset-0 bg-[rgba(255,252,246,0.84)]" />
           </div>
           <div className="relative z-10 text-center">
@@ -264,6 +275,20 @@ export function WelcomeScreen() {
             </div>
           </div>
         </motion.div>
+      </section>
+
+      <section className="relative mx-auto mt-4 w-full max-w-5xl md:hidden">
+        <div className="grid grid-cols-2 gap-2">
+          {mobileQuickMenus.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[#baa98d]/72 bg-[#fdf8ee] px-3 py-2 text-sm font-medium text-[#6f6556] transition hover:bg-[#f9f3e7]"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section className="relative mx-auto mt-6 w-full max-w-5xl">
@@ -339,7 +364,7 @@ export function WelcomeScreen() {
           className="rounded-3xl border border-[#e1d5bf]/72 bg-[linear-gradient(165deg,rgba(255,252,246,0.76),rgba(248,242,231,0.68))] p-4 shadow-[0_10px_20px_-22px_rgba(82,69,53,0.2)] sm:p-5"
         >
           <div className="mb-3 flex items-end justify-between gap-3">
-            <h2 className="text-lg font-medium text-[#3c352d]">✧ 館の地図</h2>
+            <h2 className="text-lg font-medium text-[#3c352d]">✧ 館の入口</h2>
             <p className="text-xs tracking-[0.08em] text-[#8b7e6b]">迷ったら、まずこの3つから。</p>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -363,7 +388,88 @@ export function WelcomeScreen() {
         </motion.div>
       </section>
 
-      <section className="relative mx-auto mt-6 w-full max-w-5xl">
+      <section className="relative mx-auto mt-6 w-full max-w-5xl md:hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.12 }}
+          className="space-y-3"
+        >
+          <div className="rounded-2xl border border-[#e1d5bf]/72 bg-[linear-gradient(165deg,rgba(255,252,246,0.76),rgba(248,242,231,0.68))] p-4">
+            <div className="mb-3 flex items-end justify-between gap-3">
+              <h2 className="text-lg font-medium text-[#3c352d]">占いメニュー</h2>
+              <p className="text-xs tracking-[0.08em] text-[#8b7e6b]">横にスワイプ</p>
+            </div>
+            <div className="-mx-1 overflow-x-auto pb-1">
+              <div className="flex gap-3 px-1">
+                {mobileFortuneMenu?.items.map((item) => (
+                  <article
+                    key={`mobile-fortune-${item.href}`}
+                    className="w-[260px] shrink-0 rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(162deg,rgba(255,252,246,0.92),rgba(248,242,231,0.88))] p-4"
+                  >
+                    <h3 className="text-base font-medium text-[#2e2a26]">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-[#544c42]">{item.description}</p>
+                    <Link
+                      href={item.href}
+                      className="mt-3 inline-flex min-h-9 items-center justify-center rounded-full border border-[#baa98d]/72 bg-[#fdf8ee] px-4 py-1.5 text-sm font-medium text-[#6f6556] transition hover:bg-[#f9f3e7]"
+                    >
+                      {item.ctaLabel} →
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#e1d5bf]/72 bg-[linear-gradient(165deg,rgba(255,252,246,0.76),rgba(248,242,231,0.68))] p-4">
+            {!mobileExpanded ? (
+              <button
+                type="button"
+                onClick={() => setMobileExpanded(true)}
+                className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#baa98d]/72 bg-[#fdf8ee] px-5 py-2 text-sm font-medium text-[#6f6556] transition hover:bg-[#f9f3e7]"
+              >
+                もっと見る
+              </button>
+            ) : (
+              <div className="space-y-4">
+                {mobileHiddenGroups.map((group) => (
+                  <section key={`mobile-group-${group.heading}`} className="rounded-2xl border border-[#e1d5bf]/70 bg-white/60 p-3">
+                    <div className="mb-2 flex items-end justify-between gap-2">
+                      <h3 className="text-base font-medium text-[#3c352d]">{group.heading}</h3>
+                      <p className="text-[11px] tracking-[0.06em] text-[#8b7e6b]">{group.sub}</p>
+                    </div>
+                    <div className="space-y-2">
+                      {group.items.map((item) => (
+                        <article key={`mobile-item-${item.href}`} className="rounded-xl border border-[#e1d5bf]/75 bg-white/75 p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <h4 className="text-sm font-medium text-[#2e2a26]">{item.title}</h4>
+                            <Link
+                              href={item.href}
+                              className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-[#baa98d]/72 bg-[#fdf8ee] px-2.5 text-xs font-medium text-[#6f6556] transition hover:bg-[#f9f3e7]"
+                            >
+                              {item.ctaLabel}
+                            </Link>
+                          </div>
+                          <p className="mt-1 text-xs leading-relaxed text-[#544c42]">{item.description}</p>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setMobileExpanded(false)}
+                  className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#baa98d]/72 bg-[#fdf8ee] px-5 py-2 text-sm font-medium text-[#6f6556] transition hover:bg-[#f9f3e7]"
+                >
+                  閉じる
+                </button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </section>
+
+      <section className="relative mx-auto mt-6 hidden w-full max-w-5xl md:block">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.12 }} className="space-y-5">
           {groupedMenus.map((group) => (
             <section

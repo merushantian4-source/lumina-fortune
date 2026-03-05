@@ -5,10 +5,10 @@ export default function MonthlyWallpaperPage() {
   return (
     <PageShell
       maxWidth="content"
-      title="Monthly Wallpaper"
-      description="Visit for 7 days in the month to unlock this month's wallpaper."
+      title="今月の待ち受け"
+      description="今月の来訪日数が7日になると、限定待ち受けを受け取れます。"
       backHref="/"
-      backLabel="Back to Home"
+      backLabel="トップへ戻る"
     >
       <WallpapersClient />
     </PageShell>
