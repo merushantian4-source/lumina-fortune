@@ -368,6 +368,70 @@ export default function ConsultationPage() {
             </div>
           </section>
 
+          <section className="rounded-2xl border border-[#e1d5bf]/75 bg-white/70 p-4">
+            <h2 className="text-base font-medium text-[#2e2a26]">🌙 タロット鑑定例：20代女性　人生全体を総合的に見てほしい</h2>
+            <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
+              <div className="mx-auto w-full max-w-[260px] overflow-hidden rounded-xl border border-[#e1d5bf]/70 bg-white/80 p-2">
+                <Image
+                  src="/gazou/tarotkanteirei.jpg"
+                  alt="タロット鑑定例のイメージ"
+                  width={900}
+                  height={1200}
+                  className="h-auto w-full rounded-lg"
+                />
+              </div>
+              <div className="rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-3">
+                <p className="max-h-[560px] overflow-y-auto whitespace-pre-line pr-1 text-sm leading-relaxed text-[#544c42]">
+                  {`${TAROT_KANTEI_INTRO}\n\n${TAROT_KANTEI_SAMPLE}`}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-[#e1d5bf]/75 bg-white/70 p-4">
+            <h2 className="text-base font-medium text-[#2e2a26]">🌙 お客様の声</h2>
+            <div className="mt-3 space-y-4 text-sm leading-relaxed text-[#544c42]">
+              <div className="rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-3">
+                <p className="font-medium text-[#2e2a26]">30代女性 / 恋愛相談</p>
+                <p className="mt-2 whitespace-pre-line">
+                  {`ルミナさんの鑑定を読んで、
+自分の気持ちを落ち着いて見つめ直すことができました。
+
+相手の気持ちを決めつけるのではなく、
+自分の心を整える大切さに気づかせてもらえた気がします。
+
+言葉がとても優しくて、
+読んだあと少し安心できました。`}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-3">
+                <p className="font-medium text-[#2e2a26]">20代女性 / 人生相談</p>
+                <p className="mt-2 whitespace-pre-line">
+                  {`今の仕事を続けるべきか迷っていたのですが、
+鑑定の言葉を読んで焦らなくていいんだと思えました。
+
+未来を断定するのではなく、
+「今の自分にできること」を教えてもらえた感じです。`}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-3">
+                <p className="font-medium text-[#2e2a26]">40代女性 / 人間関係</p>
+                <p className="mt-2 whitespace-pre-line">
+                  {`人間関係で悩んでいたのですが、
+カードの意味を丁寧に説明していただき、
+気持ちがとても軽くなりました。
+
+文章が温かくて、
+何度も読み返しています。`}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <h2 className="pt-1 text-base font-medium text-[#2e2a26]">🌙 個人鑑定を依頼する</h2>
+
           <label className="block text-sm font-medium text-[#2e2a26]">
             ニックネーム（必須）
             <input
@@ -475,26 +539,6 @@ export default function ConsultationPage() {
 
           {error ? <p className="text-sm text-[#8b5e5e]">{error}</p> : null}
           {requestId ? <p className="text-sm text-[#5f6b52]">受付ID: {requestId}</p> : null}
-
-          <section className="rounded-2xl border border-[#e1d5bf]/75 bg-white/70 p-4">
-            <h2 className="text-base font-medium text-[#2e2a26]">🌙 タロット鑑定例：20代女性　人生全体を総合的に見てほしい</h2>
-            <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
-              <div className="mx-auto w-full max-w-[260px] overflow-hidden rounded-xl border border-[#e1d5bf]/70 bg-white/80 p-2">
-                <Image
-                  src="/gazou/tarotkanteirei.jpg"
-                  alt="タロット鑑定例のイメージ"
-                  width={900}
-                  height={1200}
-                  className="h-auto w-full rounded-lg"
-                />
-              </div>
-              <div className="rounded-xl border border-[#e1d5bf]/60 bg-[rgba(255,252,247,0.78)] p-3">
-                <p className="max-h-[560px] overflow-y-auto whitespace-pre-line pr-1 text-sm leading-relaxed text-[#544c42]">
-                  {`${TAROT_KANTEI_INTRO}\n\n${TAROT_KANTEI_SAMPLE}`}
-                </p>
-              </div>
-            </div>
-          </section>
 
           <div className="pt-2 text-center">
             <Link href="/" className="text-sm text-[#5f5a78] underline decoration-[#9a92b2] underline-offset-4">
