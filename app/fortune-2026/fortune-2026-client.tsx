@@ -3,30 +3,18 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { destinyNumberFromBirthdate } from "@/lib/fortune/fortuneNumber";
+import { BIRTHDATE_STORAGE_KEY, getInitialBirthdate } from "@/lib/profile/getProfile";
 import { PageShell } from "@/components/ui/page-shell";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
-
-const BIRTHDATE_STORAGE_KEY = "lumina_birthdate";
 
 type Fortune2026ClientProps = {
   serverBirthdate: string | null;
 };
 
-function loadInitialBirthdate(serverBirthdate: string | null): string {
-  if (serverBirthdate) return serverBirthdate;
-  if (typeof window === "undefined") return "";
-
-  try {
-    return localStorage.getItem(BIRTHDATE_STORAGE_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
-
 export default function Fortune2026Client({ serverBirthdate }: Fortune2026ClientProps) {
   const router = useRouter();
-  const [birthDate, setBirthDate] = useState(() => loadInitialBirthdate(serverBirthdate));
+  const [birthDate, setBirthDate] = useState(() => getInitialBirthdate(serverBirthdate));
   const [error, setError] = useState("");
   const [viewWithoutSaving, setViewWithoutSaving] = useState(false);
 

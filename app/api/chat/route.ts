@@ -79,22 +79,22 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const JA_WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
-
 function getJstNowParts(base = new Date()) {
-  const formatter = new Intl.DateTimeFormat("ja-JP", {
+  const dateFormatter = new Intl.DateTimeFormat("ja-JP", {
     timeZone: "Asia/Tokyo",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    weekday: "short",
   });
-  const parts = formatter.formatToParts(base);
+  const weekdayFormatter = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    weekday: "long",
+  });
+  const parts = dateFormatter.formatToParts(base);
   const year = parts.find((p) => p.type === "year")?.value ?? "0000";
   const month = parts.find((p) => p.type === "month")?.value ?? "01";
   const day = parts.find((p) => p.type === "day")?.value ?? "01";
-  const weekdayRaw = parts.find((p) => p.type === "weekday")?.value ?? "日";
-  const weekdayJa = JA_WEEKDAYS.find((v) => weekdayRaw.includes(v)) ?? "日";
+  const weekdayJa = weekdayFormatter.format(base) || "日曜日";
   return { dateKey: `${year}-${month}-${day}`, weekdayJa };
 }
 

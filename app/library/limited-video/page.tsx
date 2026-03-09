@@ -26,6 +26,13 @@ const videos: VideoItem[] = [
     youtubeId: "KutxJ6Y2Q4c",
     watchUrl: "https://youtube.com/shorts/KutxJ6Y2Q4c?si=jrLkQo5HB1fzi83N",
   },
+  {
+    title: "YouTube Shorts",
+    note: "公開中",
+    category: "恋愛",
+    youtubeId: "GoviEsg_15o",
+    watchUrl: "https://youtube.com/shorts/GoviEsg_15o?si=N2O0v8eZ3YASlXuv",
+  },
 ];
 
 export default function LimitedVideoPage() {

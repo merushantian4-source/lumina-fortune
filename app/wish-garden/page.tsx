@@ -4,9 +4,11 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { WishAnimationOverlay } from "@/components/WishAnimationOverlay";
+import { HakuWhisperCard } from "@/components/haku-whisper-card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
+import { pickHakuMessage } from "@/lib/haku-messages";
 
 type WishEntry = {
   id: string;
@@ -41,6 +43,7 @@ export default function WishGardenPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [hakuMessage, setHakuMessage] = useState<string | null>(null);
 
   const [animationOpen, setAnimationOpen] = useState(false);
   const [animationText, setAnimationText] = useState("");
@@ -115,6 +118,7 @@ export default function WishGardenPage() {
     setAnimationOpen(false);
     setMessage("");
     setNotice("願いを置きました。");
+    setHakuMessage(pickHakuMessage("wish-garden", `${animationText}:${Date.now()}`));
   };
 
   return (
@@ -124,6 +128,13 @@ export default function WishGardenPage() {
       description="ここには、小さな願いや祈りが置かれていきます。"
       backHref="/"
       backLabel="トップへ戻る"
+      headerClassName="border-[#e1d5bf]/78 bg-[linear-gradient(160deg,rgba(255,252,246,0.52),rgba(248,242,231,0.42))]"
+      headerBackground={
+        <>
+          <div className="h-full w-full bg-[url('/gazou/negainoniwa.png')] bg-cover bg-center opacity-82 [filter:blur(0.5px)_contrast(1.05)_saturate(1.05)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(160deg,rgba(255,252,246,0.3),rgba(248,242,231,0.22))]" />
+        </>
+      }
       className="relative overflow-hidden"
     >
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_16%,rgba(255,255,247,0.24),transparent_42%),radial-gradient(circle_at_84%_14%,rgba(246,233,202,0.18),transparent_46%),radial-gradient(circle_at_24%_72%,rgba(226,239,255,0.16),transparent_52%)]" />
@@ -164,31 +175,40 @@ export default function WishGardenPage() {
         </form>
       </GlassCard>
 
-      <section className="mt-4 space-y-3">
+      <section className="relative mt-4 overflow-hidden rounded-3xl border border-[#e1d5bf]/75 bg-[rgba(255,252,246,0.7)] p-4">
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <div className="h-full w-full bg-[url('/gazou/negai2.png')] bg-cover bg-center opacity-72 [filter:contrast(1.04)_saturate(1.03)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(165deg,rgba(255,252,246,0.42),rgba(248,242,231,0.34))]" />
+        </div>
         <h2 className="px-1 text-lg font-medium text-[#2e2a26]">最新の願い</h2>
         {isLoading ? (
-          <GlassCard>
+          <GlassCard className="mt-3">
             <p className="text-sm text-[#544c42]">願いを読み込み中です...</p>
           </GlassCard>
         ) : wishes.length === 0 ? (
-          <GlassCard>
+          <GlassCard className="mt-3">
             <p className="text-sm text-[#544c42]">まだ願いはありません。最初のひとつを置いてみてください。</p>
           </GlassCard>
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {wishes.map((wish) => (
-              <article
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {wishes.map((wish, index) => (
+              <motion.article
                 key={wish.id}
-                className="lumina-glow-card rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(162deg,rgba(255,252,246,0.92),rgba(248,242,231,0.86))] p-4 shadow-[0_12px_22px_-20px_rgba(82,69,53,0.22)]"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, delay: Math.min(index * 0.04, 0.28) }}
+                className="lumina-glow-card rounded-2xl border border-[#e1d5bf]/80 bg-[linear-gradient(162deg,rgba(255,252,246,0.94),rgba(248,242,231,0.88))] p-4 shadow-[0_12px_22px_-20px_rgba(82,69,53,0.26)]"
               >
                 <p className="text-xs tracking-[0.14em] text-[#847967]">匿名の願い</p>
                 <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[#4f473d]">{wish.message}</p>
                 <p className="mt-3 text-xs text-[#8b7e6b]">{formatDateTime(wish.createdAt)}</p>
-              </article>
+              </motion.article>
             ))}
           </div>
         )}
       </section>
+
+      {hakuMessage ? <HakuWhisperCard message={hakuMessage} className="mt-4" /> : null}
 
       <WishAnimationOverlay open={animationOpen} text={animationText} onComplete={handleAnimationComplete} />
 

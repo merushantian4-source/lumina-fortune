@@ -5,6 +5,7 @@ export async function POST(request: Request) {
     const payload = (await request.json()) as {
       nickname?: string;
       birthdate?: string;
+      partnerBirthdate?: string;
       bloodType?: string;
       gender?: string;
       email?: string;
@@ -15,6 +16,9 @@ export async function POST(request: Request) {
 
     if (!payload.nickname || !payload.email || !payload.category || !payload.content || !payload.agreed) {
       return NextResponse.json({ ok: false, error: "Missing required fields" }, { status: 400 });
+    }
+    if (payload.category === "相性" && !payload.partnerBirthdate) {
+      return NextResponse.json({ ok: false, error: "Missing partner birthdate" }, { status: 400 });
     }
 
     return NextResponse.json({

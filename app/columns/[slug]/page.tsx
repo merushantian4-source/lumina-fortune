@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GlassCard } from "@/components/ui/glass-card";
+import { LuminaLinkButton } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
 import { getColumnArticle, getColumnDisplayContent, listColumnArticles } from "@/lib/columns";
 
@@ -11,6 +12,11 @@ type PageProps = {
 };
 
 type CalloutType = "fact" | "insight" | "next";
+type RichBlock =
+  | { type: "heading"; content: string }
+  | { type: "subheading"; content: string }
+  | { type: "quote"; content: string }
+  | { type: "paragraph"; content: string };
 
 const CALLOUT_LABELS: Record<CalloutType, string> = {
   fact: "\u4e8b\u5b9f",
@@ -34,9 +40,58 @@ function normalizeText(input: string): string {
   return input.replace(/\s+/g, "").trim();
 }
 
+function normalizeComparableText(input: string): string {
+  return normalizeText(input).replace(/^>+/, "");
+}
+
+function shouldShowConsultationButton(slug: string, paragraph: string): boolean {
+  if (slug !== "for-your-heartbreak") return false;
+
+  const normalized = normalizeText(paragraph);
+  return normalized.includes("心の準備ができたら、ルミナの占いで") && normalized.includes("あなたに訪れる次の縁");
+}
+
+function shouldShowAffirmationConsultationButton(slug: string, paragraph: string): boolean {
+  if (
+    slug !== "work-failure-night" &&
+    slug !== "when-anxiety-wont-stop" &&
+    slug !== "when-wishes-dont-come-true" &&
+    slug !== "why-fortune-telling-feels-accurate" &&
+    slug !== "for-you-who-wants-to-manifest"
+  ) {
+    return false;
+  }
+
+  const normalized = normalizeText(paragraph);
+  return (
+    (normalized.includes("心が少し落ち着いたら、ルミナの占いで") && normalized.includes("これからの流れ")) ||
+    (normalized.includes("心が少し落ち着いたとき、ルミナの占いで") &&
+      normalized.includes("今のあなたへのメッセージ")) ||
+    (normalized.includes("今のあなたの願いと、これからの流れをルミナの占いで読み解いてみませんか") &&
+      normalized.includes("次の一歩に向かうあなたを、星と言葉でそっと照らします")) ||
+    (normalized.includes("ルミナでは、あなたの「今この瞬間」に寄り添う鑑定をご提供しています") &&
+      normalized.includes("オープンな心で、ぜひお越しください")) ||
+    (normalized.includes("今のあなたのエネルギーの状態と、これからの引き寄せの流れをルミナの占いで読み解いてみませんか") &&
+      normalized.includes("あなたの願いが現実に近づくための道筋を、星と言葉でそっと照らします"))
+  );
+}
+
 function isTodayPhraseLabel(paragraph: string): boolean {
   const normalized = normalizeText(paragraph).replace(/^🌿/, "");
   return normalized === "今日のひとこと";
+}
+
+function toRichBlock(paragraph: string): RichBlock {
+  if (paragraph.startsWith("## ")) {
+    return { type: "heading", content: paragraph.slice(3).trim() };
+  }
+  if (paragraph.startsWith("### ")) {
+    return { type: "subheading", content: paragraph.slice(4).trim() };
+  }
+  if (paragraph.startsWith("> ")) {
+    return { type: "quote", content: paragraph.slice(2).trim() };
+  }
+  return { type: "paragraph", content: paragraph };
 }
 
 export default async function ColumnDetailPage({ params }: PageProps) {
@@ -64,13 +119,33 @@ export default async function ColumnDetailPage({ params }: PageProps) {
   let affirmation = baseBodyParagraphs[baseBodyParagraphs.length - 1] ?? quote;
   let bodyParagraphs = baseBodyParagraphs;
 
-  const todayLabelIndex = baseBodyParagraphs.findIndex((paragraph) => isTodayPhraseLabel(paragraph));
+  const todayLabelIndex = baseBodyParagraphs.findIndex(
+    (paragraph) => isTodayPhraseLabel(paragraph) || paragraph.includes("今日のひとこと")
+  );
   if (todayLabelIndex >= 0) {
     const next = baseBodyParagraphs[todayLabelIndex + 1];
     if (next && normalizeText(next)) {
       affirmation = next;
     }
     bodyParagraphs = baseBodyParagraphs.filter((_, index) => index !== todayLabelIndex && index !== todayLabelIndex + 1);
+  }
+
+  const affirmationNormalized = normalizeComparableText(affirmation);
+  if (affirmationNormalized) {
+    bodyParagraphs = bodyParagraphs.filter((paragraph, index) => {
+      if (
+        slug !== "when-anxiety-wont-stop" &&
+        slug !== "when-wishes-dont-come-true" &&
+        slug !== "why-fortune-telling-feels-accurate" &&
+        slug !== "for-you-who-wants-to-manifest"
+      ) {
+        return true;
+      }
+      const normalized = normalizeComparableText(paragraph);
+      const isTrailingDuplicate = index === bodyParagraphs.length - 1 && normalized === affirmationNormalized;
+      const isBrokenTodayLabel = slug === "for-you-who-wants-to-manifest" && normalized.includes("莉頑律縺ｮ縺ｲ縺ｨ縺薙→");
+      return !(isTrailingDuplicate || isBrokenTodayLabel);
+    });
   }
 
   const readMinutes = article.readMinutes ?? estimateReadMinutes(paragraphs.length > 0 ? paragraphs : rawParagraphs);
@@ -113,9 +188,10 @@ export default async function ColumnDetailPage({ params }: PageProps) {
             {quote}
           </blockquote>
 
-          <article className="prose lumina-prose prose-p:my-6 prose-headings:mb-4 prose-headings:mt-10 prose-blockquote:my-8 mt-6 max-w-none leading-relaxed text-[#3f392f]">
+          <article className="mt-6 max-w-none space-y-5 text-[#3f392f]">
             {bodyParagraphs.map((paragraph, index) => {
               const calloutType = getCalloutType(paragraph);
+              const block = toRichBlock(paragraph);
 
               if (calloutType) {
                 return (
@@ -131,13 +207,57 @@ export default async function ColumnDetailPage({ params }: PageProps) {
                 );
               }
 
+              if (block.type === "heading") {
+                return (
+                  <section key={`${article.slug}-heading-${index + 1}`} className="pt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-px flex-1 bg-[#dbcbb0]" />
+                      <span className="text-[0.65rem] font-semibold tracking-[0.28em] text-[#9a8a72]">
+                        SECTION
+                      </span>
+                    </div>
+                    <h2 className="mt-4 text-[1.35rem] font-medium leading-snug text-[#2f2924] sm:text-[1.55rem]">
+                      {block.content}
+                    </h2>
+                  </section>
+                );
+              }
+
+              if (block.type === "subheading") {
+                return (
+                  <h3
+                    key={`${article.slug}-subheading-${index + 1}`}
+                    className="rounded-xl bg-[#fbf3e5]/88 px-4 py-3 text-[1.02rem] font-medium leading-relaxed text-[#4d4032]"
+                  >
+                    {block.content}
+                  </h3>
+                );
+              }
+
+              if (block.type === "quote") {
+                return (
+                  <blockquote
+                    key={`${article.slug}-quote-${index + 1}`}
+                    className="rounded-2xl border border-[#dccaa9]/76 bg-[#fff7ea]/90 px-5 py-4 text-[1.02rem] leading-[2] text-[#4d4337] shadow-[0_10px_24px_-24px_rgba(82,69,53,0.35)]"
+                  >
+                    {block.content.split("\n").map((line, lineIndex) => (
+                      <p key={`${article.slug}-quote-line-${index + 1}-${lineIndex + 1}`}>{line}</p>
+                    ))}
+                  </blockquote>
+                );
+              }
+
               return (
-                <p
-                  key={`${article.slug}-paragraph-${index + 1}`}
-                  className="text-[1.02rem] leading-[2.1] text-[#4e453a]"
-                >
-                  {paragraph}
-                </p>
+                <div key={`${article.slug}-paragraph-${index + 1}`} className="space-y-3">
+                  <p className="text-[1.02rem] leading-[2.1] text-[#4e453a]">{block.content}</p>
+                  {shouldShowConsultationButton(article.slug, block.content) ? (
+                    <div className="pt-1">
+                      <LuminaLinkButton href="/consultation" tone="secondary" className="px-5">
+                        個人鑑定を依頼する
+                      </LuminaLinkButton>
+                    </div>
+                  ) : null}
+                </div>
               );
             })}
           </article>
@@ -148,6 +268,13 @@ export default async function ColumnDetailPage({ params }: PageProps) {
             {"\u4eca\u65e5\u306e\u3072\u3068\u3053\u3068"}
           </p>
           <p className="mt-2 text-base leading-relaxed text-[#4e453a]">{affirmation}</p>
+          {shouldShowAffirmationConsultationButton(article.slug, affirmation) ? (
+            <div className="mt-4">
+              <LuminaLinkButton href="/consultation" tone="secondary" className="px-5">
+                個人鑑定を依頼する
+              </LuminaLinkButton>
+            </div>
+          ) : null}
         </GlassCard>
 
         {related.length > 0 ? (

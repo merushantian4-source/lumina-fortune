@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Footer } from "@/components/Footer";
 import { Geist_Mono, Noto_Serif_JP, Playfair_Display } from "next/font/google";
 import { StarfieldBackground } from "@/components/starfield-background";
+import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
 const notoSerifJp = Noto_Serif_JP({
@@ -21,8 +23,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "白の魔女ルミナの占い - タロット占い",
-  description: "光とハーブを操る白の魔女ルミナが、相棒の白いインコと共にタロットであなたの運勢を占います。",
+  title: BRAND.seoTitle,
+  description: BRAND.seoDescription,
+  openGraph: {
+    title: BRAND.seoTitle,
+    description: BRAND.seoDescription,
+  },
 };
 
 export default function RootLayout({
@@ -38,7 +44,10 @@ export default function RootLayout({
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,246,0.34),transparent_48%),radial-gradient(circle_at_82%_20%,rgba(255,240,213,0.22),transparent_50%),linear-gradient(180deg,rgba(252,248,239,0.44),rgba(246,241,231,0.46))]" />
           <StarfieldBackground className="opacity-30" />
         </div>
-        <div className="relative z-10">{children}</div>
+        <div className="relative z-10">
+          {children}
+          <Footer />
+        </div>
       </body>
     </html>
   );

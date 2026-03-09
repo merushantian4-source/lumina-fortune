@@ -33,6 +33,23 @@ function resolveUserKey(profile?: RequestBody["profile"]): string {
   return `nickname:${nickname.toLowerCase()}`;
 }
 
+function shiftDateKey(dateKey: string, deltaDays: number): string {
+  const [yearText, monthText, dayText] = dateKey.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return dateKey;
+  }
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() - deltaDays);
+  const nextYear = date.getUTCFullYear();
+  const nextMonth = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const nextDay = String(date.getUTCDate()).padStart(2, "0");
+  return `${nextYear}-${nextMonth}-${nextDay}`;
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as RequestBody;
@@ -47,17 +64,8 @@ export async function POST(request: Request) {
       { offset: 2, label: "一昨日" },
     ];
 
-    const toDateKey = (offset: number) => {
-      const date = new Date(`${dateKey}T00:00:00+09:00`);
-      date.setUTCDate(date.getUTCDate() - offset);
-      const y = date.getUTCFullYear();
-      const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-      const d = String(date.getUTCDate()).padStart(2, "0");
-      return `${y}-${m}-${d}`;
-    };
-
     const history = labels.map((item) => {
-      const key = toDateKey(item.offset);
+      const key = shiftDateKey(dateKey, item.offset);
       return {
         label: item.label,
         dateKey: key,
@@ -70,4 +78,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ history: [] }, { status: 200 });
   }
 }
-

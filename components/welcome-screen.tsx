@@ -4,16 +4,16 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { makeVisitorKey, updateVisitStreakForVisitor, type VisitStreakRecord } from "@/lib/visit-streak";
+import { SpecialOccasionCard } from "@/components/special-occasion-card";
+import { BRAND } from "@/lib/brand";
+import { getInitialBirthdate } from "@/lib/profile/getProfile";
+import { getSpecialOccasionEvent, type SpecialOccasionEvent } from "@/lib/special-occasions";
+import { getJstDateKey, getVisitStreakForVisitor, makeVisitorKey, updateVisitStreakForVisitor, type VisitStreakRecord } from "@/lib/visit-streak";
 
 const PROFILE_STORAGE_KEY = "lumina_profile";
 const DEFAULT_WHISPER_MESSAGE = `今日は「整えること」が鍵になる日。
 小さな違和感を見逃さないことで、
 次の選択が静かに見えてきます。`;
-
-type DailyWhisperApiResponse = {
-  message?: string | null;
-};
 
 type MenuCard = {
   title: string;
@@ -29,24 +29,22 @@ type MenuGroup = {
   items: MenuCard[];
 };
 
-type SocialLink = {
-  name: "TikTok" | "Instagram" | "YouTube";
-  href: string;
-};
+const MOBILE_FORTUNE_VISIBLE_COUNT = 3;
 
 const heroActions = [
-  { label: "プロフィール", href: "/profile", tone: "primary" as const },
+  { label: "今日のカードを引く", href: "/daily-fortune", tone: "primary" as const },
   { label: "基本性格", href: "/basic-personality", tone: "secondary" as const },
   { label: "2026年の運勢", href: "/fortune-2026", tone: "secondary" as const },
 ];
 
 const groupedMenus: MenuGroup[] = [
   {
-    heading: "星読みの間",
-    sub: "今日と未来を読む",
+    heading: "導きの間",
+    sub: "カードが示す運命を受け取る",
     image: "/gazou/IMG_4213.webp",
     items: [
       { title: "基本性格", description: "生年月日からあなたの本質を読み解きます。", href: "/basic-personality", ctaLabel: "見る" },
+      { title: "光の導きタロット占い", description: "いまの流れをカードで静かに読み解きます。", href: "/", ctaLabel: "ひらく" },
       { title: "毎日の占い", description: "今日の流れに寄り添うメッセージを受け取れます。", href: "/daily-fortune", ctaLabel: "見る" },
       { title: "毎月の運勢", description: "今月のテーマと過ごし方を確認できます。", href: "/fortune-monthly", ctaLabel: "開く" },
       { title: "2026年の運勢", description: "一年の流れを静かに見通します。", href: "/fortune-2026", ctaLabel: "開く" },
@@ -55,11 +53,12 @@ const groupedMenus: MenuGroup[] = [
     ],
   },
   {
-    heading: "心を整える間",
-    sub: "呼吸と休息を整える",
+    heading: "白の休息室",
+    sub: "心を静かに整える場所",
     image: "/gazou/IMG_4223.webp",
     items: [
       { title: "光のワーク", description: "日常に静かな光を取り戻す小さな実践。", href: "/light-work", ctaLabel: "はじめる" },
+      { title: "未来の手紙", description: "未来のあなたへ残した言葉を、白が静かに預かります。", href: "/future-letter", ctaLabel: "手紙を書く" },
       { title: "館の休息室", description: "静かなBGMと短い瞑想で心をゆるめます。", href: "/healing", ctaLabel: "休む" },
       { title: "光の願いの庭", description: "小さな願いを匿名で残せる場所です。", href: "/wish-garden", ctaLabel: "願いを残す" },
     ],
@@ -86,12 +85,6 @@ const groupedMenus: MenuGroup[] = [
   },
 ];
 
-const socialLinks: SocialLink[] = [
-  { name: "TikTok", href: "https://www.tiktok.com/@luminousmagic0?_r=1&_t=ZS-94P8u7q3O5g" },
-  { name: "Instagram", href: "https://www.instagram.com/luminousmagic0?igsh=MXZqNmtkazllZHpqNg%3D%3D&utm_source=qr" },
-  { name: "YouTube", href: "https://youtube.com/channel/UCgmijIrv50RWonl2XgO8fiA?si=k60PNOj1RXFB3wcG" },
-];
-
 const mapCards = [
   {
     tag: "玄関",
@@ -101,7 +94,7 @@ const mapCards = [
     ctaLabel: "プロフィールを登録する",
   },
   {
-    tag: "青卓",
+    tag: "書庫",
     title: "白の庭の記録",
     description: "ルミナについてと、白の館の物語。",
     href: "/library/records",
@@ -109,31 +102,20 @@ const mapCards = [
   },
   {
     tag: "相談室",
-    title: "ルミナに相談",
-    description: "恋愛・仕事・心のこと。静かに整理したい時に。",
-    href: "/consultation",
-    ctaLabel: "個人鑑定を依頼する",
+    title: "光の導きタロット占い",
+    description: "カードを通して、いまの流れを静かに読み解きます。",
+    href: "/",
+    ctaLabel: "占いをひらく",
   },
 ];
 
-function MenuCardItem({ item }: { item: MenuCard }) {
-  return (
-    <article className="rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(162deg,rgba(255,252,246,0.9),rgba(248,242,231,0.86))] p-4 shadow-[0_12px_22px_-20px_rgba(82,69,53,0.22)]">
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-lg font-medium leading-tight text-[#2e2a26]">{item.title}</h3>
-        <Link
-          href={item.href}
-          className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-[#baa98d]/72 bg-[#fdf8ee] px-3 text-sm font-medium text-[#6f6556] transition hover:bg-[#f9f3e7]"
-        >
-          {item.ctaLabel}
-        </Link>
-      </div>
-      <p className="mt-2 text-sm leading-relaxed text-[#544c42]">{item.description}</p>
-    </article>
-  );
-}
+const bridgeSocialLinks = [
+  { name: "TikTok", href: "https://www.tiktok.com/@luminousmagic0?_r=1&_t=ZS-94P8u7q3O5g", ariaLabel: "TikTokを開く" },
+  { name: "Instagram", href: "https://www.instagram.com/luminousmagic0?igsh=MXZqNmtkazllZHpqNg%3D%3D&utm_source=qr", ariaLabel: "Instagramを開く" },
+  { name: "YouTube", href: "https://youtube.com/channel/UCgmijIrv50RWonl2XgO8fiA?si=k60PNOj1RXFB3wcG", ariaLabel: "YouTubeを開く" },
+] as const;
 
-function SocialIcon({ name }: { name: SocialLink["name"] }) {
+function BridgeSocialIcon({ name }: { name: (typeof bridgeSocialLinks)[number]["name"] }) {
   if (name === "TikTok") {
     return (
       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
@@ -156,10 +138,65 @@ function SocialIcon({ name }: { name: SocialLink["name"] }) {
   );
 }
 
-export function WelcomeScreen() {
-  const [dailyWhisper, setDailyWhisper] = useState(DEFAULT_WHISPER_MESSAGE);
-  const [greetingName, setGreetingName] = useState("ゲスト");
+function MenuCardItem({ item }: { item: MenuCard }) {
+  return (
+    <article className="rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(162deg,rgba(255,252,246,0.9),rgba(248,242,231,0.86))] p-4 shadow-[0_12px_22px_-20px_rgba(82,69,53,0.22)]">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-lg font-medium leading-tight text-[#2e2a26]">{item.title}</h3>
+        <Link
+          href={item.href}
+          className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-[#baa98d]/72 bg-[#fdf8ee] px-3 text-sm font-medium text-[#6f6556] transition hover:bg-[#f9f3e7]"
+        >
+          {item.ctaLabel}
+        </Link>
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-[#544c42]">{item.description}</p>
+    </article>
+  );
+}
+
+type FeatherIconProps = {
+  size?: "small" | "large";
+  dimmed?: boolean;
+  alt?: string;
+};
+
+function FeatherIcon({ size = "small", dimmed = false, alt = "" }: FeatherIconProps) {
+  const wrapperClass = size === "large" ? "h-11 w-14" : "h-3 w-4";
+  const imageClass = dimmed
+    ? "object-contain opacity-[0.46] grayscale-[0.2] brightness-[1.06] contrast-[1.08]"
+    : "object-contain opacity-[0.78] brightness-[1.08] contrast-[1.12] drop-shadow-[0_0_3px_rgba(255,255,255,0.28)]";
+
+  return (
+    <span className={`relative block ${wrapperClass}`.trim()}>
+      <Image
+        src="/gazou/siroihane-removebg-preview.png"
+        alt={alt}
+        fill
+        className={imageClass}
+        sizes={size === "large" ? "56px" : "16px"}
+        aria-hidden={alt ? undefined : true}
+      />
+    </span>
+  );
+}
+
+const featherCardClassName =
+  "rounded-2xl border border-[#d3d4c8]/78 bg-[linear-gradient(180deg,#dfe9e2_0%,#edf3ee_60%,#f6f7f3_100%)] px-5 py-4 text-left";
+
+type WelcomeScreenProps = {
+  initialDailyWhisper?: string;
+  serverBirthdate?: string | null;
+};
+
+export function WelcomeScreen({ initialDailyWhisper, serverBirthdate = null }: WelcomeScreenProps) {
+  const dailyWhisper = initialDailyWhisper?.trim() || DEFAULT_WHISPER_MESSAGE;
+  const [mobileFortuneExpanded, setMobileFortuneExpanded] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState(false);
+  const [featherNotice, setFeatherNotice] = useState<string | null>(null);
+  const [specialOccasion, setSpecialOccasion] = useState<SpecialOccasionEvent | null>(() =>
+    getSpecialOccasionEvent(serverBirthdate)
+  );
   const [visitStreak, setVisitStreak] = useState<VisitStreakRecord>({
     streak: 1,
     lastVisited: "",
@@ -169,37 +206,21 @@ export function WelcomeScreen() {
   });
 
   useEffect(() => {
-    const loadWhisper = async () => {
-      try {
-        const rawProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
-        const profile = rawProfile ? (JSON.parse(rawProfile) as { nickname?: string }) : {};
-        const res = await fetch("/api/daily-fortune-whisper", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "get", profile: { nickname: profile.nickname } }),
-        });
-        const data = (await res.json()) as DailyWhisperApiResponse;
-        if (res.ok && typeof data.message === "string" && data.message.trim()) {
-          setDailyWhisper(data.message.trim());
-        }
-      } catch {
-        // fallback message is used
-      }
-    };
-    void loadWhisper();
-  }, []);
+    setSpecialOccasion(getSpecialOccasionEvent(getInitialBirthdate(serverBirthdate)));
+  }, [serverBirthdate]);
 
   useEffect(() => {
     let timeoutId: number | null = null;
     try {
       const rawProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
       const profile = rawProfile ? (JSON.parse(rawProfile) as { nickname?: string }) : {};
-      const nickname = typeof profile.nickname === "string" ? profile.nickname.trim() : "";
       const visitorKey = makeVisitorKey(typeof profile.nickname === "string" ? profile.nickname : "");
+      const previous = getVisitStreakForVisitor(localStorage, visitorKey);
       const next = updateVisitStreakForVisitor(localStorage, visitorKey);
+      const earnedToday = previous?.lastVisited !== getJstDateKey();
       timeoutId = window.setTimeout(() => {
-        setGreetingName(nickname || "ゲスト");
         setVisitStreak(next);
+        setFeatherNotice(earnedToday ? "白が羽を落としていきました" : null);
       }, 0);
     } catch {
       // keep defaults
@@ -211,25 +232,30 @@ export function WelcomeScreen() {
 
   const handleShareWhisper = () => {
     const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
-    const shareText = ["今日のルミナのささやき", "", dailyWhisper, "", "LUMINA", "光と静寂の占い", siteUrl].join("\n");
+    const shareText = ["今日のルミナのささやき", "", dailyWhisper, "", BRAND.name, BRAND.tagline, siteUrl].join("\n");
     const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
     window.open(intentUrl, "_blank", "noopener,noreferrer");
   };
 
   const remainingDays = Math.max(0, 7 - visitStreak.monthlyVisitCount);
+  const collectedFeathers = Math.min(visitStreak.monthlyVisitCount, 7);
   const giftStatusText =
     visitStreak.monthlyVisitCount >= 7 || visitStreak.monthlyClaimed
-      ? "七つめの光が満ちました。贈り物を受け取れます"
-      : `白（ハク）が、七つめの光を集めています。あと${remainingDays}日です`;
+      ? "七枚の羽がそろいました。白の贈り物を受け取れます"
+      : `白が落としていく羽は、あと${remainingDays}枚でそろいます。`;
   const mobileQuickMenus = [
     { label: "今日の占い", href: "/daily-fortune" },
-    { label: "光の導きタロット", href: "/fortune-monthly" },
+    { label: "光の導きタロット", href: "/" },
     { label: "白の庭の記録", href: "/library/records" },
     { label: "個人鑑定", href: "/consultation" },
   ];
-  const mobileFortuneMenu = groupedMenus.find((group) => group.heading === "星読みの間");
+  const mobileFortuneMenu = groupedMenus.find((group) => group.heading === "導きの間");
+  const mobileFortuneItems = mobileFortuneExpanded
+    ? (mobileFortuneMenu?.items ?? [])
+    : (mobileFortuneMenu?.items ?? []).slice(0, MOBILE_FORTUNE_VISIBLE_COUNT);
+  const hasMoreMobileFortuneItems = (mobileFortuneMenu?.items.length ?? 0) > MOBILE_FORTUNE_VISIBLE_COUNT;
   const mobileHiddenGroups = groupedMenus.filter((group) =>
-    ["心を整える間", "光の書庫", "ルミナの相談室"].includes(group.heading)
+    ["白の休息室", "光の書庫", "ルミナの相談室"].includes(group.heading)
   );
 
   return (
@@ -252,8 +278,8 @@ export function WelcomeScreen() {
               <Image src="/lumina-icon.png" alt="ルミナのアイコン" width={128} height={128} className="h-full w-full object-cover" priority />
             </div>
             <p className="mt-4 text-xs tracking-[0.24em] text-[#766e62]">WHITE WITCH TAROT</p>
-            <h1 className="mt-1 font-[var(--font-playfair-display)] text-4xl tracking-[0.14em] text-[#2e2a26] sm:text-5xl">LUMINA</h1>
-            <p className="mt-2 text-base leading-relaxed text-[#544c42]">光と静寂の占い</p>
+            <h1 className="mt-1 font-[var(--font-playfair-display)] text-4xl tracking-[0.14em] text-[#2e2a26] sm:text-5xl">{BRAND.name}</h1>
+            <p className="mt-2 text-base leading-relaxed text-[#544c42]">{BRAND.tagline}</p>
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#665d51]">
               がんばりすぎた心に、静かな光を。
               {"\n"}LUMINAの占いは、あなたを整えるための言葉です。
@@ -276,6 +302,8 @@ export function WelcomeScreen() {
           </div>
         </motion.div>
       </section>
+
+      {specialOccasion ? <SpecialOccasionCard event={specialOccasion} /> : null}
 
       <section className="relative mx-auto mt-4 w-full max-w-5xl md:hidden">
         <div className="grid grid-cols-2 gap-2">
@@ -306,12 +334,6 @@ export function WelcomeScreen() {
             <h2 className="text-base font-medium text-[#2f2a25]">今日のルミナのささやき</h2>
             <p className="mx-auto mt-3 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-[#544c42]">{dailyWhisper}</p>
             <div className="mt-5 flex items-center justify-center gap-2">
-              <Link
-                href="/daily-fortune"
-                className="inline-flex min-h-9 min-w-[10.5rem] items-center justify-center rounded-full border border-[#baa98d]/72 bg-[#fdf8ee] px-4 py-1.5 text-sm font-medium text-[#6f6556] transition hover:bg-[#fffaf0]"
-              >
-                今日の占いを見る →
-              </Link>
               <button
                 type="button"
                 onClick={handleShareWhisper}
@@ -331,23 +353,45 @@ export function WelcomeScreen() {
           transition={{ duration: 0.4, delay: 0.09 }}
           className="grid grid-cols-1 gap-4 md:grid-cols-2"
         >
-          <article className="rounded-2xl border border-[#ded2bc]/78 bg-[#fffaf1]/70 px-5 py-4 text-left">
-            <h3 className="text-sm font-medium text-[#847967]">光の記録</h3>
-            <p className="mt-1 text-sm leading-relaxed text-[#544c42]">こんにちは、{greetingName}さん</p>
-            <p className="mt-1 text-sm leading-relaxed text-[#544c42]">今日で {visitStreak.streak}日連続でルミナを訪ねています</p>
-            <div className="mt-2 flex items-center gap-1.5 text-xs" aria-label="7日間の記録">
-              {Array.from({ length: 7 }).map((_, i) => (
-                <span key={`streak-dot-${i}`} className={i < Math.min(visitStreak.streak, 7) ? "text-[#b39a6a]" : "text-[#cfc6b7]"}>
-                  ●
-                </span>
-              ))}
+          <article className={featherCardClassName}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-medium text-[#6f6658]">白の羽</h3>
+                <p className="mt-1 text-sm leading-relaxed text-[#544c42]">白が落としていった羽を ひとつ拾いました。</p>
+              </div>
+              <div className="shrink-0 pt-1">
+                <FeatherIcon size="large" alt="白い羽" />
+              </div>
             </div>
+            <div className="mt-3 space-y-2" aria-label="白の羽の記録">
+              <div className="flex items-center gap-1.5 leading-none">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <FeatherIcon key={`feather-dot-${i}`} dimmed={i >= collectedFeathers} />
+                ))}
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-[11px] tracking-[0.12em] text-[#8b8376]">進捗</p>
+                <p className="text-lg font-medium tracking-[0.08em] text-[#4f4a42]">{collectedFeathers} / 7</p>
+                <p className="text-sm text-[#6f6556]">あと{remainingDays}枚でそろいます。</p>
+              </div>
+            </div>
+            {featherNotice ? <p className="mt-1 text-xs text-[#8b7e6b]">{featherNotice}</p> : null}
           </article>
 
-          <article className="rounded-2xl border border-[#ded2bc]/78 bg-[linear-gradient(160deg,rgba(255,252,246,0.92),rgba(246,238,226,0.86))] px-5 py-4 text-left">
-            <h3 className="text-sm font-medium text-[#847967]">白の館の贈り物</h3>
-            <p className="mt-1 text-xs text-[#8b7e6b]">7日目に封がほどけます</p>
-            <p className="mt-2 text-sm leading-relaxed text-[#544c42]">{Math.min(visitStreak.monthlyVisitCount, 7)} / 7 日</p>
+          <article className={featherCardClassName}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-medium text-[#6f6658]">白の贈り物</h3>
+                <p className="mt-1 text-xs text-[#8b7e6b]">七枚そろうと、白が小さな贈り物を届けます</p>
+              </div>
+              <div className="shrink-0 pt-1">
+                <FeatherIcon size="large" alt="白い羽" />
+              </div>
+            </div>
+            <div className="mt-3 space-y-0.5">
+              <p className="text-[11px] tracking-[0.12em] text-[#8b8376]">進捗</p>
+              <p className="text-lg font-medium tracking-[0.08em] text-[#4f4a42]">{collectedFeathers} / 7</p>
+            </div>
             <p className="mt-1 text-sm text-[#6f6556]">{giftStatusText}</p>
             <Link href="/library/wallpapers" className="mt-2 inline-block text-xs text-[#6f6556] underline-offset-4 hover:underline">
               詳細 →
@@ -402,7 +446,7 @@ export function WelcomeScreen() {
             </div>
             <div className="-mx-1 overflow-x-auto pb-1">
               <div className="flex gap-3 px-1">
-                {mobileFortuneMenu?.items.map((item) => (
+                {mobileFortuneItems.map((item) => (
                   <article
                     key={`mobile-fortune-${item.href}`}
                     className="w-[260px] shrink-0 rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(162deg,rgba(255,252,246,0.92),rgba(248,242,231,0.88))] p-4"
@@ -419,6 +463,15 @@ export function WelcomeScreen() {
                 ))}
               </div>
             </div>
+            {hasMoreMobileFortuneItems ? (
+              <button
+                type="button"
+                onClick={() => setMobileFortuneExpanded((prev) => !prev)}
+                className="mt-3 inline-flex min-h-9 items-center justify-center rounded-full border border-[#baa98d]/72 bg-[#fdf8ee] px-4 py-1.5 text-xs font-medium text-[#6f6556] transition hover:bg-[#f9f3e7]"
+              >
+                {mobileFortuneExpanded ? "折りたたむ" : "もっと見る"}
+              </button>
+            ) : null}
           </div>
 
           <div className="rounded-2xl border border-[#e1d5bf]/72 bg-[linear-gradient(165deg,rgba(255,252,246,0.76),rgba(248,242,231,0.68))] p-4">
@@ -494,35 +547,32 @@ export function WelcomeScreen() {
         </motion.div>
       </section>
 
-      <section className="relative mx-auto mt-6 w-full max-w-5xl">
+      <section className="relative mx-auto mt-8 w-full max-w-5xl pb-4">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.18 }}
-          className="rounded-2xl border border-[#ddd1ba]/78 bg-[linear-gradient(160deg,rgba(255,252,246,0.92),rgba(246,238,226,0.86))] px-6 py-7 text-center"
+          className="rounded-2xl border border-[#ddd1ba]/78 bg-[linear-gradient(160deg,rgba(255,252,246,0.92),rgba(246,238,226,0.86))] px-6 py-6 text-center"
         >
-          <p className="text-base leading-relaxed text-[#6a5f52]">
-            ここで過ごした時間が、あなたの静かな支えになりますように。
-          </p>
+          <p className="text-xs tracking-[0.14em] text-[#8f826f]">WHITE MANSION</p>
+          <p className="text-base leading-relaxed text-[#6a5f52]">ここで過ごした時間が、あなたの静かな支えになりますように。</p>
         </motion.div>
-      </section>
-
-      <section className="relative mx-auto mt-5 w-full max-w-5xl pb-8 sm:pb-10">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.2 }} className="flex items-center justify-center gap-4">
-          {socialLinks.map((link) => (
+        <div className="mt-3 flex items-center justify-center gap-3">
+          {bridgeSocialLinks.map((link) => (
             <a
               key={link.name}
               href={link.href}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`${link.name}を別ウィンドウで開く`}
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#cdbb9f]/85 bg-[linear-gradient(160deg,#fffdf8,#f2e8d7)] text-[#5f5649]"
+              aria-label={link.ariaLabel}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#cdbb9f]/85 bg-[linear-gradient(160deg,#fffdf8,#f2e8d7)] text-[#6b6152] shadow-[0_8px_18px_-14px_rgba(82,69,53,0.35)] transition hover:-translate-y-0.5 hover:bg-[#fffaf0]"
             >
-              <SocialIcon name={link.name} />
+              <BridgeSocialIcon name={link.name} />
             </a>
           ))}
-        </motion.div>
+        </div>
       </section>
+
     </div>
   );
 }

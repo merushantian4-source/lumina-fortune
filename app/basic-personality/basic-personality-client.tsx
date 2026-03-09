@@ -2,13 +2,13 @@
 
 import { FormEvent, useState } from "react";
 import { FortuneNumberBadge } from "@/components/fortune-number-badge";
+import UnmeiVisual from "@/components/unmei/UnmeiVisual";
 import { destinyNumberFromBirthdate } from "@/lib/fortune/fortuneNumber";
 import type { FortuneNumber } from "@/lib/fortune/types";
+import { BIRTHDATE_STORAGE_KEY, getInitialBirthdate } from "@/lib/profile/getProfile";
 import { PageShell } from "@/components/ui/page-shell";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
-
-const BIRTHDATE_STORAGE_KEY = "lumina_birthdate";
 
 type PersonalityResult = {
   destinyNumber: FortuneNumber;
@@ -355,23 +355,12 @@ function buildPersonalityResult(birthDate: string): PersonalityResult {
   };
 }
 
-function loadInitialBirthdate(serverBirthdate: string | null): string {
-  if (serverBirthdate) return serverBirthdate;
-  if (typeof window === "undefined") return "";
-
-  try {
-    return localStorage.getItem(BIRTHDATE_STORAGE_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
-
 type BasicPersonalityClientProps = {
   serverBirthdate: string | null;
 };
 
 export default function BasicPersonalityPage({ serverBirthdate }: BasicPersonalityClientProps) {
-  const [birthDate, setBirthDate] = useState(() => loadInitialBirthdate(serverBirthdate));
+  const [birthDate, setBirthDate] = useState(() => getInitialBirthdate(serverBirthdate));
   const [error, setError] = useState("");
   const [viewWithoutSaving, setViewWithoutSaving] = useState(false);
   const [result, setResult] = useState<PersonalityResult | null>(() => {
@@ -459,6 +448,13 @@ export default function BasicPersonalityPage({ serverBirthdate }: BasicPersonali
               const basicPersonality = basicPersonalitySections[result.destinyNumber];
               return (
                 <>
+            <UnmeiVisual
+              number={result.destinyNumber}
+              variant="hero"
+              title={`運命数${result.destinyNumber}の基本性格`}
+              subtitle="あなたの魂の名前と、整え方のヒント"
+              priority
+            />
             <GlassCard className="p-4 sm:p-5">
               <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:text-left">
                 <div className="shrink-0">

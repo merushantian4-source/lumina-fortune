@@ -4,9 +4,11 @@ import Link from "next/link";
 import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
 import { WishAnimationOverlay } from "@/components/WishAnimationOverlay";
+import { HakuWhisperCard } from "@/components/haku-whisper-card";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
+import { pickHakuMessage } from "@/lib/haku-messages";
 
 const MAX_MESSAGE_LENGTH = 300;
 const PROFILE_STORAGE_KEY = "lumina_profile";
@@ -43,6 +45,7 @@ export default function LetterPage() {
   const [animationOpen, setAnimationOpen] = useState(false);
   const [animationText, setAnimationText] = useState("");
   const [pendingReply, setPendingReply] = useState("");
+  const [hakuMessage, setHakuMessage] = useState("");
 
   const charCount = useMemo(() => countChars(message), [message]);
 
@@ -90,6 +93,7 @@ export default function LetterPage() {
       pendingReply || "あなたの言葉は確かに受け取りました。無理しすぎず、今日はひとつだけ心がほどける時間を作ってみてください。"
     );
     setPendingReply("");
+    setHakuMessage(pickHakuMessage("letter", `${animationText}:${nickname || "guest"}`));
     setSubmitted(true);
   };
 
@@ -107,6 +111,7 @@ export default function LetterPage() {
           <p className="text-base leading-relaxed text-[#544c42] whitespace-pre-line">
             {luminaReply || "あなたの言葉は確かに受け取りました。無理しすぎず、今日はひとつだけ心がほどける時間を作ってみてください。"}
           </p>
+          {hakuMessage ? <HakuWhisperCard message={hakuMessage} className="p-4 sm:p-5" /> : null}
           <LuminaButton asChild className="rounded-xl px-6">
             <Link href="/consultation">個人鑑定を依頼する</Link>
           </LuminaButton>

@@ -14,104 +14,114 @@ type DailyFortuneOutputContext = {
   } | null;
 };
 
-const MIN_CHARS = 700;
-const MAX_CHARS = 1100;
+const MIN_CHARS = 600;
+const MAX_CHARS = 900;
+
+const FORBIDDEN_HEADING_PATTERNS = [
+  /^\s*【[^】]+】\s*$/gm,
+  /^\s*(導入|運勢|回収|全体運|仕事運|恋愛運|人間関係運|金運|今日の小さなアクション|心理メッセージ)\s*[:：]?\s*$/gm,
+];
 
 function cardText(card?: LiteCard | null): string {
-  if (!card) return "カード情報なし";
-  return `${card.name}（${card.reversed ? "逆位置" : "正位置"}）`;
+  if (!card) return "前日のカード情報はありません";
+  return `${card.name}の${card.reversed ? "逆位置" : "正位置"}`;
 }
 
 function normalize(text: string): string {
   return text.replace(/\r\n/g, "\n").trim();
 }
 
-function removeForbidden(text: string): string {
-  return text
-    .replace(/[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬]/g, "")
-    .replace(/^\s*\d+[.)．]\s*/gm, "")
-    .replace(/^補足[:：]?.*$/gm, "")
-    .replace(/^再説明[:：]?.*$/gm, "")
-    .replace(/こんにちは[、。].*こんにちは[、。]/g, "こんにちは。");
+function stripForbiddenHeadings(text: string): string {
+  let next = text;
+  for (const pattern of FORBIDDEN_HEADING_PATTERNS) {
+    next = next.replace(pattern, "");
+  }
+  return next
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/^[ \t]+/gm, "")
+    .trim();
 }
 
-function uniqueSentences(text: string): string {
+function uniqueParagraphs(text: string): string {
   const parts = text
-    .split(/(?<=[。！？])/)
-    .map((v) => v.trim())
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
     .filter(Boolean);
   const seen = new Set<string>();
-  const out: string[] = [];
+  const result: string[] = [];
   for (const part of parts) {
     const key = part.replace(/\s+/g, " ");
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(part);
+    result.push(part);
   }
-  return out.join("");
+  return result.join("\n\n");
 }
 
-function clamp(text: string): string {
-  if (text.length <= MAX_CHARS) return text;
-  return `${text.slice(0, MAX_CHARS - 1).trimEnd()}…`;
+function resolveDisplayName(nickname?: string): string {
+  const trimmed = nickname?.trim();
+  return trimmed ? `${trimmed}さん` : "ゲストさん";
 }
 
-function greeting(context: DailyFortuneOutputContext): string {
-  const name = context.nickname?.trim();
-  return name ? `こんにちは、${name}さん。` : "こんにちは、ゲストさん。";
-}
-
-function loveTone(loveStatus?: string): string {
+function loveGuidance(loveStatus?: string): string {
   if (loveStatus === "married") {
-    return "すでに大切な関係を育てている方にも、心を寄せる途中の方にも";
+    return "恋愛面では、近しい相手の気持ちを決めつけず、ひと呼吸おいて受け止めるほど空気がやわらかくなりそうです。";
   }
   if (loveStatus === "complicated") {
-    return "言葉にしづらい関係の中にいる方にも、これから関係を育てたい方にも";
+    return "恋愛面では、答えを急がずに今の距離感を丁寧に扱うことで、見えにくかった本音が少しずつ整っていきそうです。";
   }
   if (loveStatus === "unrequited") {
-    return "想いを胸に抱く方にも、安心できる関係を深めたい方にも";
+    return "恋愛面では、相手の反応ばかりを追うよりも、自分の心が穏やかでいられる言葉選びを意識すると安心感が戻りそうです。";
   }
-  return "ひとりの時間を大切にしている方にも、誰かと歩んでいる方にも";
+  return "恋愛面では、誰かに向けるやさしさと同じくらい、自分の心にも静かな余白を残しておくことが助けになりそうです。";
 }
 
 function buildStructuredFallback(cards: LiteCard[], context: DailyFortuneOutputContext): string {
-  const main = cards[0];
-  const job = context.job?.trim();
-  const workLead = job ? `${job}としての流れでは、` : "";
-  const prev = context.previousCard
-    ? `昨日の「${cardText(context.previousCard)}」から続く流れとして、今日は足元を整えるほど前向きな巡りが生まれます。`
-    : "昨日の流れは、気持ちと現実のバランスを探っていた時間だったのかもしれません。今日はその揺らぎを静かに整えられる日です。";
+  const main = cards[0] ?? { name: "星", reversed: false };
+  const displayName = resolveDisplayName(context.nickname);
+  const previous = cardText(context.previousCard);
+  const workLead = context.job?.trim()
+    ? `${context.job.trim()}に向き合う場面では、`
+    : "仕事では、";
 
-  const body = [
-    "【導入】",
-    `${greeting(context)}今日は${context.weekdayJa}曜日ですね。`,
-    `今日のカードは「${cardText(main)}」です。`,
-    "象徴キーワードは「調律」「余白」「信頼」です。がんばり続けるより、整える姿勢が運をひらくことをこのカードは教えてくれています。",
-    prev,
-    "今日は、整えてから進む日です。",
-    "",
-    "【運勢カテゴリ】",
-    "全体運",
-    "外へ強く押し出すより、内側のリズムを整えるほど一日の流れが安定します。静かな選択が、結果的に大きな追い風になります。",
-    "仕事運",
-    `${workLead}仕事では優先順位をひとつに絞ることが鍵です。朝の最初の30分だけ最重要タスクに集中して、勢いではなく確かさで進めてみてください。`,
-    "恋愛運",
-    `${loveTone(context.loveStatus)}、相手の反応を急がず、温度を合わせる言葉を選ぶほど関係は自然に深まります。結論を急がない姿勢が、安心と魅力を同時に育てます。`,
-    "人間関係運",
-    "人の多い場では、空気に引っ張られて小さな誤解が生まれやすい日です。すぐに決めつけず、確認の一言を添えるだけで協力の流れに戻せます。",
-    "金運",
-    "金運は堅実さが味方です。使う前に「今すぐ必要か」をひと呼吸だけ確かめると、後悔のない選択になります。",
-    "",
-    "【回収】",
-    "今日のアクション",
-    "机の上を3分だけ整えてから、最初の作業に入ってください。",
-    "心理メッセージ",
-    "あなたは大丈夫です。整えるために立ち止まる時間は、前に進む力を静かに育てています。",
-    "ルミナからの締め",
-    "今日もあなたの歩みが、やわらかな光に守られますように。",
-  ].join("\n");
+  const text = [
+    `こんにちは、${displayName}。今日は${context.weekdayJa}ですね。今日のカードは「${main.name}」の${main.reversed ? "逆位置" : "正位置"}です。`,
+    `このカードは、${main.reversed ? "見直し、静かな修復、心の整え直し" : "調和、気づき、流れを整えること"}を象徴します。昨日の${previous}から続く流れとして、今日は勢いよりも、足元の感覚をたしかめながら進む意味がやや強まっていそうです。今日のテーマは「静かに整えてから動くこと」です。`,
+    `全体運は、目立つ出来事がなくても内側ではきちんと流れが動いている日です。急いで結論を出すより、ひとつずつ手元を整えるほうが安心につながるでしょう。${workLead}優先順位をひとつだけ先に決めておくと、気持ちが散らばりにくくなりそうです。${loveGuidance(context.loveStatus)}`,
+    `人間関係では、すぐに正しさを示すよりも、まず相手の立場を想像することで会話が穏やかに進みそうです。もし金銭面が気になるなら、大きく動かすより小さな無駄を見直すほうが心が落ち着くでしょう。今日は机の上や鞄の中を3分だけ整えてから、最初の用事に向かうと流れに乗りやすくなります。`,
+    `あなたは大丈夫です。立ち止まって整える時間も、前へ進む力を静かに育てています。今日もあなたの歩みが、やわらかな光に守られますように。`,
+  ].join("\n\n");
 
-  return body;
+  return text;
+}
+
+function clampParagraphLength(text: string): string {
+  if (text.length <= MAX_CHARS) return text;
+  const paragraphs = text.split(/\n{2,}/);
+  while (paragraphs.join("\n\n").length > MAX_CHARS && paragraphs.length > 1) {
+    const last = paragraphs[paragraphs.length - 1] ?? "";
+    if (last.length > 90) {
+      paragraphs[paragraphs.length - 1] = `${last.slice(0, Math.max(0, last.length - 40)).trim()}。`;
+      continue;
+    }
+    paragraphs.pop();
+  }
+  const merged = paragraphs.join("\n\n").trim();
+  return merged.length <= MAX_CHARS ? merged : `${merged.slice(0, MAX_CHARS - 1).trimEnd()}…`;
+}
+
+function looksValid(text: string, cards: LiteCard[], context: DailyFortuneOutputContext): boolean {
+  const displayName = resolveDisplayName(context.nickname);
+  const compact = text.replace(/\n/g, "");
+
+  if (compact.length < MIN_CHARS || compact.length > MAX_CHARS) return false;
+  if (!text.includes(displayName)) return false;
+  if (!text.includes(context.weekdayJa)) return false;
+  if (!cards.some((card) => text.includes(card.name))) return false;
+  if (!/全体|仕事|恋愛|人間関係/.test(text)) return false;
+  if (!/大丈夫/.test(text)) return false;
+  if (FORBIDDEN_HEADING_PATTERNS.some((pattern) => pattern.test(text))) return false;
+  return true;
 }
 
 export function ensureFortuneOutputFormat(
@@ -119,36 +129,9 @@ export function ensureFortuneOutputFormat(
   cards: LiteCard[],
   context: DailyFortuneOutputContext
 ): string {
-  const cleaned = uniqueSentences(removeForbidden(normalize(text)));
-  const fallback = buildStructuredFallback(cards, context);
-
-  // Always enforce the strict structure and sequence.
-  let output = fallback;
-
-  // If model output contains useful non-duplicated phrasing, only borrow very short flavor
-  // without adding extra sections or breaking the structure.
-  if (cleaned.length > 0) {
-    const firstSentence = cleaned.split(/(?<=[。！？])/).map((v) => v.trim()).find(Boolean);
-    if (firstSentence && firstSentence.length <= 52) {
-      output = output.replace(
-        "今日は、整えてから進む日です。",
-        `今日は、整えてから進む日です。${firstSentence}`
-      );
-    }
+  const cleaned = uniqueParagraphs(stripForbiddenHeadings(normalize(text)));
+  if (looksValid(cleaned, cards, context)) {
+    return clampParagraphLength(cleaned);
   }
-
-  output = output.replace(/\n{3,}/g, "\n\n");
-
-  // No greeting repetition at end.
-  output = output.replace(/(こんにちは[、。].*)$/gm, "");
-
-  // Enforce length window without adding "補足" or extra section.
-  if (output.length < MIN_CHARS) {
-    output = output.replace(
-      "心理メッセージ\nあなたは大丈夫です。整えるために立ち止まる時間は、前に進む力を静かに育てています。",
-      "心理メッセージ\nあなたは大丈夫です。整えるために立ち止まる時間は、前に進む力を静かに育てています。焦らなくても、あなたの歩幅には意味があります。今日の選択は、明日の安心につながっていきます。"
-    );
-  }
-
-  return clamp(output);
+  return buildStructuredFallback(cards, context);
 }

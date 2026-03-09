@@ -10,6 +10,8 @@ type PageShellProps = {
   backHref?: string;
   backLabel?: string;
   headerRight?: ReactNode;
+  headerClassName?: string;
+  headerBackground?: ReactNode;
   className?: string;
   showBottomHomeButton?: boolean;
 };
@@ -28,6 +30,8 @@ export function PageShell({
   backHref,
   backLabel,
   headerRight,
+  headerClassName = "",
+  headerBackground,
   className = "",
   showBottomHomeButton = true,
 }: PageShellProps) {
@@ -37,7 +41,10 @@ export function PageShell({
     <main className={`lumina-page min-h-screen px-4 py-8 sm:px-6 sm:py-10 ${className}`.trim()}>
       <div className={`mx-auto ${widthClass}`}>
         {(backHref || title || description || headerRight) && (
-          <header className="mb-6 rounded-2xl border border-[#e1d5bf]/72 bg-[linear-gradient(160deg,rgba(255,252,246,0.84),rgba(248,242,231,0.78))] p-5 shadow-[0_10px_22px_-20px_rgba(82,69,53,0.2)]">
+          <header
+            className={`relative mb-6 overflow-hidden rounded-2xl border border-[#e1d5bf]/72 bg-[linear-gradient(160deg,rgba(255,252,246,0.84),rgba(248,242,231,0.78))] p-5 shadow-[0_10px_22px_-20px_rgba(82,69,53,0.2)] ${headerClassName}`.trim()}
+          >
+            {headerBackground ? <div className="pointer-events-none absolute inset-0 -z-10">{headerBackground}</div> : null}
             <div className="flex flex-wrap items-center justify-between gap-3">
               {backHref && backLabel ? (
                 <Link href={backHref} className="lumina-link text-sm underline-offset-4 hover:underline">

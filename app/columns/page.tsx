@@ -5,18 +5,20 @@ import { useMemo, useState } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
-import { COLUMN_CATEGORIES, listColumnArticles, type ColumnCategory } from "@/lib/columns";
+import { listColumnArticles, listColumnCategories, type ColumnCategory } from "@/lib/columns";
 
 type FilterValue = "すべて" | ColumnCategory;
-const CATEGORY_LABELS: Record<ColumnCategory, string> = {
+const CATEGORY_LABELS: Record<string, string> = {
   仕事: "仕事",
   失恋: "恋愛",
   不安: "不安",
   願い: "願い",
+  占い: "占い",
 };
 
 export default function ColumnsPage() {
   const [filter, setFilter] = useState<FilterValue>("すべて");
+  const categories = useMemo(() => listColumnCategories(), []);
   const articles = useMemo(() => listColumnArticles(filter), [filter]);
 
   return (
@@ -36,14 +38,14 @@ export default function ColumnsPage() {
           >
             すべて
           </LuminaButton>
-          {COLUMN_CATEGORIES.map((category) => (
+          {categories.map((category) => (
             <LuminaButton
               key={category}
               type="button"
               tone={filter === category ? "primary" : "secondary"}
               onClick={() => setFilter(category)}
             >
-              {CATEGORY_LABELS[category]}
+              {CATEGORY_LABELS[category] ?? category}
             </LuminaButton>
           ))}
         </div>
@@ -53,7 +55,7 @@ export default function ColumnsPage() {
         {articles.map((article) => (
           <GlassCard key={article.slug} className="h-full">
             <p className="text-xs font-medium tracking-wide text-[#847967]">
-              {CATEGORY_LABELS[article.category]}
+              {CATEGORY_LABELS[article.category] ?? article.category}
             </p>
             <h2 className="mt-1 text-xl font-medium text-[#2e2a26]">{article.title}</h2>
             <p className="mt-3 text-sm leading-relaxed text-[#544c42]">{article.lead}</p>

@@ -13,9 +13,9 @@ type Track = {
 };
 
 const TRACKS: Track[] = [
-  { id: "forest-breeze", title: "森のそよ風", src: "/audio/forest-breeze.mp3" },
-  { id: "sunlit-river", title: "陽だまりの川辺", src: "/audio/sunlit-river.mp3" },
-  { id: "quiet-library", title: "館の静かな書斎", src: "/audio/quiet-library.mp3" },
+  { id: "forest-breeze", title: "森のそよ風", src: "/music/ForestBellDreaming.mp3" },
+  { id: "sunlit-river", title: "陽だまりの川辺", src: "/music/Sun-DrenchedRiverside.mp3" },
+  { id: "quiet-library", title: "館の静かな書斎", src: "/music/LuminousStudy.mp3" },
 ];
 
 const MEDITATION_TABS = [

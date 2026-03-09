@@ -9,6 +9,10 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/ui/page-shell";
 
 const PROFILE_STORAGE_KEY = "lumina_profile";
+const BIRTHDATE_STORAGE_KEY = "lumina_birthdate";
+const PROFILE_BIRTHDATE_COOKIE_KEY = "lumina_profile_birthdate";
+const BIRTHDATE_COOKIE_KEY = "lumina_birthdate";
+const PROFILE_COOKIE_MAX_AGE = 60 * 60 * 24 * 180;
 
 type LoveStatus = "single" | "married" | "complicated" | "unrequited";
 
@@ -132,11 +136,17 @@ export default function ProfilePage() {
     };
 
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+    localStorage.setItem(BIRTHDATE_STORAGE_KEY, birthdate);
+    const encodedBirthdate = encodeURIComponent(birthdate);
+    const cookieBase = `path=/; samesite=lax; max-age=${PROFILE_COOKIE_MAX_AGE}`;
+    document.cookie = `${PROFILE_BIRTHDATE_COOKIE_KEY}=${encodedBirthdate}; ${cookieBase}`;
+    document.cookie = `${BIRTHDATE_COOKIE_KEY}=${encodedBirthdate}; ${cookieBase}`;
     setErrorMessage("");
     setSavedMessage("あなたの灯りを受け取りました。これからは、あなたに合わせて言葉を紡ぎます。");
     setIsSaving(true);
 
     window.setTimeout(() => {
+      router.refresh();
       router.push("/");
     }, 1200);
   };

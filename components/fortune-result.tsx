@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import type { FortuneTemplate } from "@/lib/fortune/types";
+import UnmeiVisual from "@/components/unmei/UnmeiVisual";
 import { PageShell } from "@/components/ui/page-shell";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton, LuminaLinkButton } from "@/components/ui/button";
@@ -26,6 +27,7 @@ type Props = {
 export default function FortuneResult({
   template,
   pageTitle,
+  variantLabel,
   topLinkHref = "/",
   topLinkLabel = "トップへ戻る",
   resetHref,
@@ -60,6 +62,17 @@ export default function FortuneResult({
         </LuminaButton>
       }
     >
+      {variantLabel === "NUMEROLOGY 2026" ? (
+        <div className="mb-4">
+          <UnmeiVisual
+            number={template.fortuneNumber}
+            variant="hero"
+            title={`運命数${template.fortuneNumber}の2026年運勢`}
+            subtitle="一年の流れを静かに見通す準備"
+            priority
+          />
+        </div>
+      ) : null}
       <GlassCard>
         <div className="space-y-6 sm:space-y-7">
           <GlassCard className="border-[#ddd0b8]/75 bg-[linear-gradient(160deg,rgba(255,252,246,0.95),rgba(248,242,231,0.88))] p-5 shadow-[0_14px_30px_-24px_rgba(82,69,53,0.32)]">

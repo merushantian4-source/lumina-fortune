@@ -69,21 +69,24 @@ async function writeStore(store: DailyFortuneHistoryStore): Promise<void> {
 }
 
 function getPreviousDateKey(dateKey: string): string {
-  const date = new Date(`${dateKey}T00:00:00+09:00`);
-  date.setUTCDate(date.getUTCDate() - 1);
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return shiftDateKey(dateKey, -1);
 }
 
 function shiftDateKey(dateKey: string, deltaDays: number): string {
-  const date = new Date(`${dateKey}T00:00:00+09:00`);
+  const [yearText, monthText, dayText] = dateKey.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return dateKey;
+  }
+
+  const date = new Date(Date.UTC(year, month - 1, day));
   date.setUTCDate(date.getUTCDate() + deltaDays);
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  const nextYear = date.getUTCFullYear();
+  const nextMonth = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const nextDay = String(date.getUTCDate()).padStart(2, "0");
+  return `${nextYear}-${nextMonth}-${nextDay}`;
 }
 
 export async function getPreviousDailyCard(

@@ -24,6 +24,17 @@ export default function MoonRitualsPage() {
         </GlassCard>
 
         <GlassCard>
+          <p className="text-xs font-medium tracking-wide text-[#847967]">月光の願い</p>
+          <h2 className="mt-1 text-xl font-medium text-[#2e2a26]">月光の願い</h2>
+          <p className="mt-3 text-sm leading-relaxed text-[#544c42]">
+            新月の日に願いを置き、満月の日にその言葉を振り返るための静かなカードです。
+          </p>
+          <LuminaLinkButton href="/moon-rituals/wish" className="mt-4 inline-flex">
+            月光の願いをひらく
+          </LuminaLinkButton>
+        </GlassCard>
+
+        <GlassCard>
           <p className="text-xs font-medium tracking-wide text-[#847967]">満月</p>
           <h2 className="mt-1 text-xl font-medium text-[#2e2a26]">満月の小さな儀式</h2>
           <p className="mt-3 text-sm leading-relaxed text-[#544c42]">
@@ -37,4 +48,3 @@ export default function MoonRitualsPage() {
     </PageShell>
   );
 }
-

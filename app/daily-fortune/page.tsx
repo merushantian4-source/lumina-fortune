@@ -2,12 +2,14 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { HakuWhisperCard } from "@/components/haku-whisper-card";
 import { TarotBackArtwork, TarotCardArtwork } from "@/components/tarot-card-artwork";
 import { tarotCards, type TarotCardEntry } from "@/src/data/tarotCards";
 import { getRandomTarotCard } from "@/lib/tarot";
 import { PageShell } from "@/components/ui/page-shell";
 import { GlassCard } from "@/components/ui/glass-card";
-import { LuminaButton } from "@/components/ui/button";
+import { LuminaButton, LuminaLinkButton } from "@/components/ui/button";
+import { pickHakuMessage } from "@/lib/haku-messages";
 
 type DrawnCard = TarotCardEntry & {
   reversed: boolean;
@@ -39,6 +41,8 @@ type DailyFortuneProfile = {
   nickname?: string;
   job?: string;
   occupation?: string;
+  birthdate?: string;
+  birthDate?: string;
   loveStatus?: "single" | "married" | "complicated" | "unrequited" | string;
 };
 
@@ -55,11 +59,115 @@ type PrayerCardShareState = {
   dateLabel: string;
 };
 
+type BirthdayBlessingCard = {
+  id: string;
+  title: string;
+  message: string;
+};
+
+type SpecialFortuneEvent = {
+  key: string;
+  badge: string;
+  title: string;
+  message: string;
+  priority: number;
+  card?: BirthdayBlessingCard | null;
+};
+
 const DAILY_FORTUNE_COOKIE_NAME = "lumina_daily_fortune";
 const DAILY_FORTUNE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 2;
 const DAILY_FORTUNE_TIMEZONE = "Asia/Tokyo"; // JST固定で日付キーを生成する
 const PROFILE_STORAGE_KEY = "lumina_profile";
 const PRAYER_CARD_HASHTAGS = "#白の庭の祈り #LUMINA #今日の導き";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const BIRTHDAY_MESSAGES = [
+  "お誕生日おめでとうございます。\n今日は、あなたの魂がこの世界に光を灯した特別な日。\nこれからの一年が、やさしい導きと小さな奇跡に包まれますように。",
+  "今日はあなたの祝福の日。\nこの世界に生まれた意味を、静かに思い出すような一日になりますように。\n新しい一年に、やわらかな光が差し込みます。",
+  "お誕生日おめでとうございます。\nあなたが歩いてきた道も、これから歩く道も、\nすべてはあなたの魂が選んだ美しい物語です。",
+  "今日は、あなたの星が輝き始めた日。\nこの一年が、あなたらしい光を取り戻す旅になりますように。",
+  "お誕生日おめでとうございます。\n今日という日は、あなたの存在そのものが祝福される日。\nどうか自分自身にも、やさしい光を向けてあげてください。",
+  "今日はあなたの魂の記念日。\nここまで歩いてきた自分を、そっと褒めてあげてくださいね。\n新しい一年が、やさしい流れに導かれますように。",
+  "この世界にあなたが生まれたこと自体が、小さな奇跡です。\n今日という日が、あなたの未来を照らす光になりますように。",
+  "お誕生日おめでとうございます。\nあなたの魂には、まだたくさんの光が眠っています。\nこの一年が、その光を見つける旅になりますように。",
+] as const;
+
+const BIRTHDAY_BLESSING_MESSAGE =
+  "お誕生日おめでとうございます。今日はあなたの魂がこの世界に光を灯した特別な日。新しい一年がやさしい導きに包まれますように。";
+
+const BIRTHDAY_BLESSING_CARDS: BirthdayBlessingCard[] = [
+  {
+    id: "light-door",
+    title: "光の扉",
+    message:
+      "新しい一年の始まりに、あなたの前には静かに新しい扉が開いています。焦らず、心がやわらぐ方へ進んでみてください。",
+  },
+  {
+    id: "moon-blessing",
+    title: "月の祝福",
+    message:
+      "あなたの歩みは、見えないところでもきちんと守られています。この一年は、やさしい流れを信じることで運が整っていきます。",
+  },
+  {
+    id: "soul-flame",
+    title: "魂の灯火",
+    message:
+      "あなたの中にある小さな願いは、これから少しずつ形になっていきます。今年は、自分の本音を大切にするほど光が強まるでしょう。",
+  },
+  {
+    id: "white-feather",
+    title: "白い羽のしるし",
+    message:
+      "軽やかさが祝福になる一年です。重く抱えてきたものを少し降ろし、心が軽くなる選択をしてみてください。",
+  },
+  {
+    id: "star-path",
+    title: "星の導き",
+    message:
+      "あなたに必要なご縁や出来事は、正しいタイミングで近づいています。今年は無理に追わず、整えながら待つことで運命が動きます。",
+  },
+  {
+    id: "silent-flower",
+    title: "静寂の花",
+    message:
+      "静かな時間の中でこそ、あなたの魅力は深く花開いていきます。この一年は、無理をしない美しさがあなたを守ってくれるでしょう。",
+  },
+  {
+    id: "wish-seed",
+    title: "願いの種",
+    message:
+      "まだ言葉になっていない願いも、もうあなたの内側で芽吹き始めています。心の奥の小さな希望を、やさしく育ててみてください。",
+  },
+  {
+    id: "dawn-prayer",
+    title: "夜明けの祈り",
+    message:
+      "新しい朝の気配が、これからのあなたを静かに照らしています。この一年は、焦らず整えるほど道が澄んでいくはずです。",
+  },
+];
+
+const SPECIAL_SEASONAL_EVENTS = [
+  {
+    key: "new-year",
+    startMonthDay: "01-01",
+    endMonthDay: "01-03",
+    badge: "新しい年の祝福",
+    title: "新年のやさしい光",
+    message:
+      "年の始まりに満ちる澄んだ光が、あなたの心を静かに整えています。この数日が、やさしい希望と穏やかな導きに包まれますように。",
+    priority: 20,
+  },
+  {
+    key: "christmas",
+    startMonthDay: "12-24",
+    endMonthDay: "12-25",
+    badge: "聖夜の祝福",
+    title: "クリスマスの灯り",
+    message:
+      "やわらかな灯りが心をあたためる特別な日です。大切な想いと静かな祈りが、あなたのこれからにやさしい奇跡を運んでくれるでしょう。",
+    priority: 30,
+  },
+] as const;
+
 type DailyFortuneCookiePayload = {
   dateKey: string;
   result: {
@@ -85,6 +193,12 @@ function loadProfileForDailyFortune(): DailyFortuneProfile {
     return {
       nickname: typeof parsed.nickname === "string" ? parsed.nickname : undefined,
       job: resolvedJob,
+      birthdate:
+        typeof parsed.birthdate === "string"
+          ? parsed.birthdate
+          : typeof parsed.birthDate === "string"
+            ? parsed.birthDate
+            : undefined,
       loveStatus: typeof parsed.loveStatus === "string" ? parsed.loveStatus : undefined,
     };
   } catch {
@@ -118,19 +232,38 @@ function extractTopWhisper(fullText: string, fallbackSummary: string): string {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
-  const themeLine = lines.find((line) => /今日は.+の日です/.test(line));
-  if (themeLine) {
-    return themeLine;
+  const candidates = [fallbackSummary, ...lines, normalized]
+    .map((value) => value.replace(/\*\*/g, "").replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  const quotedTheme = candidates
+    .map((value) => value.match(/「([^」]{4,40})」/))
+    .find(Boolean)?.[1];
+  if (quotedTheme) {
+    return quotedTheme.trim();
   }
-  const cleaned = normalized
-    .replace(/\*\*/g, "")
-    .replace(/[「」]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (cleaned.length > 0) {
-    return cleaned.slice(0, 90);
+
+  const todayTheme = candidates
+    .map((value) => value.match(/今日は[「『]?([^」』。\n]+?)(?:[」』]?です|[」』]?の日(?:です)?)/))
+    .find(Boolean)?.[1];
+  if (todayTheme) {
+    return todayTheme.trim().slice(0, 36);
   }
-  return fallbackSummary;
+
+  const compactSentence = candidates
+    .flatMap((value) => value.split(/[\n。]/))
+    .map((value) => value.replace(/[「」]/g, "").trim())
+    .find(
+      (value) =>
+        value.length >= 8 &&
+        value.length <= 42 &&
+        !/(こんにちは|カード|曜日|正位置|逆位置|象徴|昨日)/.test(value)
+    );
+  if (compactSentence) {
+    return compactSentence;
+  }
+
+  return fallbackSummary.replace(/[「」]/g, "").trim().slice(0, 36) || "今日の導き";
 }
 
 function extractBookmarkMessage(fullText: string, fallbackSummary: string): string {
@@ -162,6 +295,29 @@ function extractClosingGuidanceLine(fullText: string, fallbackSummary: string): 
   return (candidate ?? fallbackSummary ?? "").replace(/\*\*/g, "").replace(/[「」]/g, "").trim();
 }
 
+function buildCardShareTheme(card: DrawnCard | null, fallbackSummary: string, fullText: string): string {
+  if (!card) {
+    return extractTopWhisper(fullText, fallbackSummary);
+  }
+
+  const cardMeaning = card.meaningJa.replace(/\s+/g, " ").trim();
+  const fromMeaning = cardMeaning
+    .split(/。/)
+    .map((value) => value.trim())
+    .find((value) => value.length >= 8 && value.length <= 40);
+
+  if (fromMeaning) {
+    return fromMeaning;
+  }
+
+  const fallback = extractTopWhisper(fullText, fallbackSummary).trim();
+  if (fallback) {
+    return fallback;
+  }
+
+  return `${card.nameJa}の導き`;
+}
+
 function getJstDateParts(date = new Date()) {
   const formatter = new Intl.DateTimeFormat("ja-JP", {
     timeZone: DAILY_FORTUNE_TIMEZONE,
@@ -180,6 +336,81 @@ function getJstDateParts(date = new Date()) {
 function getJstDateKey(date = new Date()) {
   const { year, month, day } = getJstDateParts(date);
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function getJstMonthDayKey(date = new Date()) {
+  const { month, day } = getJstDateParts(date);
+  return `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function getBirthMonthDayKey(birthDate?: string) {
+  if (!birthDate) return null;
+  const match = birthDate.trim().match(/^\d{4}-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  return `${match[1]}-${match[2]}`;
+}
+
+function getBirthdayMessage(profile: DailyFortuneProfile) {
+  const birthMonthDay =
+    getBirthMonthDayKey(profile.birthdate) ?? getBirthMonthDayKey(profile.birthDate);
+  if (!birthMonthDay) return null;
+  if (birthMonthDay !== getJstMonthDayKey()) return null;
+
+  return BIRTHDAY_BLESSING_MESSAGE;
+}
+
+function getBirthdayBlessingCard(profile: DailyFortuneProfile) {
+  const birthDate = profile.birthdate ?? profile.birthDate;
+  if (!birthDate || BIRTHDAY_BLESSING_CARDS.length === 0) return null;
+
+  const birthMonthDay = getBirthMonthDayKey(birthDate);
+  if (!birthMonthDay) return null;
+  if (birthMonthDay !== getJstMonthDayKey()) return null;
+
+  const seedSource = `${birthDate}-${getJstDateKey()}`;
+  let hash = 0;
+  for (let index = 0; index < seedSource.length; index += 1) {
+    hash = (hash * 31 + seedSource.charCodeAt(index)) >>> 0;
+  }
+
+  return BIRTHDAY_BLESSING_CARDS[hash % BIRTHDAY_BLESSING_CARDS.length];
+}
+
+function isMonthDayInRange(monthDay: string, startMonthDay: string, endMonthDay: string) {
+  return monthDay >= startMonthDay && monthDay <= endMonthDay;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function getSpecialFortuneEvent(profile: DailyFortuneProfile): SpecialFortuneEvent | null {
+  const todayMonthDay = getJstMonthDayKey();
+  const seasonalEvents: SpecialFortuneEvent[] = SPECIAL_SEASONAL_EVENTS.filter((event) =>
+    isMonthDayInRange(todayMonthDay, event.startMonthDay, event.endMonthDay)
+  ).map((event) => ({
+    key: event.key,
+    badge: event.badge,
+    title: event.title,
+    message: event.message,
+    priority: event.priority,
+    card: null,
+  }));
+
+  const birthdayMessage = getBirthdayMessage(profile);
+  const birthdayCard = getBirthdayBlessingCard(profile);
+  const birthdayEvent =
+    birthdayMessage && birthdayCard
+      ? ({
+          key: "birthday",
+          badge: "🎂 今日はあなたの特別な日",
+          title: "お誕生日おめでとうございます",
+          message: birthdayMessage,
+          priority: 100,
+          card: birthdayCard,
+        } satisfies SpecialFortuneEvent)
+      : null;
+
+  return [birthdayEvent, ...seasonalEvents]
+    .filter((event): event is SpecialFortuneEvent => event !== null)
+    .sort((left, right) => right.priority - left.priority)[0] ?? null;
 }
 
 function getTodayLabel() {
@@ -270,6 +501,8 @@ function usePrefersReducedMotion() {
 }
 
 export default function DailyFortunePage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const profile = useMemo(() => loadProfileForDailyFortune(), []);
   const [readyToFlip, setReadyToFlip] = useState(false);
   const [selectedCard, setSelectedCard] = useState<DrawnCard | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -295,6 +528,27 @@ export default function DailyFortunePage() {
     { label: "一昨日", dateKey: "", cardName: null },
   ]);
   const today = useMemo(() => getTodayLabel(), []);
+  const hakuMessage = useMemo(() => {
+    if (!showResult || !selectedCard) return null;
+    return pickHakuMessage(
+      "daily-fortune",
+      `${getJstDateKey()}:${selectedCard.id}:${selectedCard.reversed ? "rev" : "upright"}`
+    );
+  }, [showResult, selectedCard]);
+  const sharePreview = useMemo(() => {
+    const sourceText = (fullText ?? "").trim();
+    const fallback = (summary ?? "").trim();
+    if (!sourceText && !fallback && !selectedCard) return null;
+
+    const themeText = buildCardShareTheme(selectedCard, fallback || "今日の導き", sourceText || fallback || "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return {
+      text: themeText || "今日の導き",
+      dateLabel: today,
+    };
+  }, [fullText, selectedCard, summary, today]);
   const prefersReducedMotion = usePrefersReducedMotion();
   const requestIdRef = useRef(0);
   const flipTimerRef = useRef<number | null>(null);
@@ -595,8 +849,8 @@ export default function DailyFortunePage() {
   };
 
   const handleSaveBookmarkImage = async () => {
-    if (!bookmarkCardRef.current) {
-      setBookmarkStatus("しおりカードの生成に失敗しました。");
+    if (!sharePreview?.text || !bookmarkCardRef.current) {
+      setBookmarkStatus("共有用画像の生成に失敗しました。");
       return;
     }
     setIsRenderingBookmark(true);
@@ -610,7 +864,7 @@ export default function DailyFortunePage() {
       });
       const anchor = document.createElement("a");
       anchor.href = dataUrl;
-      anchor.download = `lumina-hikari-shiori-${getJstDateKey()}.png`;
+      anchor.download = `lumina-daily-share-${getJstDateKey()}.png`;
       anchor.click();
       setBookmarkStatus("画像として保存しました。");
     } catch {
@@ -621,14 +875,15 @@ export default function DailyFortunePage() {
   };
 
   const handleShareOnX = () => {
-    if (!bookmarkShare?.text) {
-      setBookmarkStatus("先に「光のしおりを作る」を押してください。");
+    if (!sharePreview?.text) {
+      setBookmarkStatus("共有する導きがまだ整っていません。");
       return;
     }
-    const shareText = `🌙 今日のルミナのささやき\n${bookmarkShare.text}\n#LUMINA #今日の占い`;
+    const shareText = `今日のルミナの導き\n\n「${sharePreview.text}」\n\n#LUMINA\n#今日の占い`;
     const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/daily-fortune` : "/daily-fortune";
     const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(intentUrl, "_blank", "noopener,noreferrer");
+    setBookmarkStatus("Xの共有画面を開きました。");
   };
 
   const handleCreatePrayerCard = async () => {
@@ -724,6 +979,17 @@ export default function DailyFortunePage() {
       setIsSharingPrayerCard(false);
     }
   };
+
+  const handleCreateBookmarkBundle = async () => {
+    await handleSaveTodayWord();
+    handleCreateBookmark();
+  };
+
+  void handleSaveBookmarkImage;
+  void handleShareOnX;
+  void handleCreateBookmarkBundle;
+  void handleSavePrayerCard;
+  void handleSharePrayerCard;
 
   return (
     <PageShell
@@ -859,6 +1125,36 @@ export default function DailyFortunePage() {
                     </div>
                   ) : null}
 
+                  {false && specialEvent && fullText ? (
+                    <section className="mt-4 rounded-[28px] border border-[#dbcdb4]/80 bg-[linear-gradient(160deg,rgba(255,251,246,0.97),rgba(245,236,224,0.92))] p-4 shadow-[0_18px_30px_-24px_rgba(96,80,60,0.2)] sm:p-5">
+                      <p className="text-xs tracking-[0.18em] text-[#8a7a64]">{specialEvent.badge}</p>
+                      <h3 className="mt-1 text-lg font-medium text-[#2e2a26]">{specialEvent.title}</h3>
+                      <p className="mt-3 text-sm leading-relaxed text-[#544c42]">{specialEvent.message}</p>
+                      {specialEvent.card ? (
+                        <div className="mt-4 rounded-[24px] border border-[#e4d7c2]/85 bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(252,246,236,0.9))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                          <p className="text-xs tracking-[0.18em] text-[#8a7a64]">誕生日の祝福カード</p>
+                          <div className="mt-3 flex items-start gap-4">
+                            <div className="flex h-20 w-14 shrink-0 items-center justify-center rounded-[18px] border border-[#dcccae]/85 bg-[linear-gradient(180deg,#fffaf0,#f6ead7)] text-[26px] text-[#9c8661] shadow-sm">
+                              ✨
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-base font-medium text-[#2e2a26]">{specialEvent.card.title}</h4>
+                              <p className="mt-2 text-sm leading-relaxed text-[#544c42]">{specialEvent.card.message}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </section>
+                  ) : null}
+
+                  {false && specialEvent && fullText ? (
+                    <div className="mt-4 rounded-2xl border border-[#dbcdb4]/80 bg-[linear-gradient(160deg,rgba(255,250,245,0.96),rgba(246,238,230,0.92))] p-4 shadow-[0_14px_24px_-20px_rgba(96,80,60,0.18)]">
+                      <p className="text-xs tracking-[0.18em] text-[#8a7a64]">BIRTHDAY MESSAGE</p>
+                      <h3 className="mt-1 text-base font-medium text-[#2e2a26]">お誕生日の祝福</h3>
+                      <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-[#544c42]">{specialEvent?.message}</p>
+                    </div>
+                  ) : null}
+
                   {fullText ? (
                     <div className="mt-4 rounded-xl border border-[#e6dac5]/80 bg-white/60 p-3">
                       <p className="mb-2 text-xs font-medium tracking-wide text-[#7d6d5a]">
@@ -867,10 +1163,114 @@ export default function DailyFortunePage() {
                       <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#544c42]">{fullText}</p>
                     </div>
                   ) : null}
+                  {fullText ? (
+                    <section className="mt-4 rounded-2xl border border-[#d9ccb3]/80 bg-[linear-gradient(160deg,rgba(255,251,245,0.94),rgba(246,237,223,0.9))] p-4 shadow-[0_14px_24px_-20px_rgba(96,80,60,0.22)] sm:p-5">
+                      <p className="text-xs tracking-[0.18em] text-[#8a7a64]">館の奥の灯り</p>
+                      <div className="mt-2 space-y-3 text-sm leading-relaxed text-[#544c42]">
+                        <p className="whitespace-pre-line">
+                          {"今日のカードは\nあなたの流れの一片を\nそっと映したものです。"}
+                        </p>
+                        <p className="whitespace-pre-line">
+                          {"もし今\n「もう少し深く見てほしい」\nと感じているなら"}
+                        </p>
+                        <p>ルミナが静かに読み解きます。</p>
+                      </div>
+                      <LuminaLinkButton
+                        href="/consultation"
+                        tone="secondary"
+                        className="mt-4 w-full justify-center rounded-xl px-6 py-3 text-base sm:w-auto"
+                      >
+                        個人鑑定を依頼する
+                      </LuminaLinkButton>
+                    </section>
+                  ) : null}
+                  {hakuMessage ? <HakuWhisperCard message={hakuMessage} className="mt-4 p-4 sm:p-5" /> : null}
                 </section>
               ) : null}
             </div>
+            {showResult ? (
+              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <section className="rounded-2xl border border-[#d7c6aa]/80 bg-[linear-gradient(165deg,rgba(255,250,242,0.92),rgba(246,236,220,0.88))] p-4 shadow-[0_14px_24px_-20px_rgba(82,69,53,0.28)]">
+                <p className="text-xs tracking-[0.14em] text-[#8a7a64]">MAIN ACTION</p>
+                <h3 className="mt-1 text-base font-medium text-[#2e2a26]">再確認のカード</h3>
+                <p className="mt-1 text-sm leading-relaxed text-[#544c42]">
+                  今日の導きをもう一度たしかめたい時に、流れを静かに引き直せます。
+                </p>
+                {hasTodayResult ? (
+                  <LuminaButton type="button" onClick={handleRedrawToday} tone="primary" className="mt-4 w-full justify-center rounded-xl px-6 py-3 text-base">
+                    再確認のカードを引く
+                  </LuminaButton>
+                ) : (
+                  <LuminaButton type="button" onClick={resetState} tone="primary" className="mt-4 w-full justify-center rounded-xl px-6 py-3 text-base">
+                    もう一度、今日の占いを見る
+                  </LuminaButton>
+                )}
+              </section>
+                {(fullText || summary) && sharePreview ? (
+                  <section className="rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(160deg,rgba(255,252,246,0.9),rgba(248,242,231,0.84))] p-4 shadow-[0_14px_24px_-20px_rgba(82,69,53,0.2)]">
+                    <p className="text-xs tracking-[0.14em] text-[#8a7a64]">SHARE</p>
+                    <h3 className="mt-1 text-base font-medium text-[#2e2a26]">今日の導きをシェア</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-[#544c42]">
+                      今日のテーマを静かな一枚として残したり、Xへそのまま届けたりできます。
+                    </p>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                      <LuminaButton
+                        type="button"
+                        onClick={handleShareOnX}
+                        tone="secondary"
+                        className="w-full justify-center rounded-xl px-5 py-3 sm:flex-1"
+                      >
+                        Xでシェア
+                      </LuminaButton>
+                      <LuminaButton
+                        type="button"
+                        onClick={handleSaveBookmarkImage}
+                        tone="secondary"
+                        disabled={isRenderingBookmark}
+                        className="w-full justify-center rounded-xl px-5 py-3 sm:flex-1"
+                      >
+                        {isRenderingBookmark ? "保存しています..." : "画像として保存"}
+                      </LuminaButton>
+                    </div>
+                    {bookmarkStatus ? <p className="mt-3 text-sm text-[#544c42]">{bookmarkStatus}</p> : null}
+                    <div className="pointer-events-none fixed -left-[9999px] top-0" aria-hidden="true">
+                      <div
+                        ref={bookmarkCardRef}
+                        className="w-[1080px] rounded-[36px] border border-[#d9ccb3]/80 bg-[linear-gradient(158deg,rgba(255,252,246,0.98),rgba(247,240,228,0.94))] px-14 py-14 shadow-[0_24px_48px_-28px_rgba(96,80,60,0.22)]"
+                      >
+                        <div className="flex items-center gap-12">
+                          {selectedCard ? (
+                            <div className="w-[280px] shrink-0 text-center">
+                              {/* html-to-image 用の共有カードでは素の img の方が安定して描画される */}
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={selectedCard.imagePath}
+                                alt={selectedCard.nameJa}
+                                className="mx-auto h-auto w-full rounded-[24px] border border-[#d9ccb3]/80 shadow-[0_18px_30px_-24px_rgba(96,80,60,0.28)]"
+                              />
+                              <p className="mt-5 text-[30px] font-medium text-[#4b4339]">
+                                {selectedCard.nameJa}
+                                {selectedCard.reversed ? "（逆位置）" : "（正位置）"}
+                              </p>
+                            </div>
+                          ) : null}
 
+                          <div className="flex-1 text-center">
+                            <p className="text-[26px] tracking-[0.24em] text-[#766e62]">今日のルミナの導き</p>
+                            <p className="mt-5 text-[42px] text-[#7d6d5a]">{sharePreview.dateLabel}</p>
+                            <p className="mt-12 text-[58px] leading-[1.5] text-[#544c42]">「{sharePreview.text}」</p>
+                            <p className="mt-12 text-[24px] tracking-[0.18em] text-[#8a7a64]">#LUMINA #今日の占い</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
+              </div>
+            ) : null}
+
+            {false && (
+              <>
             <div className="mt-6 flex flex-wrap gap-3">
               <LuminaButton
                 type="button"
@@ -893,8 +1293,10 @@ export default function DailyFortunePage() {
             {saveWordMessage ? (
               <p className="mt-2 text-sm text-[#544c42]">{saveWordMessage}</p>
             ) : null}
+              </>
+            )}
 
-            {showResult && (fullText || summary) ? (
+            {false && showResult && (fullText || summary) ? (
               <section className="mt-6 rounded-2xl border border-[#e1d5bf]/75 bg-white/55 p-4">
                 <h3 className="text-base font-medium text-[#2e2a26]">光のしおり</h3>
                 <p className="mt-1 text-sm text-[#544c42]">
@@ -934,9 +1336,9 @@ export default function DailyFortunePage() {
                       className="w-full max-w-[520px] rounded-2xl border border-[#d9ccb3]/80 bg-[linear-gradient(158deg,rgba(255,252,246,0.96),rgba(247,240,228,0.9))] px-6 py-7 text-center shadow-[0_12px_24px_-20px_rgba(96,80,60,0.22)]"
                     >
                       <p className="text-xs tracking-[0.24em] text-[#766e62]">LUMINA</p>
-                      <p className="mt-2 text-sm text-[#7d6d5a]">{bookmarkShare.dateLabel}</p>
+                      <p className="mt-2 text-sm text-[#7d6d5a]">{bookmarkShare?.dateLabel}</p>
                       <p className="mt-4 whitespace-pre-wrap text-base leading-relaxed text-[#544c42]">
-                        {bookmarkShare.text}
+                        {bookmarkShare?.text}
                       </p>
                     </div>
                   </div>
@@ -944,7 +1346,7 @@ export default function DailyFortunePage() {
               </section>
             ) : null}
 
-            {showResult && (fullText || summary) ? (
+            {false && showResult && (fullText || summary) ? (
               <section className="mt-6 rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(160deg,rgba(255,252,246,0.88),rgba(248,242,231,0.82))] p-4">
                 <h3 className="text-base font-medium text-[#2e2a26]">白の庭の祈り札</h3>
                 <p className="mt-1 text-sm text-[#544c42]">
@@ -968,7 +1370,7 @@ export default function DailyFortunePage() {
                   <div className="mt-4 flex justify-center">
                     <div className="w-full max-w-[360px] overflow-hidden rounded-2xl border border-[#d9ccb3]/80 bg-white/70 shadow-[0_12px_24px_-20px_rgba(96,80,60,0.22)]">
                       <Image
-                        src={prayerCard.imageUrl}
+                        src={prayerCard?.imageUrl ?? ""}
                         alt="白の庭の祈り札プレビュー"
                         width={1080}
                         height={1350}
@@ -984,8 +1386,9 @@ export default function DailyFortunePage() {
         )}
       </GlassCard>
 
-      <GlassCard className="mt-4">
+      <GlassCard className="mt-4 recent-guidance-card">
         <h2 className="text-base font-medium text-[#2e2a26]">最近のカード履歴</h2>
+        <h2 className="text-base font-medium text-[#2e2a26]">最近の導き</h2>
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
           {recentCards.map((item) => (
             <div
@@ -1007,6 +1410,10 @@ export default function DailyFortunePage() {
           background: transparent;
           cursor: pointer;
           perspective: 1200px;
+        }
+
+        .recent-guidance-card > h2:first-of-type {
+          display: none;
         }
 
         .fortune-card-button:disabled {

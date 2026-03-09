@@ -12,6 +12,11 @@ import { WhiteBirdAnimation } from "@/components/white-bird-animation"
 import { CardRevealOverlay } from "@/components/card-reveal-overlay"
 import type { TarotCardData } from "@/components/tarot-card"
 
+type HomeClientProps = {
+  initialDailyWhisper: string
+  serverBirthdate: string | null
+}
+
 function getCurrentTime() {
   const now = new Date()
   return `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`
@@ -33,7 +38,7 @@ const FALLBACK_WELCOME =
 const FALLBACK_CHAT =
   "Something went wrong while getting a response. Please try again."
 
-export function HomeClient() {
+export function HomeClient({ initialDailyWhisper, serverBirthdate }: HomeClientProps) {
   const searchParams = useSearchParams()
   const [started, setStarted] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
@@ -250,7 +255,7 @@ export function HomeClient() {
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.4 }}
           >
-            <WelcomeScreen />
+            <WelcomeScreen initialDailyWhisper={initialDailyWhisper} serverBirthdate={serverBirthdate} />
           </motion.div>
         ) : (
           <motion.div

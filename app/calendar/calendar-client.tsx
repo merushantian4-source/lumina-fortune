@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import UnmeiVisual from "@/components/unmei/UnmeiVisual";
 import { PageShell } from "@/components/ui/page-shell";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton, LuminaLinkButton } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { getFixedDayForDate } from "@/lib/holidays";
 import { getMoonPhaseForDateKey, type MajorMoonPhase } from "@/lib/moon-phase";
 import { destinyNumberFromBirthdate } from "@/lib/fortune/fortuneNumber";
 import { isFortuneNumber, type FortuneNumber } from "@/lib/fortune/types";
+import { BIRTHDATE_STORAGE_KEY, getInitialBirthdate } from "@/lib/profile/getProfile";
 import { getLightWaveForDay, getPersonalScore } from "@/lib/light-wave";
 import {
   getLuckyDaysForMonth,
@@ -78,7 +80,6 @@ type WavePoint = {
   baseScore: number;
 };
 
-const BIRTHDATE_STORAGE_KEY = "lumina_birthdate";
 const DESTINY_NUMBER_LABELS: Record<FortuneNumber, string> = {
   1: "始まりの灯火",
   2: "月影の調律者",
@@ -100,23 +101,12 @@ function toDestinyNumberFromBirthdate(birthdate: string): FortuneNumber | null {
   }
 }
 
-function loadInitialBirthdate(serverBirthdate: string | null): string {
-  if (serverBirthdate) return serverBirthdate;
-  if (typeof window === "undefined") return "";
-
-  try {
-    return localStorage.getItem(BIRTHDATE_STORAGE_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
-
 type CalendarClientProps = {
   serverBirthdate: string | null;
 };
 
 export default function CalendarPage({ serverBirthdate }: CalendarClientProps) {
-  const [birthDate, setBirthDate] = useState(() => loadInitialBirthdate(serverBirthdate));
+  const [birthDate, setBirthDate] = useState(() => getInitialBirthdate(serverBirthdate));
   const [birthdateError, setBirthdateError] = useState("");
   const [viewWithoutSaving, setViewWithoutSaving] = useState(false);
   const [monthDate, setMonthDate] = useState(() => new Date());
@@ -332,6 +322,16 @@ export default function CalendarPage({ serverBirthdate }: CalendarClientProps) {
       </GlassCard>
 
       <GlassCard className="mt-4">
+        {destinyNumber ? (
+          <div className="mb-4">
+            <UnmeiVisual
+              number={destinyNumber}
+              variant="inline"
+              title={`運命数${destinyNumber}のバイオリズム`}
+              subtitle="日々の波を静かに読む"
+            />
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-xs font-medium tracking-wide text-[#847967]">光の波</p>
