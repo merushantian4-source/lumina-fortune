@@ -12,7 +12,9 @@
       "Bash(node -e \":*)",
       "Bash(npx tsc:*)",
       "Bash(npx next:*)",
-      "Bash(grep -E \"\\\\.\\(tsx?|json\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tsx?|json\\)$\")",
+      "Bash(npx tsx:*)",
+      "Bash(npm run:*)"
     ]
   }
 }
