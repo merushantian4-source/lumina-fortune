@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import FortuneResult from "@/components/fortune-result";
 import { PageShell } from "@/components/ui/page-shell";
 import { GlassCard } from "@/components/ui/glass-card";
+import { buildMonthlyDailyNumberFortunes } from "@/lib/fortune/daily-number-fortunes";
 import { destinyNumberFromBirthdate } from "@/lib/fortune/fortuneNumber";
 import { getFortuneNumberName } from "@/lib/fortune/names";
 import { buildMonthlyTemplateForProfile } from "@/lib/fortune/monthly-profile-template";
@@ -31,6 +32,8 @@ export default function MonthlyResultClient({ month, initialBirthdate }: Props) 
 
   const birthdate = isHydrated ? profile?.birthdate?.trim() || initialBirthdate || "" : initialBirthdate || "";
   const profileKey = useMemo(() => buildProfileVersionKey(profile), [profile]);
+  const previousMonth = month > 1 ? month - 1 : null;
+  const nextMonth = month < 12 ? month + 1 : null;
 
   const result = useMemo(() => {
     if (!birthdate) return null;
@@ -39,10 +42,12 @@ export default function MonthlyResultClient({ month, initialBirthdate }: Props) 
       const fortuneNumber = destinyNumberFromBirthdate(birthdate);
       const template = buildMonthlyTemplateForProfile(month, birthdate, profile);
       const fortuneName = getFortuneNumberName(fortuneNumber);
+      const year = new Date().getFullYear();
+      const dailyFortunes = buildMonthlyDailyNumberFortunes({ year, month, destinyNumber: fortuneNumber });
 
       if (!template || !fortuneName) return null;
 
-      return { template, fortuneName };
+      return { template, fortuneName, dailyFortunes };
     } catch {
       return null;
     }
@@ -69,6 +74,8 @@ export default function MonthlyResultClient({ month, initialBirthdate }: Props) 
     <FortuneResult
       key={`${month}:${profileKey}`}
       template={result.template}
+      dailyFortunes={result.dailyFortunes}
+      dailySectionTitle="今月の日別の流れ"
       variantLabel="NUMEROLOGY MONTHLY"
       pageTitle={`${result.fortuneName}の${month}月の運勢`}
       topLinkHref="/"
@@ -77,8 +84,12 @@ export default function MonthlyResultClient({ month, initialBirthdate }: Props) 
       halfYearSectionTitle={`今月 ${month}月前半・後半`}
       firstHalfTitle={`${month}月前半`}
       secondHalfTitle={`${month}月後半`}
+      previousLinkHref={previousMonth ? `/fortune-monthly/result/${previousMonth}` : undefined}
+      previousLinkLabel={previousMonth ? `${previousMonth}月へ` : undefined}
       bottomLinkHref="/fortune-monthly/result"
-      bottomLinkLabel="月一覧に戻る"
+      bottomLinkLabel="月一覧を見る"
+      nextLinkHref={nextMonth ? `/fortune-monthly/result/${nextMonth}` : undefined}
+      nextLinkLabel={nextMonth ? `${nextMonth}月へ` : undefined}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { isFortuneNumber, type FortuneNumber } from "@/lib/fortune/types";
+import { isFortuneNumber, type FortuneNumber } from "./types";
 
 export function destinyNumberFromBirthdate(dateString: string): FortuneNumber {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {

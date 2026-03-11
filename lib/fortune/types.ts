@@ -21,6 +21,20 @@ export type FortuneTemplate = {
   blessing: string;
 };
 
+export type DailyFlowLevel = 1 | 2 | 3 | 4 | 5;
+
+export type DailyNumberFortune = {
+  date: string;
+  dayNumber: FortuneNumber;
+  flowLevel: DailyFlowLevel;
+  title: string;
+  headline: string;
+  summary: string;
+  action: string;
+  emotion?: string;
+  tags?: string[];
+};
+
 export function isFortuneNumber(value: number): value is FortuneNumber {
   return Number.isInteger(value) && value >= 1 && value <= 9;
 }

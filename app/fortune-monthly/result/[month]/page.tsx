@@ -12,14 +12,15 @@ type PageProps = {
 };
 
 export default async function FortuneMonthlyResultPage({ params }: PageProps) {
-  const { month } = await params;
+  const resolvedParams = await params.catch(() => ({ month: "" }));
+  const month = resolvedParams?.month ?? "";
   const parsedMonth = Number(month);
 
   if (!isFortuneMonth(parsedMonth)) {
     notFound();
   }
 
-  const birth = await getValidMonthlyBirthFromCookie();
+  const birth = await getValidMonthlyBirthFromCookie().catch(() => null);
 
   return <MonthlyResultClient month={parsedMonth} initialBirthdate={birth} />;
 }

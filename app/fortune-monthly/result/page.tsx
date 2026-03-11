@@ -4,6 +4,6 @@ import { getValidMonthlyBirthFromCookie } from "@/lib/fortune/monthly-birth-cook
 export const dynamic = "force-dynamic";
 
 export default async function FortuneMonthlyResultIndexPage() {
-  const birth = await getValidMonthlyBirthFromCookie();
+  const birth = await getValidMonthlyBirthFromCookie().catch(() => null);
   return <MonthlyResultIndexClient initialBirthdate={birth} />;
 }

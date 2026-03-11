@@ -1,1 +1,1 @@
-export { destinyNumberFromBirthdate } from "@/lib/fortune/fortuneNumber";
+export { destinyNumberFromBirthdate } from "./fortune/fortuneNumber";

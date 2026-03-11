@@ -6,7 +6,10 @@ import { destinyNumberFromBirthdate } from "@/lib/fortune/fortuneNumber";
 const SERVER_BIRTHDATE_COOKIE_KEYS = ["lumina_birthdate", "lumina_profile_birthdate"] as const;
 
 export async function getServerProfileBirthdate(): Promise<string | null> {
-  const cookieStore = await cookies();
+  const cookieStore = await cookies().catch(() => null);
+  if (!cookieStore) {
+    return null;
+  }
 
   for (const key of SERVER_BIRTHDATE_COOKIE_KEYS) {
     const value = cookieStore.get(key)?.value?.trim();

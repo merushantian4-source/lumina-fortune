@@ -42,8 +42,12 @@ async function readStore(): Promise<DailyWhisperStore> {
 }
 
 async function writeStore(store: DailyWhisperStore): Promise<void> {
-  await fs.mkdir(STORE_DIR, { recursive: true });
-  await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
+  try {
+    await fs.mkdir(STORE_DIR, { recursive: true });
+    await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
+  } catch {
+    // Ignore persistence failures in read-only/serverless environments.
+  }
 }
 
 export async function getDailyWhisperByDate(dateKey: string): Promise<DailyWhisperRecord | null> {
