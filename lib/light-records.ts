@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { validateModerationText } from "@/lib/moderation/validateText";
 
 export type LightRecord = {
   id: string;
@@ -39,6 +40,11 @@ export async function saveLightRecord(
   nickname: string,
   payload: { dateKey: string; cardName: string; message: string }
 ): Promise<LightRecord> {
+  const moderation = validateModerationText(payload.message, { maxLength: 500 });
+  if (!moderation.ok) {
+    throw new Error(moderation.error);
+  }
+
   const userKey = normalizeUserKey(nickname);
   const store = await readStore();
   const current = store[userKey] ?? [];
@@ -46,7 +52,7 @@ export async function saveLightRecord(
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     dateKey: payload.dateKey,
     cardName: payload.cardName,
-    message: payload.message,
+    message: moderation.normalizedText,
     createdAt: new Date().toISOString(),
   };
   const next = [record, ...current].slice(0, 100);
@@ -60,4 +66,3 @@ export async function getLightRecords(nickname: string): Promise<LightRecord[]> 
   const store = await readStore();
   return store[userKey] ?? [];
 }
-

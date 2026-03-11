@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export const CARD_BACK_IMAGE_PATH = "/cards/back.jpg";
 
@@ -111,24 +111,49 @@ export function TarotCardArtwork({
   className,
   sizes,
 }: TarotCardArtworkProps) {
+  return (
+    <TarotCardArtworkInner
+      key={imagePath}
+      imagePath={imagePath}
+      alt={alt}
+      isReversed={isReversed}
+      className={className}
+      sizes={sizes}
+    />
+  );
+}
+
+function TarotCardArtworkInner({
+  imagePath,
+  alt,
+  isReversed = false,
+  className,
+  sizes,
+}: TarotCardArtworkProps) {
   const [currentSrc, setCurrentSrc] = useState(imagePath);
   const [showPlaceholder, setShowPlaceholder] = useState(false);
-
-  useEffect(() => {
-    setCurrentSrc(imagePath);
-    setShowPlaceholder(false);
-  }, [imagePath]);
 
   if (showPlaceholder) {
     return <Placeholder alt={alt} className={className} isReversed={isReversed} />;
   }
 
   return (
-    <span style={{ display: "block", width: "100%", height: "100%", position: "relative" }}>
+    <span
+      style={{
+        display: "block",
+        width: "100%",
+        maxWidth: "300px",
+        height: "auto",
+        marginInline: "auto",
+        position: "relative",
+      }}
+    >
       <div
         style={{
           width: "100%",
-          height: "100%",
+          maxWidth: "300px",
+          height: "auto",
+          marginInline: "auto",
           transformOrigin: "center",
           transform: isReversed ? "rotate(180deg)" : "rotate(0deg)",
           transition: "transform 200ms ease",
@@ -137,10 +162,11 @@ export function TarotCardArtwork({
         <Image
           src={currentSrc}
           alt={alt}
-          width={320}
-          height={533}
-          sizes={sizes ?? "(max-width: 768px) 70vw, 320px"}
+          width={300}
+          height={500}
+          sizes={sizes ?? "(max-width: 768px) 68vw, 300px"}
           className={className}
+          style={{ display: "block", width: "100%", height: "auto", maxWidth: "300px" }}
           onError={() => {
             if (currentSrc !== CARD_BACK_IMAGE_PATH) {
               setCurrentSrc(CARD_BACK_IMAGE_PATH);
@@ -181,11 +207,17 @@ export function TarotBackArtwork({
   className?: string;
   sizes?: string;
 }) {
-  const [showPlaceholder, setShowPlaceholder] = useState(false);
+  return <TarotBackArtworkInner key="tarot-back" className={className} sizes={sizes} />;
+}
 
-  useEffect(() => {
-    setShowPlaceholder(false);
-  }, []);
+function TarotBackArtworkInner({
+  className,
+  sizes,
+}: {
+  className?: string;
+  sizes?: string;
+}) {
+  const [showPlaceholder, setShowPlaceholder] = useState(false);
 
   if (showPlaceholder) {
     return <Placeholder alt="カード裏面" className={className} backOnly />;
@@ -195,10 +227,11 @@ export function TarotBackArtwork({
     <Image
       src={CARD_BACK_IMAGE_PATH}
       alt="カード裏面"
-      width={320}
-      height={533}
-      sizes={sizes ?? "(max-width: 768px) 80vw, 320px"}
+      width={300}
+      height={500}
+      sizes={sizes ?? "(max-width: 768px) 68vw, 300px"}
       className={className}
+      style={{ display: "block", width: "100%", height: "auto", maxWidth: "300px" }}
       onError={() => setShowPlaceholder(true)}
     />
   );

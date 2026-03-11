@@ -2,14 +2,17 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HakuWhisperCard } from "@/components/haku-whisper-card";
 import { TarotBackArtwork, TarotCardArtwork } from "@/components/tarot-card-artwork";
+import { LightTarotDisplay } from "@/components/light-tarot-display";
 import { tarotCards, type TarotCardEntry } from "@/src/data/tarotCards";
 import { getRandomTarotCard } from "@/lib/tarot";
 import { PageShell } from "@/components/ui/page-shell";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton, LuminaLinkButton } from "@/components/ui/button";
 import { pickHakuMessage } from "@/lib/haku-messages";
+import { parseDailyFortuneSections } from "@/lib/daily-fortune-output";
+import { runClientModerationCheck } from "@/lib/moderation/clientCheck";
+import { getOrCreateChatVisitorKey } from "@/lib/membership";
 
 type DrawnCard = TarotCardEntry & {
   reversed: boolean;
@@ -547,6 +550,20 @@ export default function DailyFortunePage() {
       `${getJstDateKey()}:${selectedCard.id}:${selectedCard.reversed ? "rev" : "upright"}`
     );
   }, [showResult, selectedCard]);
+  const fortuneSections = useMemo(() => {
+    const parsed = parseDailyFortuneSections(fullText ?? "");
+    return {
+      intro: parsed.intro,
+      cardMeaning: parsed.cardMeaning,
+      overallFlow: parsed.overallFlow,
+      work: parsed.work,
+      love: parsed.love,
+      advice: parsed.advice,
+      money: parsed.money,
+      todayHitokoto: parsed.todayHitokoto,
+      whiteHitokoto: parsed.whiteHitokoto || hakuMessage || "",
+    };
+  }, [fullText, hakuMessage]);
   const sharePreview = useMemo(() => {
     const sourceText = (fullText ?? "").trim();
     const fallback = (summary ?? "").trim();
@@ -821,6 +838,15 @@ export default function DailyFortunePage() {
 
     setIsSavingWord(true);
     setSaveWordMessage(null);
+    const moderation = runClientModerationCheck(fullText, getOrCreateChatVisitorKey(), {
+      maxLength: 500,
+    });
+    if (!moderation.ok) {
+      setSaveWordMessage(moderation.error);
+      setIsSavingWord(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/light-records", {
         method: "POST",
@@ -831,7 +857,7 @@ export default function DailyFortunePage() {
           payload: {
             dateKey: getJstDateKey(),
             cardName: selectedCard.nameJa,
-            message: fullText,
+            message: moderation.normalizedText,
           },
         }),
       });
@@ -1065,6 +1091,17 @@ export default function DailyFortunePage() {
                             className="h-full w-full rounded-xl object-cover"
                             sizes="(max-width: 768px) 80vw, 320px"
                           />
+                          {/* 光のスイープ */}
+                          <span className="fortune-light-sweep" aria-hidden="true" />
+                          {/* 微細な粒子光 */}
+                          <span className="fortune-particles" aria-hidden="true">
+                            <span className="fortune-particle fortune-particle--1" />
+                            <span className="fortune-particle fortune-particle--2" />
+                            <span className="fortune-particle fortune-particle--3" />
+                            <span className="fortune-particle fortune-particle--4" />
+                            <span className="fortune-particle fortune-particle--5" />
+                            <span className="fortune-particle fortune-particle--6" />
+                          </span>
                         </span>
                         <span className="mt-3 text-sm font-semibold text-amber-950">
                           {selectedCard.nameJa}
@@ -1093,11 +1130,12 @@ export default function DailyFortunePage() {
                 <section className="mt-6 rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(160deg,rgba(255,252,246,0.88),rgba(248,242,231,0.82))] p-4 shadow-[0_12px_24px_-20px_rgba(82,69,53,0.22)]">
                   <div className="flex items-start gap-4">
                     <div className="flex h-24 w-16 shrink-0 items-center justify-center rounded-xl border border-[#d8c8ab]/72 bg-gradient-to-b from-[#fff8ec] to-[#f6ebda] text-2xl shadow-sm">
-                      <TarotCardArtwork
+                      <LightTarotDisplay
                         imagePath={selectedCard.imagePath}
                         alt={selectedCard.nameJa}
                         isReversed={selectedCard.reversed}
-                        className="h-full w-full rounded-xl object-cover"
+                        className="h-full w-full rounded-xl"
+                        artworkClassName="h-full w-full rounded-xl object-cover"
                         sizes="64px"
                       />
                     </div>
@@ -1167,7 +1205,48 @@ export default function DailyFortunePage() {
                     </div>
                   ) : null}
 
-                  {fullText ? (
+                  {fortuneSections.intro ? (
+                    <div className="mt-4 rounded-xl border border-[#e6dac5]/80 bg-white/60 p-4">
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#544c42]">{fortuneSections.intro}</p>
+                    </div>
+                  ) : null}
+                  {fortuneSections.cardMeaning ? (
+                    <div className="mt-4 rounded-xl border border-[#e6dac5]/80 bg-white/60 p-4">
+                      <p className="mb-2 text-xs font-medium tracking-wide text-[#7d6d5a]">カードの意味</p>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#544c42]">{fortuneSections.cardMeaning}</p>
+                    </div>
+                  ) : null}
+                  {fortuneSections.overallFlow ? (
+                    <div className="mt-4 rounded-xl border border-[#e6dac5]/80 bg-white/60 p-4">
+                      <p className="mb-2 text-xs font-medium tracking-wide text-[#7d6d5a]">今日の流れ</p>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#544c42]">{fortuneSections.overallFlow}</p>
+                    </div>
+                  ) : null}
+                  {fortuneSections.work ? (
+                    <div className="mt-4 rounded-xl border border-[#e6dac5]/80 bg-white/60 p-4">
+                      <p className="mb-2 text-xs font-medium tracking-wide text-[#7d6d5a]">仕事・学び</p>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#544c42]">{fortuneSections.work}</p>
+                    </div>
+                  ) : null}
+                  {fortuneSections.love ? (
+                    <div className="mt-4 rounded-xl border border-[#e6dac5]/80 bg-white/60 p-4">
+                      <p className="mb-2 text-xs font-medium tracking-wide text-[#7d6d5a]">恋愛・人間関係</p>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#544c42]">{fortuneSections.love}</p>
+                    </div>
+                  ) : null}
+                  {fortuneSections.advice ? (
+                    <div className="mt-4 rounded-xl border border-[#e6dac5]/80 bg-white/60 p-4">
+                      <p className="mb-2 text-xs font-medium tracking-wide text-[#7d6d5a]">アドバイス</p>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#544c42]">{fortuneSections.advice}</p>
+                    </div>
+                  ) : null}
+                  {fortuneSections.money ? (
+                    <div className="mt-4 rounded-xl border border-[#e6dac5]/80 bg-white/60 p-4">
+                      <p className="mb-2 text-xs font-medium tracking-wide text-[#7d6d5a]">金運</p>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[#544c42]">{fortuneSections.money}</p>
+                    </div>
+                  ) : null}
+                  {false && fullText ? (
                     <div className="mt-4 rounded-xl border border-[#e6dac5]/80 bg-white/60 p-3">
                       <p className="mb-2 text-xs font-medium tracking-wide text-[#7d6d5a]">
                         リーディング全文
@@ -1196,7 +1275,29 @@ export default function DailyFortunePage() {
                       </LuminaLinkButton>
                     </section>
                   ) : null}
-                  {fullText ? (
+                  {fortuneSections.todayHitokoto ? (
+                    <section className="mt-4 rounded-2xl border border-[#d9ccb3]/80 bg-[linear-gradient(160deg,rgba(255,251,245,0.94),rgba(246,237,223,0.9))] p-4 shadow-[0_14px_24px_-20px_rgba(96,80,60,0.22)] sm:p-5">
+                      <p className="text-xs tracking-[0.18em] text-[#8a7a64]">今日のひとこと</p>
+                      <div className="mt-2 text-sm leading-relaxed text-[#544c42]">
+                        <p className="whitespace-pre-line">{fortuneSections.todayHitokoto}</p>
+                      </div>
+                      <LuminaLinkButton
+                        href="/consultation"
+                        tone="primary"
+                        className="mt-4 w-full justify-center rounded-xl px-6 py-3 text-base sm:mx-auto sm:w-auto"
+                      >
+                        個人鑑定を依頼する
+                      </LuminaLinkButton>
+                    </section>
+                  ) : null}
+                  {fortuneSections.whiteHitokoto ? (
+                    <section className="mt-4 rounded-2xl border border-[#e1d5bf]/75 bg-[linear-gradient(160deg,rgba(255,252,246,0.9),rgba(248,242,231,0.84))] p-4 shadow-[0_14px_24px_-20px_rgba(82,69,53,0.2)] sm:p-5">
+                      <p className="text-xs tracking-[0.14em] text-[#8a7a64]">HAKU</p>
+                      <h3 className="mt-1 text-base font-medium text-[#2e2a26]">白のひとこと</h3>
+                      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-[#544c42]">{fortuneSections.whiteHitokoto}</p>
+                    </section>
+                  ) : null}
+                  {false && fortuneSections.todayHitokoto ? (
                     <section className="mt-4 rounded-2xl border border-[#d9ccb3]/80 bg-[linear-gradient(160deg,rgba(255,251,245,0.94),rgba(246,237,223,0.9))] p-4 shadow-[0_14px_24px_-20px_rgba(96,80,60,0.22)] sm:p-5">
                       <p className="text-xs tracking-[0.18em] text-[#8a7a64]">今日のひとこと</p>
                       <div className="mt-2 text-sm leading-relaxed text-[#544c42]">
@@ -1213,7 +1314,7 @@ export default function DailyFortunePage() {
                       </LuminaLinkButton>
                     </section>
                   ) : null}
-                  {hakuMessage ? <HakuWhisperCard message={hakuMessage} className="mt-4 p-4 sm:p-5" /> : null}
+                  {false && hakuMessage ? <div /> : null}
                 </section>
               ) : null}
             </div>
@@ -1505,6 +1606,7 @@ export default function DailyFortunePage() {
         }
 
         .fortune-card-frame {
+          position: relative;
           display: flex;
           width: 100%;
           flex: 1;
@@ -1513,10 +1615,177 @@ export default function DailyFortunePage() {
           justify-content: center;
           border-radius: 0.85rem;
           border: 1px solid rgba(217, 119, 6, 0.2);
+          overflow: hidden;
           background:
             radial-gradient(circle at 30% 25%, rgba(251, 191, 36, 0.28), transparent 45%),
             radial-gradient(circle at 75% 20%, rgba(251, 113, 133, 0.22), transparent 48%),
             linear-gradient(180deg, #fffdf8 0%, #fff7ed 100%);
+        }
+
+        /* — 外周のやわらかいオーラ — */
+        .is-flipped .fortune-card-frame {
+          box-shadow:
+            0 0 18px 4px rgba(255, 248, 220, 0.35),
+            0 0 40px 8px rgba(244, 226, 180, 0.15),
+            0 0 60px 12px rgba(230, 220, 255, 0.08);
+          animation: fortuneGlowPulse 3s ease-in-out 0.6s 1 both;
+        }
+
+        @keyframes fortuneGlowPulse {
+          0% {
+            box-shadow:
+              0 0 18px 4px rgba(255, 248, 220, 0),
+              0 0 40px 8px rgba(244, 226, 180, 0),
+              0 0 60px 12px rgba(230, 220, 255, 0);
+          }
+          30% {
+            box-shadow:
+              0 0 22px 6px rgba(255, 248, 220, 0.4),
+              0 0 48px 10px rgba(244, 226, 180, 0.2),
+              0 0 68px 14px rgba(230, 220, 255, 0.1);
+          }
+          100% {
+            box-shadow:
+              0 0 14px 3px rgba(255, 248, 220, 0.18),
+              0 0 32px 6px rgba(244, 226, 180, 0.08),
+              0 0 48px 8px rgba(230, 220, 255, 0.04);
+          }
+        }
+
+        /* — 斜めスイープ光 — */
+        .fortune-light-sweep {
+          position: absolute;
+          inset: 0;
+          border-radius: 0.75rem;
+          pointer-events: none;
+          opacity: 0;
+          background: linear-gradient(
+            115deg,
+            transparent 20%,
+            rgba(255, 255, 255, 0.08) 35%,
+            rgba(255, 252, 235, 0.38) 45%,
+            rgba(255, 248, 220, 0.5) 50%,
+            rgba(255, 252, 235, 0.38) 55%,
+            rgba(255, 255, 255, 0.08) 65%,
+            transparent 80%
+          );
+          background-size: 200% 100%;
+        }
+
+        .is-flipped .fortune-light-sweep {
+          animation: fortuneSweep 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.65s 1 both;
+        }
+
+        @keyframes fortuneSweep {
+          0% {
+            opacity: 0;
+            background-position: 120% 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          80% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+            background-position: -40% 0;
+          }
+        }
+
+        /* — 微細な粒子光 — */
+        .fortune-particles {
+          position: absolute;
+          inset: -8px;
+          pointer-events: none;
+        }
+
+        .fortune-particle {
+          position: absolute;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          opacity: 0;
+          background: radial-gradient(circle, rgba(255, 250, 230, 0.95), rgba(255, 248, 210, 0.4));
+          box-shadow: 0 0 4px 1px rgba(255, 248, 220, 0.4);
+        }
+
+        .is-flipped .fortune-particle {
+          animation: fortuneParticle 1.6s ease-out both;
+        }
+
+        .fortune-particle--1 {
+          top: 12%;
+          left: 8%;
+          width: 3px;
+          height: 3px;
+          background: radial-gradient(circle, rgba(255, 252, 240, 0.9), rgba(255, 248, 210, 0.3));
+        }
+        .is-flipped .fortune-particle--1 { animation-delay: 0.7s; }
+
+        .fortune-particle--2 {
+          top: 6%;
+          right: 15%;
+          width: 4px;
+          height: 4px;
+          background: radial-gradient(circle, rgba(240, 232, 255, 0.9), rgba(220, 210, 255, 0.3));
+          box-shadow: 0 0 5px 1px rgba(230, 220, 255, 0.35);
+        }
+        .is-flipped .fortune-particle--2 { animation-delay: 0.9s; }
+
+        .fortune-particle--3 {
+          bottom: 18%;
+          right: 5%;
+          width: 3px;
+          height: 3px;
+        }
+        .is-flipped .fortune-particle--3 { animation-delay: 1.1s; }
+
+        .fortune-particle--4 {
+          bottom: 8%;
+          left: 12%;
+          width: 3.5px;
+          height: 3.5px;
+          background: radial-gradient(circle, rgba(255, 245, 200, 0.9), rgba(248, 232, 180, 0.3));
+          box-shadow: 0 0 4px 1px rgba(248, 235, 190, 0.35);
+        }
+        .is-flipped .fortune-particle--4 { animation-delay: 0.85s; }
+
+        .fortune-particle--5 {
+          top: 40%;
+          left: -4px;
+          width: 3px;
+          height: 3px;
+          background: radial-gradient(circle, rgba(240, 232, 255, 0.85), rgba(225, 215, 255, 0.25));
+          box-shadow: 0 0 4px 1px rgba(230, 220, 255, 0.3);
+        }
+        .is-flipped .fortune-particle--5 { animation-delay: 1.0s; }
+
+        .fortune-particle--6 {
+          top: 25%;
+          right: -3px;
+          width: 2.5px;
+          height: 2.5px;
+        }
+        .is-flipped .fortune-particle--6 { animation-delay: 1.2s; }
+
+        @keyframes fortuneParticle {
+          0% {
+            opacity: 0;
+            transform: scale(0.3) translateY(4px);
+          }
+          25% {
+            opacity: 0.85;
+            transform: scale(1) translateY(0);
+          }
+          60% {
+            opacity: 0.5;
+            transform: scale(0.8) translateY(-6px);
+          }
+          100% {
+            opacity: 0;
+            transform: scale(0.4) translateY(-12px);
+          }
         }
 
         .fortune-card-placeholder {
@@ -1617,6 +1886,19 @@ export default function DailyFortunePage() {
           .reading-spinner {
             animation-duration: 0.01ms;
             animation-iteration-count: 1;
+          }
+
+          .fortune-light-sweep,
+          .fortune-particle {
+            animation: none !important;
+            opacity: 0 !important;
+          }
+
+          .is-flipped .fortune-card-frame {
+            animation: none !important;
+            box-shadow:
+              0 0 14px 3px rgba(255, 248, 220, 0.18),
+              0 0 32px 6px rgba(244, 226, 180, 0.08);
           }
         }
       `}</style>

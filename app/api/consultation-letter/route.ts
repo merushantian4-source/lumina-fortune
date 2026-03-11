@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { saveConsultationLetter } from "@/lib/consultation-letters";
+import { checkModerationPostInterval, resolveModerationUserKey } from "@/lib/moderation/rateLimit";
 
 type Body = {
   nickname?: string;
@@ -67,12 +68,26 @@ export async function POST(request: Request) {
     const body = (await request.json()) as Body;
     const message = typeof body.message === "string" ? body.message : "";
     const nickname = typeof body.nickname === "string" ? body.nickname : "";
+    const rateLimit = await checkModerationPostInterval(
+      resolveModerationUserKey(request, [nickname])
+    );
+    if (!rateLimit.ok) {
+      return NextResponse.json({ ok: false, error: rateLimit.error }, { status: 400 });
+    }
     const letter = await saveConsultationLetter({ nickname, message });
     const reply = await buildLuminaLetterReply(nickname, letter.message);
     return NextResponse.json({ ok: true, letter, reply }, { status: 201 });
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message === "message is required" || error.message === "message is too long") {
+      if (
+        error.message === "message is required" ||
+        error.message === "message is too long" ||
+        error.message === "文章が長すぎます" ||
+        error.message.includes("リンクはここには置けない") ||
+        error.message.includes("その内容はここには置けない") ||
+        error.message.includes("庭には置けない") ||
+        error.message.includes("同じ言葉が続いている")
+      ) {
         return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
       }
     }

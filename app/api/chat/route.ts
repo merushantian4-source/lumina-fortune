@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { isLuminaDevMode, luminaDevLog, luminaDevWarn } from "@/lib/config/lumina-dev";
 import { pickRandomCards as pickDailyFortuneCards } from "@/lib/fortune-data";
 import {
   buildBirthdate2026Prompt,
@@ -9,7 +10,13 @@ import {
 import { buildDailyFortunePrompt } from "@/lib/daily-fortune-prompt";
 import { ensureFortuneOutputFormat } from "@/lib/daily-fortune-output";
 import { getPreviousDailyCard, saveDailyCardForDate } from "@/lib/daily-fortune-history";
-import { buildTarotChatPrompt } from "@/lib/prompts/tarotChatPrompt";
+import { hasUsedLightGuidanceToday, markLightGuidanceUsed } from "@/lib/light-guidance-usage";
+import {
+  buildLightGuidanceOneCardPrompt,
+  buildLightGuidanceOneCardSystemPrompt,
+  type LightGuidanceTheme,
+} from "@/lib/fortune/light-guidance-one-card";
+import { selectCardMode } from "@/lib/tarot/card-voices";
 import { greetingMessage, greetingResponse } from "@/lib/greeting-message";
 import {
   buildFortuneOfferReply,
@@ -29,7 +36,13 @@ import {
 import { sanitizeChatReply, sanitizeDialogueReply } from "@/lib/pre-fortune-reply";
 import { replyStyle } from "@/lib/reply-style";
 import { drawTarotSpread, toUiTarotCardData, type DrawnTarotCard } from "@/lib/tarot/deck";
-import { ensureTarotChatOutputFormat } from "@/lib/tarot/tarot-chat-output";
+import {
+  ensureLightGuidanceOneCardOutput,
+  type LightGuidanceOneCardSections,
+} from "@/lib/tarot/light-guidance-one-card-output";
+import { checkModerationPostInterval, resolveModerationUserKey } from "@/lib/moderation/rateLimit";
+import { validateModerationText } from "@/lib/moderation/validateText";
+import type { ChatMessagePart } from "@/lib/chat-message-parts";
 
 type RequestBody = {
   message?: string;
@@ -37,8 +50,11 @@ type RequestBody = {
   mode?: string;
   profile?: {
     nickname?: string;
+    birthdate?: string;
     job?: string;
     loveStatus?: "single" | "married" | "complicated" | "unrequited" | string;
+    membershipTier?: "free" | "paid" | string;
+    userKey?: string;
   };
   history?: ChatHistoryItem[];
   conversationState?: {
@@ -74,6 +90,15 @@ type TarotChatConversationState = {
   awaitingFortuneResult: boolean;
 };
 
+type ChatRouteResponse = {
+  text?: string;
+  cards?: { name: string; reversed?: boolean }[] | null;
+  messageParts?: ChatMessagePart[];
+  conversationState?: TarotChatConversationState | Record<string, unknown>;
+  gate?: ReturnType<typeof buildLightGuidanceGatePayload>;
+  meta?: Record<string, unknown>;
+};
+
 // OpenAI初期化
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -103,6 +128,63 @@ function resolveDailyFortuneUserKey(profile: RequestBody["profile"]): string {
   if (!nickname) return "guest";
   return `nickname:${nickname.toLowerCase()}`;
 }
+
+function resolveLightGuidanceUserKey(profile: RequestBody["profile"]): string {
+  const explicit = profile?.userKey?.trim();
+  if (explicit) return explicit;
+  const nickname = profile?.nickname?.trim();
+  const birthdate = profile?.birthdate?.trim();
+  if (nickname || birthdate) {
+    return `profile:${nickname ?? "guest"}:${birthdate ?? "unknown"}`;
+  }
+  return "guest";
+}
+
+function isPaidMember(profile: RequestBody["profile"]): boolean {
+  return profile?.membershipTier === "paid";
+}
+
+function buildLegacyLightGuidanceGatePayload() {
+  return {
+    title: "もっと知りたい方へ",
+    body:
+      "今日の1枚はここまでです\nまた明日、あたらしい導きを受け取れます。\nもっと知りたい方は、続きをご案内できます。",
+    links: [
+      {
+        label: "有料会員登録をする",
+        href: "/membership",
+        description: "有料会員さまは何度でもカードを引けます",
+      },
+      {
+        label: "個人鑑定を依頼する",
+        href: "/consultation",
+        description: "もっと深く、あなたの流れを丁寧に読み解きます",
+      },
+    ],
+  };
+}
+
+function buildLightGuidanceGatePayload() {
+  return {
+    title: "今日の1枚はここまでです",
+    body:
+      "また明日、あたらしい導きを受け取れます。\nもっと知りたい方は、続きをご案内できます。",
+    links: [
+      {
+        label: "有料会員登録をする",
+        href: "/membership",
+        description: "有料会員さまは何度でもカードを引けます",
+      },
+      {
+        label: "個人鑑定を依頼する",
+        href: "/consultation",
+        description: "もっと深く、あなたの流れを丁寧に読み解きます",
+      },
+    ],
+  };
+}
+
+void buildLegacyLightGuidanceGatePayload;
 
 const LUMINA_SYSTEM_PROMPT = `あなたは白の魔女ルミナです。占い師として常に謙虚で温和にふるまい、ご相談者さまの絶対的な味方でいてください。
 語り口は、25〜54歳の女性に届く品格と共感性を重視し、魂に静かに響く丁寧な表現にしてください。
@@ -142,16 +224,85 @@ function isAwaitingFortuneResultFromHistory(history: ChatHistoryItem[]): boolean
   return !hasAssistantAfter;
 }
 
-function buildImmediateFortuneLeadIn(message: string): string | null {
-  if (/(相手|お相手).*(気持ち)/.test(message) || /(気持ち).*(占って|見て|みて)/.test(message)) {
-    return "そうなんですね。お相手さまのお気持ちを見てみましょう。";
-  }
-  return null;
-}
-
 function getLastAssistantMessage(history: ChatHistoryItem[]): string | null {
   return [...history].reverse().find((h) => h.role === "assistant")?.content ?? null;
 }
+
+function buildFortuneMessageParts(
+  sections: LightGuidanceOneCardSections,
+  firstCard:
+    | {
+        name: string;
+        reversed?: boolean;
+      }
+    | null
+): ChatMessagePart[] {
+  return [
+    { type: "intro", text: sections.intro },
+    { type: "animation", animation: "white-bird-delivers-card" },
+    ...(firstCard
+      ? [
+          {
+            type: "card" as const,
+            cardName: firstCard.name,
+            orientation: firstCard.reversed ? ("reversed" as const) : ("upright" as const),
+          },
+        ]
+      : []),
+    { type: "reading-short", text: sections.readingShort },
+    { type: "reading-detail", text: sections.readingDetail },
+  ];
+}
+
+function buildLegacyFortuneHeading(
+  card:
+    | {
+        name: string;
+        reversed?: boolean;
+      }
+    | null
+): string {
+  if (!card) return "引いたカード：";
+  return `引いたカード：${card.name}（${card.reversed ? "逆位置" : "正位置"}）`;
+}
+
+function buildFortuneLeadLine(theme: TarotChatTheme | null): string | null {
+  if (theme === "love") return "お相手さまのお気持ちを見てみましょう。";
+  if (theme === "marriage") return "結婚運を見てみましょう。";
+  if (theme === "work") return "お仕事の流れを見てみましょう。";
+  if (theme === "money") return "金運を見てみましょう。";
+  if (theme === "health") {
+    return "今の心と体の流れを見てみましょう。\n\n2. 体の流れ・エネルギー状態の象徴";
+  }
+  if (theme === "relationship") return "人間関係の流れを見てみましょう。";
+  if (theme === "future") return "これからの流れを見てみましょう。";
+  return null;
+}
+
+function ensureResponseText(response: ChatRouteResponse): ChatRouteResponse {
+  if (response.text?.trim()) return response;
+
+  const fallbackFromParts =
+    response.messageParts?.flatMap((part) => ("text" in part ? [part.text] : [])).find((text) => text?.trim()) ??
+    "";
+  if (fallbackFromParts.trim()) {
+    return {
+      ...response,
+      text: fallbackFromParts,
+    };
+  }
+
+  return {
+    ...response,
+    text: "ありがとうございます。続けて鑑定を進めますね。",
+  };
+}
+
+function jsonChatResponse(response: ChatRouteResponse) {
+  return NextResponse.json(ensureResponseText(response));
+}
+
+void buildThemeAcceptanceLine;
 
 function buildFortuneRequestFromOfferConfirmation(assistantMessage: string | null): string | null {
   if (!assistantMessage) return null;
@@ -172,8 +323,8 @@ function buildFortuneRequestFromOfferConfirmation(assistantMessage: string | nul
 }
 
 const TAROT_INTENT_RE = /(占って|占い|見て|みて|鑑定|タロット|リーディング)/i;
-const LOVE_THEME_RE = /(恋愛|相手の気持ち|片思い|復縁|彼氏|彼女|相性)/;
-const MARRIAGE_THEME_RE = /(結婚|婚活|入籍|プロポーズ)/;
+const LOVE_THEME_RE = /(恋愛|恋愛運|相手の気持ち|片思い|復縁|彼氏|彼女|相性)/;
+const MARRIAGE_THEME_RE = /(結婚|結婚運|けっこん運|婚活|入籍|プロポーズ)/;
 const WORK_THEME_RE = /(仕事|転職|職場|学業|勉強|受験|進路|就活)/;
 const MONEY_THEME_RE = /(金運|お金|収入|貯金|家計|投資)/;
 const HEALTH_THEME_RE = new RegExp(
@@ -216,6 +367,20 @@ const RESTRICTED_TAROT_FIXED_REPLY = `◯◯のことが気になっているの
 その視点で、見てみましょうか。`;
 const HEALTH_THEME_FORBIDDEN_OUTPUT_RE =
   /(LINE|返信|彼氏|彼女|復縁|相手の気持ち|片思い|プロポーズ)/;
+const LEGACY_STYLE_RE =
+  /(少々お待ちください|カードを展開する音をイメージしてください|このまま掘り下げを進めることもできます|あなたに寄り添いながら)/;
+
+const PRESET_FORTUNE_QUESTIONS: Array<{
+  question: string;
+  theme: TarotChatTheme;
+}> = [
+  { question: "彼は私のことをどう思っていますか？", theme: "love" },
+  { question: "この恋のゆくえを占って", theme: "love" },
+  { question: "復縁できますか？", theme: "marriage" },
+  { question: "転職はうまくいきますか？", theme: "work" },
+  { question: "今の運気はどうなっていますか？", theme: "future" },
+  { question: "いつ頃運気の流れが変わりますか？", theme: "future" },
+];
 
 function defaultTarotChatConversationState(): TarotChatConversationState {
   return {
@@ -284,6 +449,28 @@ function isTarotIntentInput(input: string): boolean {
   return TAROT_INTENT_RE.test(input);
 }
 
+function normalizePresetQuestion(text: string): string {
+  return text
+    .trim()
+    .normalize("NFKC")
+    .replace(/[？?]+$/g, "")
+    .replace(/[！!]+$/g, "")
+    .replace(/[。．｡]+$/g, "")
+    .replace(/\s+/g, "");
+}
+
+function matchPresetFortuneQuestion(input: string): {
+  question: string;
+  theme: TarotChatTheme;
+} | null {
+  const normalizedInput = normalizePresetQuestion(input);
+  return (
+    PRESET_FORTUNE_QUESTIONS.find(
+      (preset) => normalizePresetQuestion(preset.question) === normalizedInput
+    ) ?? null
+  );
+}
+
 function isSmalltalkLikeInput(input: string): boolean {
   const trimmed = input.trim();
   if (!trimmed) return false;
@@ -291,6 +478,28 @@ function isSmalltalkLikeInput(input: string): boolean {
   if (detectTarotTheme(trimmed)) return false;
   if (/悩み|相談|不安|つらい|しんどい|モヤモヤ|もやもや/.test(trimmed)) return false;
   return SMALLTALK_FOOD_RE.test(trimmed);
+}
+
+const LUMINA_IDENTITY_REPLY = `私は白の魔女ルミナという存在です。
+占い師として、心の声や流れを読み解くお手伝いをさせていただいています。
+
+何かお悩みや気になることがあれば、ぜひお聞かせください。
+あなたの心に寄り添うことができれば幸いです。`;
+
+function isLuminaIdentityQuestion(input: string): boolean {
+  const trimmed = input.trim();
+  if (!trimmed) return false;
+
+  return [
+    /あなたは誰(ですか)?/,
+    /あなたは何(ですか)?/,
+    /AIですか/,
+    /あなたはAIですか/,
+    /ルミナとは/,
+    /あなたについて/,
+    /ここは何/,
+    /どんなことができる/,
+  ].some((pattern) => pattern.test(trimmed));
 }
 
 type RestrictedTarotTopic =
@@ -363,6 +572,8 @@ function enforceFortuneClosing(text: string): string {
   if (/お相手(?!さま)/.test(out)) {
     out = out.replace(/お相手(?!さま)/g, "お相手さま");
   }
+  // 「教皇」→「法王」統一（「女教皇」はそのまま）
+  out = out.replace(/(?<!女)教皇/g, "法王");
   return out;
 }
 
@@ -391,11 +602,53 @@ function buildSmalltalkReply(input: string): string {
 }
 
 function buildIntentConfirmReply(theme: TarotChatTheme): string {
-  return `${themeLabel(theme)}ですね。3枚引き（現状 / 課題 / 助言）で占ってみましょうか？`;
+  if (theme === "love") return "恋のことですね。1枚引きで今の流れを見てみましょうか？";
+  if (theme === "marriage") return "結婚のことですね。1枚引きで今の流れを見てみましょうか？";
+  if (theme === "work") return "お仕事のことですね。1枚引きで今の流れを見てみましょうか？";
+  if (theme === "money") return "お金のことですね。1枚引きで今の流れを見てみましょうか？";
+  if (theme === "health") return "心や体のことですね。1枚引きで今の流れを見てみましょうか？";
+  if (theme === "relationship") return "人間関係が気になっているのですね。1枚引きで今の流れを見てみましょうか？";
+  return "これからの流れが気になっているのですね。1枚引きで今の流れを見てみましょうか？";
 }
 
 function buildThemeRequestedReply(): string {
   return `ありがとうございます。まずはテーマを1つ選んでください。${buildThemeChoicePrompt()}`;
+}
+
+function buildThemeAcceptanceLine(theme: TarotChatTheme | null): string | null {
+  if (theme === "love") return "恋のことですね。";
+  if (theme === "marriage") return "結婚のことですね。";
+  if (theme === "work") return "お仕事の流れが気になっているのですね。";
+  if (theme === "money") return "お金のことですね。";
+  if (theme === "health") return "心や体のことですね。";
+  if (theme === "relationship") return "人間関係が気になっているのですね。";
+  if (theme === "future") return "これからの流れが気になっているのですね。";
+  return null;
+}
+
+function isDirectFortuneStartInput(input: string, theme: TarotChatTheme | null): boolean {
+  if (!theme) return false;
+  const normalized = input.trim().replace(/\s+/g, "").replace(/[?？!！]+$/g, "");
+  if (!normalized) return false;
+
+  switch (theme) {
+    case "love":
+      return /^(恋愛|恋|恋愛運)(は)?$/.test(normalized);
+    case "marriage":
+      return /^(結婚|結婚運|けっこん運)(は)?$/.test(normalized);
+    case "work":
+      return /^(仕事|仕事運|学業)(は)?$/.test(normalized);
+    case "money":
+      return /^(お金|金運)(は)?$/.test(normalized);
+    case "health":
+      return /^(健康|健康運|体調)(は)?$/.test(normalized);
+    case "relationship":
+      return /^(人間関係|対人関係)$/.test(normalized);
+    case "future":
+      return /^(未来|今後)$/.test(normalized);
+    default:
+      return false;
+  }
 }
 
 function buildFollowupPrompt(topic: TarotChatTheme | null): string {
@@ -412,44 +665,6 @@ function toFortunePromptMessage(theme: TarotChatTheme | null, userMessage: strin
   if (theme === "relationship") return userMessage.includes("人間関係") ? userMessage : `人間関係について占ってください。相談内容: ${userMessage}`;
   if (theme === "future") return userMessage.includes("未来") || userMessage.includes("今後") ? userMessage : `近い未来について占ってください。相談内容: ${userMessage}`;
   return userMessage;
-}
-
-function hasAllHealthHeaders(text: string): boolean {
-  return [
-    "🌿 健康運の鑑定結果",
-    "🕊 引いたカード",
-    "🌿 今の体と心の状態",
-    "🌿 今、整えるとよいこと",
-    "🌿 これからの流れ",
-    "🌿 今日からできる整え方",
-    "🌿 今日のことば",
-  ].every((header) => text.includes(header));
-}
-
-function normalizeTarotReadingOutputHeadings(text: string, theme: TarotChatTheme | null): string {
-  if (theme === "health") {
-    return text
-      .replace(/^1\. 引いたカード（3枚）$/m, "🕊 引いたカード")
-      .replace(/^1\. 引いたカード$/m, "🕊 引いたカード")
-      .replace(/^2\. 体の流れ・エネルギー状態の象徴$/m, "🌿 今の体と心の状態")
-      .replace(/^3\. 今の心身バランスの読み解き$/m, "🌿 今、整えるとよいこと")
-      .replace(/^4\. 近い未来の体調傾向（断定禁止）$/m, "🌿 これからの流れ")
-      .replace(/^5\. 今日からできる整え方（具体的だが医療的でない）$/m, "🌿 今日からできる整え方")
-      .replace(/^6\. アファメーション（体と調和する言葉）$/m, "🌿 今日のことば");
-  }
-
-  let normalized = text
-    .replace(/^1\. 引いたカード（3枚）$/m, "1. 引いたカード")
-    .replace(/^2\. カードの象徴$/m, "2. カードの気配")
-    .replace(/^3\. 読み解き（相談内容に合わせて）$/m, "3. 今の状況への読み解き")
-    .replace(/^4\. 近い未来の可能性（2〜3個）$/m, "4. 近い未来の可能性")
-    .replace(/^5\. 今日からできる一歩$/m, "5. 心を整えるヒント")
-    .replace(/^5\. 心を整えるアドバイス$/m, "5. 心を整えるヒント")
-    .replace(/^6\. アファメーション（1行）$/m, "6. アファメーション");
-  if (!/^引いたカード：/m.test(normalized)) {
-    normalized = normalized.replace(/^1\. 引いたカード\n([^\n]+)/, "引いたカード：$1\n\n1. 引いたカード\n$1");
-  }
-  return normalized;
 }
 
 function inferThemeFromOfferMessage(assistantMessage: string | null): TarotChatTheme | null {
@@ -478,8 +693,29 @@ export async function POST(request: Request) {
     const body = (await request.json()) as RequestBody;
     const { message, cards: existingCards, mode = "chat", profile } = body;
     const history = Array.isArray(body.history) ? body.history : [];
+    const rawUserKey = profile?.userKey ?? profile?.nickname ?? "";
+    const moderationSource = typeof message === "string" ? message.trim() : "";
+    if (
+      moderationSource &&
+      !moderationSource.startsWith("__") &&
+      process.env.NODE_ENV === "production"
+    ) {
+      const moderation = validateModerationText(moderationSource, { maxLength: 500 });
+      if (!moderation.ok) {
+        return NextResponse.json({ error: moderation.error }, { status: 400 });
+      }
+
+      const rateLimit = await checkModerationPostInterval(
+        resolveModerationUserKey(request, [rawUserKey])
+      );
+      if (!rateLimit.ok) {
+        return NextResponse.json({ error: rateLimit.error }, { status: 400 });
+      }
+    }
     const incomingConversationState = normalizeTarotChatConversationState(body.conversationState);
     const trimmedMessage = message?.trim() || "こんにちは";
+    const normalizedInput = normalizePresetQuestion(trimmedMessage);
+    const matchedPresetQuestion = matchPresetFortuneQuestion(trimmedMessage);
     const lastAssistantMessage = getLastAssistantMessage(history);
     const offerBasedFortuneMessage = buildFortuneRequestFromOfferConfirmation(lastAssistantMessage);
     const acceptedFortuneOffer =
@@ -487,7 +723,7 @@ export async function POST(request: Request) {
     let fortunePromptMessage = acceptedFortuneOffer
       ? offerBasedFortuneMessage
       : trimmedMessage;
-    const detectedTheme = detectTarotTheme(trimmedMessage);
+    const detectedTheme = matchedPresetQuestion?.theme ?? detectTarotTheme(trimmedMessage);
     const explicitTarotIntent = isTarotIntentInput(trimmedMessage);
     const affirmativeInput = isAffirmativeInput(trimmedMessage);
     const stateTopic =
@@ -499,6 +735,8 @@ export async function POST(request: Request) {
       topic: stateTopic,
       lastTopic: stateTopic ?? incomingConversationState.lastTopic ?? null,
     };
+    let shouldPrependThemeAcceptance = false;
+    void shouldPrependThemeAcceptance;
     if (detectedTheme === "health") {
       nextConversationState = {
         ...nextConversationState,
@@ -515,11 +753,13 @@ export async function POST(request: Request) {
     const awaitingFollowupIntent = awaitingFortuneResult
       ? classifyIntent(trimmedMessage)
       : null;
-    const shouldAddAwaitingBridge =
-      awaitingFortuneResult && !isAcknowledgementInput(trimmedMessage);
     let resolvedMode = mode;
     if (acceptedFortuneOffer) {
       resolvedMode = "fortune";
+    }
+    if (mode === "chat" && matchedPresetQuestion) {
+      resolvedMode = "fortune";
+      fortunePromptMessage = toFortunePromptMessage(matchedPresetQuestion.theme, trimmedMessage);
     }
     const guardedDecision =
       resolvedMode === "chat" ? getGuardedChatDecision(history, trimmedMessage) : null;
@@ -531,8 +771,13 @@ export async function POST(request: Request) {
       resolvedMode = "fortune";
     }
 
+    luminaDevLog("[lumina] normalized input:", normalizedInput);
+    luminaDevLog("[lumina] preset matched:", matchedPresetQuestion?.question ?? null);
+    luminaDevLog("[lumina] detectedTheme:", detectedTheme);
+    luminaDevLog("[lumina] route:", resolvedMode);
+
     if (mode === "chat" && trimmedMessage === "__welcome__") {
-      return NextResponse.json({
+      return jsonChatResponse({
         text: greetingMessage,
         cards: null,
         conversationState: defaultTarotChatConversationState(),
@@ -540,7 +785,7 @@ export async function POST(request: Request) {
     }
 
     if (mode === "chat" && isGreetingOnlyInput(trimmedMessage)) {
-      return NextResponse.json({
+      return jsonChatResponse({
         text: greetingResponse,
         cards: null,
         conversationState: {
@@ -551,10 +796,18 @@ export async function POST(request: Request) {
       });
     }
 
+    if (mode === "chat" && isLuminaIdentityQuestion(trimmedMessage)) {
+      return jsonChatResponse({
+        text: LUMINA_IDENTITY_REPLY,
+        cards: null,
+        conversationState: defaultTarotChatConversationState(),
+      });
+    }
+
     if (mode === "chat") {
       const restrictedTopic = detectRestrictedTarotTopic(trimmedMessage);
       if (restrictedTopic) {
-        return NextResponse.json({
+        return jsonChatResponse({
           text: buildRestrictedTarotReply(restrictedTopic),
           cards: null,
           conversationState: {
@@ -575,8 +828,39 @@ export async function POST(request: Request) {
         nextConversationState.awaitingConsent || !!offerBasedFortuneMessage;
       const activeTheme = detectedTheme ?? nextConversationState.topic;
 
+      if (
+        resolvedMode === "chat" &&
+        detectedTheme &&
+        trimmedMessage.trim().length <= 120
+      ) {
+        resolvedMode = "fortune";
+        fortunePromptMessage = toFortunePromptMessage(activeTheme, trimmedMessage);
+        nextConversationState = {
+          ...nextConversationState,
+          phase: "reading",
+          topic: activeTheme,
+          lastTopic: activeTheme,
+          awaitingConsent: false,
+          awaitingTheme: false,
+        };
+      }
+
+      if (resolvedMode === "chat" && isDirectFortuneStartInput(trimmedMessage, activeTheme)) {
+        resolvedMode = "fortune";
+        fortunePromptMessage = toFortunePromptMessage(activeTheme, trimmedMessage);
+        nextConversationState = {
+          ...nextConversationState,
+          phase: "reading",
+          topic: activeTheme,
+          lastTopic: activeTheme,
+          awaitingConsent: false,
+          awaitingTheme: false,
+        };
+        shouldPrependThemeAcceptance = true;
+      }
+
       if (nextConversationState.phase === "followup" && affirmativeInput) {
-        return NextResponse.json({
+        return jsonChatResponse({
           text: buildFollowupPrompt(activeTheme),
           cards: null,
           conversationState: {
@@ -592,7 +876,7 @@ export async function POST(request: Request) {
 
       if (nextConversationState.phase === "intent_confirm" && nextConversationState.awaitingTheme) {
         if (!activeTheme) {
-          return NextResponse.json({
+          return jsonChatResponse({
             text: buildThemeChoicePrompt(),
             cards: null,
             conversationState: nextConversationState,
@@ -610,7 +894,7 @@ export async function POST(request: Request) {
             awaitingConsent: false,
           };
         } else {
-          return NextResponse.json({
+          return jsonChatResponse({
             text: buildIntentConfirmReply(activeTheme),
             cards: null,
             conversationState: {
@@ -632,7 +916,7 @@ export async function POST(request: Request) {
       ) {
         const confirmTheme = activeTheme ?? inferThemeFromOfferMessage(lastAssistantMessage);
         if (!confirmTheme) {
-          return NextResponse.json({
+          return jsonChatResponse({
             text: buildThemeRequestedReply(),
             cards: null,
             conversationState: {
@@ -656,7 +940,7 @@ export async function POST(request: Request) {
       }
 
       if (resolvedMode === "chat" && isSmalltalkLikeInput(trimmedMessage)) {
-        return NextResponse.json({
+        return jsonChatResponse({
           text: buildSmalltalkReply(trimmedMessage),
           cards: null,
           conversationState: {
@@ -670,7 +954,7 @@ export async function POST(request: Request) {
       }
 
       if (resolvedMode === "chat" && explicitTarotIntent && !activeTheme) {
-        return NextResponse.json({
+        return jsonChatResponse({
           text: buildThemeChoicePrompt(),
           cards: null,
           conversationState: {
@@ -683,7 +967,7 @@ export async function POST(request: Request) {
       }
 
       if (resolvedMode === "chat" && explicitTarotIntent && activeTheme) {
-        return NextResponse.json({
+        return jsonChatResponse({
           text: buildIntentConfirmReply(activeTheme),
           cards: null,
           conversationState: {
@@ -700,7 +984,7 @@ export async function POST(request: Request) {
       if (resolvedMode === "chat" && offeredByAssistant && affirmativeInput) {
         const confirmTheme = activeTheme ?? inferThemeFromOfferMessage(lastAssistantMessage);
         if (!confirmTheme) {
-          return NextResponse.json({
+          return jsonChatResponse({
             text: buildThemeChoicePrompt(),
             cards: null,
             conversationState: {
@@ -746,7 +1030,7 @@ export async function POST(request: Request) {
     }
 
     if (resolvedMode === "chat" && guardedDecision?.kind === "reply") {
-      return NextResponse.json({
+      return jsonChatResponse({
         text: guardedDecision.text,
         cards: null,
         conversationState: guardedDecision.conversationState,
@@ -755,7 +1039,7 @@ export async function POST(request: Request) {
     if (resolvedMode === "chat") {
       const conversationState = getDialogueConversationState(history, trimmedMessage);
       if (conversationState.shouldOfferFortune) {
-        return NextResponse.json({
+        return jsonChatResponse({
           text: buildFortuneOfferReply(history, trimmedMessage),
           cards: null,
           conversationState: {
@@ -768,10 +1052,46 @@ export async function POST(request: Request) {
       }
     }
 
+    if (
+      resolvedMode === "fortune" &&
+      !isPaidMember(profile) &&
+      !awaitingFortuneResult &&
+      process.env.NODE_ENV === "production"
+    ) {
+      if (isLuminaDevMode) {
+        luminaDevLog("[lumina] dev mode enabled");
+        luminaDevLog("[lumina] fortune limit disabled (dev mode)");
+      } else {
+        const lightGuidanceUserKey = resolveLightGuidanceUserKey(profile);
+        const lightGuidanceDateKey = getJstNowParts().dateKey;
+        const alreadyUsedToday = await hasUsedLightGuidanceToday(lightGuidanceUserKey, lightGuidanceDateKey);
+
+        if (alreadyUsedToday) {
+          return jsonChatResponse({
+            text: "今日の1枚はここまでです",
+            gate: buildLightGuidanceGatePayload(),
+            cards: null,
+            conversationState: {
+              ...nextConversationState,
+              phase: "followup",
+              awaitingConsent: false,
+              awaitingTheme: false,
+              questionStreak: 0,
+              offtopicStreak: 0,
+              awaitingFortuneResult: false,
+            },
+          });
+        }
+      }
+    }
+
     let prompt = "";
     let cards = existingCards;
     let tarotSpread: DrawnTarotCard[] | null = null;
+    let lightGuidanceCard: DrawnTarotCard | null = null;
+    let lightGuidanceSections: LightGuidanceOneCardSections | null = null;
     let usedDialogueMode = false;
+    let selectedDailyCardMode: string | undefined;
     const { dateKey: dailyDateKey, weekdayJa } = getJstNowParts();
     const dailyFortuneUserKey = resolveDailyFortuneUserKey(profile);
     const previousDailyCard =
@@ -799,11 +1119,14 @@ export async function POST(request: Request) {
         if (!cards || cards.length !== 1) {
           cards = pickDailyFortuneCards(1);
         }
+        selectedDailyCardMode = selectCardMode(cards?.[0], `${dailyDateKey}:${cards?.[0]?.name}:${cards?.[0]?.reversed ? "r" : "u"}`);
         prompt = buildDailyFortunePrompt(fortunePromptMessage, cards, {
           nickname: profile?.nickname,
           job: profile?.job,
           loveStatus: profile?.loveStatus,
           weekdayJa,
+          selectedCardMode: selectedDailyCardMode,
+          readingCategory: "general",
           previousCard: previousDailyCard
             ? {
                 name: previousDailyCard.cardName,
@@ -812,9 +1135,21 @@ export async function POST(request: Request) {
             : null,
         });
       } else {
-        tarotSpread = drawTarotSpread();
+        tarotSpread = drawTarotSpread(Math.random, ["現状"]);
+        lightGuidanceCard = tarotSpread[0] ?? null;
         cards = tarotSpread.map(toUiTarotCardData);
-        prompt = buildTarotChatPrompt(fortunePromptMessage, tarotSpread, nextConversationState.topic);
+        if (!lightGuidanceCard) {
+          throw new Error("Failed to draw one-card tarot reading");
+        }
+        luminaDevLog("[lumina] route:", "new-route");
+        luminaDevLog("[lumina] drawn cards:", cards);
+        luminaDevLog("[lumina] drawn card count:", cards?.length ?? 0);
+        prompt = buildLightGuidanceOneCardPrompt(
+          fortunePromptMessage,
+          lightGuidanceCard,
+          (nextConversationState.topic as LightGuidanceTheme) ?? null
+        );
+        luminaDevLog("[lumina] final prompt:", prompt);
       }
     }
 
@@ -827,60 +1162,88 @@ export async function POST(request: Request) {
             ...recentHistoryMessages,
             { role: "user" as const, content: trimmedMessage },
           ]
-        : [
-            { role: "system" as const, content: LUMINA_SYSTEM_PROMPT },
-            ...recentHistoryMessages,
-            { role: "user" as const, content: prompt },
-          ];
+        : resolvedMode === "fortune"
+          ? [
+              { role: "system" as const, content: buildLightGuidanceOneCardSystemPrompt() },
+              { role: "user" as const, content: prompt },
+            ]
+          : [
+              { role: "system" as const, content: LUMINA_SYSTEM_PROMPT },
+              ...recentHistoryMessages,
+              { role: "user" as const, content: prompt },
+            ];
 
     let completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: completionMessages,
+      ...(resolvedMode === "daily-fortune" || resolvedMode === "fortune"
+        ? { response_format: { type: "json_object" as const } }
+        : {}),
     });
 
     let rawText = completion.choices[0].message?.content || "";
+    if (resolvedMode === "fortune") {
+      luminaDevLog("[lumina] raw model response:", rawText);
+    }
+    if (resolvedMode === "daily-fortune") {
+      console.log("[daily-fortune] rawText length:", rawText.length, "starts:", rawText.slice(0, 80));
+    }
     const isHealthThemeFortune =
       resolvedMode === "fortune" && nextConversationState.topic === "health";
 
-    if (
-      isHealthThemeFortune &&
-      (HEALTH_THEME_FORBIDDEN_OUTPUT_RE.test(rawText) || !hasAllHealthHeaders(rawText))
-    ) {
-      const safeTarotSpread = tarotSpread ?? drawTarotSpread();
+    if (isHealthThemeFortune && HEALTH_THEME_FORBIDDEN_OUTPUT_RE.test(rawText)) {
+      const safeTarotSpread = tarotSpread ?? drawTarotSpread(Math.random, ["現状"]);
       tarotSpread = safeTarotSpread;
-      const rewrittenHealthPrompt = buildTarotChatPrompt(
+      lightGuidanceCard = safeTarotSpread[0] ?? null;
+      if (!lightGuidanceCard) {
+        throw new Error("Failed to redraw one-card health reading");
+      }
+      const rewrittenHealthPrompt = buildLightGuidanceOneCardPrompt(
         `${fortunePromptMessage}\n\n追加指示: healthテーマであり恋愛文脈が混入しているので禁止事項を厳守して書き直してください。`,
-        safeTarotSpread,
+        lightGuidanceCard,
         "health"
       );
       const rewriteMessages = [
-        { role: "system" as const, content: LUMINA_SYSTEM_PROMPT },
-        ...recentHistoryMessages,
+        { role: "system" as const, content: buildLightGuidanceOneCardSystemPrompt() },
         { role: "user" as const, content: rewrittenHealthPrompt },
       ];
+      luminaDevWarn("[lumina] health rewrite route triggered");
       completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: rewriteMessages,
+        response_format: { type: "json_object" as const },
       });
       rawText = completion.choices[0].message?.content || "";
+      luminaDevLog("[lumina] raw model response after rewrite:", rawText);
     }
 
-      const formattedText =
+    const formattedText =
       resolvedMode === "chat"
-          ? usedDialogueMode
-            ? sanitizeDialogueReply(trimmedMessage, rawText)
-            : sanitizeChatReply(trimmedMessage, rawText)
+        ? usedDialogueMode
+          ? sanitizeDialogueReply(trimmedMessage, rawText)
+          : sanitizeChatReply(trimmedMessage, rawText)
         : resolvedMode === "fortune"
-          ? normalizeTarotReadingOutputHeadings(
-              ensureTarotChatOutputFormat(rawText, tarotSpread ?? drawTarotSpread(), nextConversationState.topic),
-              nextConversationState.topic
-            )
+          ? (() => {
+              lightGuidanceSections = ensureLightGuidanceOneCardOutput(
+                rawText,
+                lightGuidanceCard ?? tarotSpread?.[0] ?? drawTarotSpread(Math.random, ["現状"])[0]!,
+                (nextConversationState.topic as LightGuidanceTheme) ?? null,
+                fortunePromptMessage
+              );
+              luminaDevLog("[lumina] final route sections:", lightGuidanceSections);
+              const leadLine = buildFortuneLeadLine(nextConversationState.topic);
+              return [buildLegacyFortuneHeading(cards?.[0] ?? null), leadLine, lightGuidanceSections.text]
+                .filter(Boolean)
+                .join("\n\n");
+            })()
         : resolvedMode === "daily-fortune"
           ? ensureFortuneOutputFormat(rawText, cards ?? [], {
               nickname: profile?.nickname,
               job: profile?.job,
               loveStatus: profile?.loveStatus,
               weekdayJa,
+              selectedCardMode: selectedDailyCardMode,
+              readingCategory: "general",
               previousCard: previousDailyCard
                 ? {
                     name: previousDailyCard.cardName,
@@ -890,19 +1253,10 @@ export async function POST(request: Request) {
             })
           : rawText;
     const enforcedText =
-      resolvedMode === "fortune" || resolvedMode === "daily-fortune"
+      resolvedMode === "daily-fortune"
         ? enforceFortuneClosing(formattedText)
         : formattedText;
-    const immediateFortuneLeadIn =
-      resolvedMode === "fortune" && mode === "chat" && !awaitingFortuneResult
-        ? buildImmediateFortuneLeadIn(trimmedMessage)
-        : null;
-    const text =
-      resolvedMode === "fortune" && awaitingFortuneResult && shouldAddAwaitingBridge
-        ? `ありがとうございます。では、カードから見えたことをお伝えしますね。\n${enforcedText}`
-        : immediateFortuneLeadIn
-          ? `${immediateFortuneLeadIn}\n${enforcedText}`
-          : enforcedText;
+    const text = enforcedText;
 
     if (resolvedMode === "daily-fortune" && cards?.[0]) {
       try {
@@ -916,9 +1270,35 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({
+    if (resolvedMode === "fortune" && !isPaidMember(profile) && !isLuminaDevMode) {
+      try {
+        await markLightGuidanceUsed(resolveLightGuidanceUserKey(profile), dailyDateKey);
+      } catch {
+        // Do not block response on persistence failure.
+      }
+    }
+
+    const responsePayload = {
       text,
-      cards: resolvedMode === "fortune" || resolvedMode === "daily-fortune" ? cards : null,
+      messageParts:
+        resolvedMode === "fortune"
+          ? buildFortuneMessageParts(
+              lightGuidanceSections ??
+                ensureLightGuidanceOneCardOutput(
+                  rawText,
+                  lightGuidanceCard ?? tarotSpread?.[0] ?? drawTarotSpread(Math.random, ["現状"])[0]!,
+                  (nextConversationState.topic as LightGuidanceTheme) ?? null,
+                  fortunePromptMessage
+                ),
+              cards?.[0] ?? null
+            )
+          : undefined,
+      cards:
+        resolvedMode === "fortune"
+          ? (existingCards?.length ? existingCards : cards)
+          : resolvedMode === "daily-fortune"
+            ? cards
+            : null,
       conversationState:
         awaitingFortuneResult
           ? {
@@ -960,9 +1340,30 @@ export async function POST(request: Request) {
               : undefined,
       meta:
         awaitingFortuneResult && awaitingFollowupIntent
-          ? { awaitingFollowupIntent }
-          : undefined,
-    });
+          ? { awaitingFollowupIntent, devMode: isLuminaDevMode }
+          : isLuminaDevMode
+            ? { devMode: true }
+            : undefined,
+    };
+
+    if (resolvedMode === "fortune") {
+      const payloadText = [
+        responsePayload.text,
+        ...(responsePayload.messageParts?.flatMap((part) => ("text" in part ? [part.text] : [])) ?? []),
+      ]
+        .filter(Boolean)
+        .join("\n");
+      if (LEGACY_STYLE_RE.test(payloadText)) {
+        luminaDevWarn("[lumina] legacy style text detected", responsePayload);
+      }
+      luminaDevLog("[lumina] response payload:", {
+        text: responsePayload.text,
+        messageParts: responsePayload.messageParts,
+        cards: responsePayload.cards,
+      });
+    }
+
+    return jsonChatResponse(responsePayload);
   } catch (error: unknown) {
     console.error("OpenAIエラー:", error);
     return NextResponse.json(

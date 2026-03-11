@@ -585,9 +585,12 @@ export default function BasicPersonalityPage({ serverBirthdate }: BasicPersonali
               </ul>
             </GlassCard>
 
-            <div>
+            <div className="flex flex-wrap gap-3">
               <LuminaButton asChild tone="secondary">
                 <Link href="/profile">プロフィールを変更する</Link>
+              </LuminaButton>
+              <LuminaButton asChild tone="primary">
+                <Link href="/consultation">個人鑑定を依頼する</Link>
               </LuminaButton>
             </div>
                 </>

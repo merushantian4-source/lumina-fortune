@@ -18,31 +18,28 @@ export type IntentClassificationContext = {
 };
 
 const MARRIAGE_RE =
-  /(結婚|入籍|婚活|結婚相手|夫|妻|プロポーズ|将来を考える|同棲|親への挨拶|誰と結婚|結婚したらいい)/;
+  /(結婚|結婚運|けっこん運|入籍|婚活|結婚相手|夫|妻|プロポーズ|将来を考える|同棲|親への挨拶|誰と結婚|結婚したらいい)/;
 const LOVE_RE =
-  /(恋愛|相性|脈(あり|なし)?|告白|好き|気になる|片思い|両思い|付き合う|デート|line|ライン|相手の気持ち|距離|進展|復縁|彼氏|彼女)/;
-const WORK_RE = /(仕事|転職|職場|上司|同僚|就活|学業|勉強|受験|学校|進路)/;
+  /(恋愛|恋愛運|相性|脈(あり|なし)?|告白|好き|気になる|片思い|両思い|付き合う|デート|line|ライン|相手の気持ち|距離|進展|復縁|彼氏|彼女)/;
+const WORK_RE = /(仕事|仕事運|転職|職場|上司|同僚|就活|学業|勉強|受験|学校|進路)/;
 const MONEY_RE = /(金運|お金|収入|出費|貯金|投資|ローン|家計)/;
 const UNKNOWN_PROBLEM_RE =
-  /(最近悩んでて|悩みがある|相談したい|つらい|しんどい|不安|モヤモヤ|もやもや|うまくいかない|悩んでる|悩んでいて|悩んでます)/;
+  /(悩みで|悩んで|悩んでます|不安|つらい|しんどい|うまくいかない|もやもや|モヤモヤ)/;
 const CONSULT_SIGNAL_RE =
   /(悩|相談|不安|つらい|しんどい|もやもや|モヤモヤ|うまくいかない|占|運勢|恋愛|結婚|仕事|人間関係|金運)/;
-const OFFTOPIC_WORD_RE =
-  /^(うどん|生卵|卵|ラーメン|そば|パスタ|カレー|寿司|焼肉|テスト|test)$/i;
-const SHORT_FORTUNE_ACCEPT_RE =
-  /^(占って|お願いします|おねがいします|お願い|おねがい|見て|みて)$/;
-const AFFIRMATIVE_RE =
-  /^(はい|うん|お願いします|おねがいします|お願い(します)?|おねがい(します)?|占って|見て|みて|ぜひ|ok)$/i;
-const ACK_RE = /^(はい|うん|そう|そうです|そうですね|なるほど|たぶん|かも)$/;
-const ACK_FOLLOWUP_RE =
-  /^(結果|結果は|占ってる|まだ|どうなった|はやく)$/;
+const OFFTOPIC_WORD_RE = /^(どう|え|ラーメン|そのへん|パスタ|カレー|旅行|雑談|テスト)$/i;
+const SHORT_FORTUNE_ACCEPT_RE = /^(占って|お願いします|おねがい|お願い|みて|見て)$/;
+const AFFIRMATIVE_RE = /^(うん|はい|お願い(します)?|おねがい|みて|見て|ok)$/i;
+const ACK_RE = /^(うん|はい|そう|そうです|なるほど|たしかに)$/;
+const ACK_FOLLOWUP_RE = /^(結果は|結果は？|見てみる|どうかな)$/;
+const TRAILING_MARKS_RE = /[!！?？。、…\-\s]+$/g;
 
 function normalize(input: string): string {
   return input.trim().toLowerCase();
 }
 
 function stripTrailingMarks(input: string): string {
-  return input.replace(/[!！?？。、，.\-ー〜～…\s]+$/g, "");
+  return input.replace(TRAILING_MARKS_RE, "");
 }
 
 export function isAcknowledgementInput(input: string): boolean {
@@ -60,8 +57,8 @@ export function isAffirmativeInput(input: string): boolean {
 
 function countLooseTokens(input: string): number {
   const tokens = input
-    .split(/[\s、。,.!！?？]+/)
-    .map((t) => t.trim())
+    .split(/[\s、。!！?？]+/)
+    .map((token) => token.trim())
     .filter(Boolean);
   return tokens.length;
 }
@@ -73,8 +70,11 @@ function isShortOfftopicLike(input: string): boolean {
   if (OFFTOPIC_WORD_RE.test(stripped)) return true;
 
   const tokenCount = countLooseTokens(stripped);
+  if (tokenCount === 1 && stripped.length <= 4) {
+    return true;
+  }
   if (tokenCount === 1 && stripped.length <= 16) {
-    return !/[？?]/.test(stripped) && !/[ぁ-んァ-ヶ]/.test(stripped.replace(/[一-龠]/g, ""));
+    return !/[ぁ-んァ-ヶ一-龠]/.test(stripped);
   }
   return false;
 }

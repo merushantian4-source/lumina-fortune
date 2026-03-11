@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton, LuminaLinkButton } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
+import { runClientModerationCheck } from "@/lib/moderation/clientCheck";
+import { getOrCreateChatVisitorKey } from "@/lib/membership";
 
 const PROFILE_STORAGE_KEY = "lumina_profile";
 const MAX_WISH_LENGTH = 200;
@@ -122,6 +124,14 @@ export default function MoonlightWishPage() {
       return;
     }
 
+    const moderation = runClientModerationCheck(trimmedWish, getOrCreateChatVisitorKey(), {
+      maxLength: MAX_WISH_LENGTH,
+    });
+    if (!moderation.ok) {
+      setError(moderation.error);
+      return;
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -131,7 +141,7 @@ export default function MoonlightWishPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id,
-          wish_text: trimmedWish,
+          wish_text: moderation.normalizedText,
         }),
       });
       const data = (await response.json()) as MoonlightWishResponse;

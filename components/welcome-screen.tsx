@@ -38,7 +38,7 @@ const MOBILE_FORTUNE_VISIBLE_COUNT = 3;
 const heroActions = [
   { label: "今日のカードを引く", href: "/daily-fortune", tone: "primary" as const },
   { label: "基本性格", href: "/basic-personality", tone: "secondary" as const },
-  { label: "2026年の運勢", href: "/fortune-2026", tone: "secondary" as const },
+  { label: "光の導きタロット占い", href: "/?start=tarot", tone: "secondary" as const },
 ];
 
 const groupedMenus: MenuGroup[] = [
@@ -106,10 +106,10 @@ const mapCards = [
   },
   {
     tag: "相談室",
-    title: "光の導きタロット占い",
-    description: "カードを通して、いまの流れを静かに読み解きます。",
-    href: "/?start=tarot",
-    ctaLabel: "占いをひらく",
+    title: "2026年の運勢",
+    description: "一年の流れを静かに見通します。",
+    href: "/fortune-2026",
+    ctaLabel: "運勢をひらく",
   },
 ];
 
@@ -308,7 +308,7 @@ export function WelcomeScreen({ initialDailyWhisper, serverBirthdate = null, onS
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
               {heroActions.map((action) => (
-                <Link
+                <SmartLink
                   key={action.href}
                   href={action.href}
                   className={
@@ -318,7 +318,7 @@ export function WelcomeScreen({ initialDailyWhisper, serverBirthdate = null, onS
                   }
                 >
                   {action.label}
-                </Link>
+                </SmartLink>
               ))}
             </div>
           </div>

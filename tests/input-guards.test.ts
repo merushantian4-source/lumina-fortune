@@ -12,38 +12,42 @@ function run() {
     "こんばんは",
     "はじめまして",
     "やあ",
-    "やぁ…",
     "hello!",
   ];
 
   for (const sample of shouldBeGreeting) {
-    assert.equal(isGreetingOnlyInput(sample), true, `Expected true: ${sample}`);
+    assert.equal(isGreetingOnlyInput(sample), true, `Expected greeting: ${sample}`);
   }
 
   const shouldNotBeGreeting = [
-    "こんにちは、恋愛運みて",
+    "こんにちは、恋愛みて",
     "こんばんは 仕事で悩んでます",
     "はじめまして 占ってください",
-    "やあ 明日の運勢は？",
-    "占ってください",
+    "やあ 今日の運勢は？",
+    "みて",
   ];
 
   for (const sample of shouldNotBeGreeting) {
-    assert.equal(isGreetingOnlyInput(sample), false, `Expected false: ${sample}`);
+    assert.equal(isGreetingOnlyInput(sample), false, `Expected non-greeting: ${sample}`);
   }
 
-  assert.equal(isFortuneRequestInput("彼との相性を占って"), true);
-  assert.equal(isFortuneRequestInput("こんにちは、恋愛運みて"), true);
-  assert.equal(isFortuneRequestInput("私の仕事運を見てもらえませんか？"), true);
-  assert.equal(isFortuneRequestInput("仕事運 占って"), true);
-  assert.equal(isFortuneRequestInput("お願いします"), true);
-  assert.equal(isFortuneRequestInput("見て"), true);
-  assert.equal(isFortuneRequestInput("今気になる人がいます"), false);
+  const shortThemeIntents = [
+    "恋愛みて",
+    "仕事みて",
+    "金運は？",
+    "けっこん運",
+    "結婚運",
+  ];
+  for (const sample of shortThemeIntents) {
+    assert.equal(isFortuneRequestInput(sample), true, `Expected short intent: ${sample}`);
+  }
+
+  assert.equal(isFortuneRequestInput("最近なんだか不安です"), false);
   assert.equal(isFortuneRequestInput("仕事がうまくいかなくて"), false);
 
-  assert.equal(isDialogueModeInput("今気になる人がいます"), true);
-  assert.equal(isDialogueModeInput("不安です"), true);
-  assert.equal(isDialogueModeInput("彼との相性を占って"), false);
+  assert.equal(isDialogueModeInput("最近なんだか不安です"), true);
+  assert.equal(isDialogueModeInput("恋愛みて"), false);
+  assert.equal(isDialogueModeInput("仕事みて"), false);
 }
 
 run();

@@ -7,7 +7,12 @@
       "Bash(ls c:/Users/yuri3/lumina-fortune/public/gazou/column/hikiyose*)",
       "Bash(ls c:/Users/yuri3/lumina-fortune/public/gazou/column/uranai*)",
       "Bash(ls c:/Users/yuri3/lumina-fortune/public/gazou/column/hondana*)",
-      "Bash(ls c:/Users/yuri3/lumina-fortune/public/gazou/column/kigen*)"
+      "Bash(ls c:/Users/yuri3/lumina-fortune/public/gazou/column/kigen*)",
+      "Bash(xxd -l 100 -s 0 /dev/null)",
+      "Bash(node -e \":*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(grep -E \"\\\\.\\(tsx?|json\\)$\")"
     ]
   }
 }

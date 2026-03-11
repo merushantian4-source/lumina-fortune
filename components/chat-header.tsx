@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 interface ChatHeaderProps {
@@ -34,14 +35,22 @@ export function ChatHeader({ onBackToTop }: ChatHeaderProps) {
             <p className="text-xs text-[#544c42]">光とハーブを操るやさしい魔女</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={handleBack}
-          className="group pointer-events-auto inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#c6b497]/80 bg-[linear-gradient(160deg,rgba(255,252,246,0.96),rgba(247,239,226,0.92))] px-4 py-2 text-[13px] font-medium tracking-[0.02em] text-[#675b4a] shadow-[0_10px_22px_-18px_rgba(82,69,53,0.45)] transition hover:border-[#bca883]/85 hover:bg-[#faf3e7] hover:text-[#544c42] active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b9ab93]/45"
-        >
-          <span aria-hidden>←</span>
-          <span>トップへ戻る</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/reading-history"
+            className="pointer-events-auto inline-flex shrink-0 items-center rounded-full border border-[#ded1bc]/82 bg-white/75 px-3 py-2 text-[12px] font-medium tracking-[0.02em] text-[#6f6252] shadow-[0_10px_22px_-18px_rgba(82,69,53,0.3)] transition hover:border-[#cbb794]/85 hover:bg-[#fff8ed] hover:text-[#564c42]"
+          >
+            読解の記録を見る
+          </Link>
+          <button
+            type="button"
+            onClick={handleBack}
+            className="group pointer-events-auto inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[#c6b497]/80 bg-[linear-gradient(160deg,rgba(255,252,246,0.96),rgba(247,239,226,0.92))] px-4 py-2 text-[13px] font-medium tracking-[0.02em] text-[#675b4a] shadow-[0_10px_22px_-18px_rgba(82,69,53,0.45)] transition hover:border-[#bca883]/85 hover:bg-[#faf3e7] hover:text-[#544c42] active:translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b9ab93]/45"
+          >
+            <span aria-hidden>←</span>
+            <span>トップへ戻る</span>
+          </button>
+        </div>
       </div>
     </header>
   )

@@ -839,6 +839,11 @@ const januaryTemplates: Record<FortuneNumber, FortuneMonthlyTemplate> = {
   }),
 };
 
+const resolvedJanuaryTemplates: Record<FortuneNumber, FortuneMonthlyTemplate> = {
+  ...januaryTemplates,
+  ...(priorityMonthlyOverrides[1] ?? {}),
+};
+
 const monthlyOverrides: Partial<Record<FortuneMonth, Record<FortuneNumber, FortuneMonthlyTemplate>>> = {
   2: {
     ...(staticMonthlyOverrides[2] ?? {}),
@@ -1143,8 +1148,8 @@ const monthlyOverrides: Partial<Record<FortuneMonth, Record<FortuneNumber, Fortu
         "2月のあなたは、冬の庭で静かに春を待つ大樹のような、揺るぎない安心感を放っています。今は無理に枝葉を広げようとしなくて大丈夫。\n" +
         "深く根を張り、自分自身の内側を満たしてください。あなたが満たされたとき、その香りに誘われるように、新しい時代のチャンスが自然と集まってきますよ。",
     }),
+    ...(priorityMonthlyOverrides[2] ?? {}),
   } as Record<FortuneNumber, FortuneMonthlyTemplate>,
-  // 3月だけ差し替えた例（運命数1と7を手書き）
   3: {
     ...(staticMonthlyOverrides[3] ?? {}),
     6: createTemplate(6, makeJanuaryTitle(6), {
@@ -6434,7 +6439,7 @@ function buildAllMonthlyTemplates(): Record<FortuneMonth, Record<FortuneNumber, 
       const numberKey = number as FortuneNumber;
       monthly[numberKey] =
         monthKey === 1
-          ? januaryTemplates[numberKey]
+          ? resolvedJanuaryTemplates[numberKey]
           : monthOverride?.[numberKey] ?? generateMonthlyTemplate(monthKey, numberKey);
     }
 

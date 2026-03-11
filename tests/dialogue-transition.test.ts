@@ -107,6 +107,25 @@ function run() {
     assert.match(simpleOfftopicDecision.text, /占いたいテーマ|占いたい内容/);
   }
 
+  const ambiguousMarriageDecision = getGuardedChatDecision(
+    [{ role: "user", content: "誰と結婚したらいいかわからない" }],
+    "けっこん"
+  );
+  assert.equal(ambiguousMarriageDecision.kind, "reply");
+  if (ambiguousMarriageDecision.kind === "reply") {
+    assert.match(ambiguousMarriageDecision.text, /^なるほど。/);
+    assert.doesNotMatch(ambiguousMarriageDecision.text, /^結婚についてのお悩みなんですね。/);
+  }
+
+  const ambiguousLoveDecision = getGuardedChatDecision(
+    [{ role: "user", content: "最近好きな人ができました" }],
+    "れんあい"
+  );
+  assert.equal(ambiguousLoveDecision.kind, "reply");
+  if (ambiguousLoveDecision.kind === "reply") {
+    assert.match(ambiguousLoveDecision.text, /^なるほど。/);
+  }
+
   const workTransitionDecision = getGuardedChatDecision(
     [
       { role: "user", content: "最近悩んでて" },

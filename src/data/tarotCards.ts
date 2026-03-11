@@ -7,8 +7,8 @@ export type TarotCardEntry = {
   meaningJa: string;
 };
 
-function toImagePath(stem: string): string {
-  return `/cards/${stem}.jpg`;
+function toImagePath(stem: string, ext: "jpg" | "png" = "jpg"): string {
+  return `/cards/${stem}.${ext}`;
 }
 
 const majorArcana: TarotCardEntry[] = [
@@ -17,7 +17,7 @@ const majorArcana: TarotCardEntry[] = [
   { id: 2, code: "major-02-high-priestess", nameEn: "The High Priestess", nameJa: "女教皇", imagePath: toImagePath("02-the-high-priestess"), meaningJa: "静かな直感が冴える日。急がず観察すると良い判断ができます。" },
   { id: 3, code: "major-03-empress", nameEn: "The Empress", nameJa: "女帝", imagePath: toImagePath("03-the-empress"), meaningJa: "豊かさと育てる力。心地よさを整えるほど運気が安定しやすいです。" },
   { id: 4, code: "major-04-emperor", nameEn: "The Emperor", nameJa: "皇帝", imagePath: toImagePath("04-the-emperor"), meaningJa: "土台づくりの日。段取りを決めて進めると安心感と成果が得られます。" },
-  { id: 5, code: "major-05-hierophant", nameEn: "The Hierophant", nameJa: "教皇", imagePath: toImagePath("05-the-hierophant"), meaningJa: "基本に戻ることで整う日。信頼できる助言やルールが助けになります。" },
+  { id: 5, code: "major-05-hierophant", nameEn: "The Hierophant", nameJa: "法王", imagePath: toImagePath("05-the-hierophant"), meaningJa: "基本に戻ることで整う日。信頼できる助言やルールが助けになります。" },
   { id: 6, code: "major-06-lovers", nameEn: "The Lovers", nameJa: "恋人", imagePath: toImagePath("06-the-lovers"), meaningJa: "対話と選択がテーマ。心が自然に向く方を丁寧に選ぶと良い流れです。" },
   { id: 7, code: "major-07-chariot", nameEn: "The Chariot", nameJa: "戦車", imagePath: toImagePath("07-the-chariot"), meaningJa: "前進力が高まる日。勢いを活かしつつ、方向を絞ると進みやすいです。" },
   { id: 8, code: "major-08-strength", nameEn: "Strength", nameJa: "力", imagePath: toImagePath("08-strength"), meaningJa: "やさしい粘り強さが効く日。強引さより落ち着いた対応が成果につながります。" },
@@ -35,6 +35,11 @@ const majorArcana: TarotCardEntry[] = [
   { id: 20, code: "major-20-judgement", nameEn: "Judgement", nameJa: "審判", imagePath: toImagePath("20-judgement"), meaningJa: "再評価と再始動のタイミング。過去の経験を活かすほど前進しやすいです。" },
   { id: 21, code: "major-21-world", nameEn: "The World", nameJa: "世界", imagePath: toImagePath("21-the-world"), meaningJa: "ひと区切りと達成。仕上げや完了を意識すると満足度が高まりやすいです。" },
 ];
+
+const resolvedMajorArcana = majorArcana.map((card) => ({
+  ...card,
+  imagePath: toImagePath(card.imagePath.replace(/^\/cards\/|\.jpg$/g, ""), "png"),
+}));
 
 const suitMeta = [
   {
@@ -108,7 +113,7 @@ function buildMinorArcana(): TarotCardEntry[] {
   );
 }
 
-export const tarotCards: TarotCardEntry[] = [...majorArcana, ...buildMinorArcana()];
+export const tarotCards: TarotCardEntry[] = [...resolvedMajorArcana, ...buildMinorArcana()];
 const tarotCardsByNormalizedJaName = new Map<string, TarotCardEntry>();
 
 function normalizeJaCardName(name: string): string {
@@ -134,8 +139,8 @@ if (tarotCards.length !== 78) {
 if (!tarotCards.every((card, index) => card.id === index)) {
   throw new Error("tarotCards ids must be sequential 0..77");
 }
-if (!tarotCards.every((card) => /^\/cards\/\d{2}-[a-z0-9-]+\.jpg$/.test(card.imagePath))) {
-  throw new Error("tarotCards imagePath must follow /cards/xx-slug.jpg");
+if (!tarotCards.every((card) => /^\/cards\/\d{2}-[a-z0-9-]+\.(jpg|png)$/.test(card.imagePath))) {
+  throw new Error("tarotCards imagePath must follow /cards/xx-slug.(jpg|png)");
 }
 
 export function pickRandomTarotCard(random = Math.random): TarotCardEntry {

@@ -1,4 +1,5 @@
 import { destinyNumberFromBirthdate } from "@/lib/fortune/fortuneNumber";
+import { DEFAULT_MONTHLY_LUMINA_MESSAGE } from "@/lib/fortune/monthly-lumina-message";
 import { getFortuneMonthlyTemplate, hasManualMonthlyTemplate } from "@/lib/fortune/monthly-templates";
 import type { FortuneTemplate } from "@/lib/fortune/types";
 import type { StoredProfile } from "@/lib/profile/profile-store";
@@ -55,7 +56,13 @@ export function buildMonthlyTemplateForProfile(
   const base = getFortuneMonthlyTemplate(month, fortuneNumber);
 
   if (!base) return null;
-  if (isEdited || base.manualOverride) return base;
+
+  const normalizedBase: FortuneTemplate = {
+    ...base,
+    luminaMessage: base.luminaMessage ?? DEFAULT_MONTHLY_LUMINA_MESSAGE,
+  };
+
+  if (isEdited || base.manualOverride) return normalizedBase;
 
   const context: MonthlyProfileContext = {
     birthdate,
@@ -65,7 +72,7 @@ export function buildMonthlyTemplateForProfile(
   };
 
   return {
-    ...base,
+    ...normalizedBase,
     introBody: `${buildIntroAddon(context)}\n\n${base.introBody}`,
     work: `${base.work}\n\n${buildWorkAddon(context)}`,
     loveSingle: `${base.loveSingle}\n\n${buildLoveAddon(context)}`,

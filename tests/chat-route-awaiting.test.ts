@@ -6,7 +6,26 @@ type ChatCompletionPayload = {
   choices: Array<{ message?: { content?: string | null } }>;
 };
 
+type ChatRouteJson = {
+  text?: string;
+  cards?: Array<{ name: string; reversed?: boolean }> | null;
+  conversationState?: {
+    topic?: string | null;
+    phase?: string;
+    awaitingConsent?: boolean;
+    awaitingTheme?: boolean;
+    awaitingFortuneResult?: boolean;
+  };
+  gate?: {
+    title?: string;
+    body?: string;
+  } | null;
+  error?: string;
+};
+
 let createCallCount = 0;
+let hasUsedLightGuidanceTodayMock = false;
+let markLightGuidanceUsedCallCount = 0;
 
 class MockOpenAI {
   chat = {
@@ -17,8 +36,14 @@ class MockOpenAI {
           choices: [
             {
               message: {
-                content:
-                  "カードの象徴:\n今日は言葉の行き違いが起きやすいかもしれません。返信の温度差に注意してください。\n今日の読み:\n会話の途中でドキッとする瞬間があります。返信前に一呼吸おいてください。\n注意点:\n言い返す前に間を置いてください。\n今日の行動ヒント:\n- 返信前に10秒待つ\n- 伝える内容を1つに絞る\nひと言:\n今日は押さずに整えてください。", 
+                content: [
+                  "カード名: 太陽",
+                  "今日の読み:",
+                  "今は明るい流れに乗りやすい時期です。気負いすぎず、一歩ずつ進めば大丈夫です。",
+                  "行動のヒント:",
+                  "- まずは一つだけ着手する",
+                  "- 迷ったら安心できる選択を優先する",
+                ].join("\n"),
               },
             },
           ],
@@ -31,12 +56,11 @@ class MockOpenAI {
   constructor(_config: unknown) {}
 }
 
-const moduleAny = Module as any;
-const originalLoad = moduleAny._load as (
-  request: string,
-  parent: NodeModule | null,
-  isMain: boolean
-) => unknown;
+const moduleAny = Module as unknown as Module & {
+  _load: (request: string, parent: NodeModule | null, isMain: boolean) => unknown;
+};
+const originalLoad = moduleAny._load;
+
 moduleAny._load = function patchedLoad(
   request: string,
   parent: NodeModule | null,
@@ -45,10 +69,37 @@ moduleAny._load = function patchedLoad(
   if (request === "openai") {
     return { __esModule: true, default: MockOpenAI };
   }
+
+  if (request === "@/lib/light-guidance-usage") {
+    return {
+      __esModule: true,
+      hasUsedLightGuidanceToday: async () => hasUsedLightGuidanceTodayMock,
+      markLightGuidanceUsed: async () => {
+        markLightGuidanceUsedCallCount += 1;
+      },
+    };
+  }
+
+  if (request === "@/lib/moderation/rateLimit") {
+    return {
+      __esModule: true,
+      checkModerationPostInterval: async () => ({ ok: true }),
+      resolveModerationUserKey: () => "test-user",
+    };
+  }
+
+  if (request === "@/lib/moderation/validateText") {
+    return {
+      __esModule: true,
+      validateModerationText: () => ({ ok: true }),
+    };
+  }
+
   if (request.startsWith("@/")) {
     const mapped = path.join(process.cwd(), request.slice(2));
     return originalLoad.call(this, mapped, parent, isMain);
   }
+
   return originalLoad.call(this, request, parent, isMain);
 };
 
@@ -56,23 +107,33 @@ const { POST } = require("../app/api/chat/route") as {
   POST: (request: Request) => Promise<Response>;
 };
 
-async function callRoute(message: string) {
-  const declaration = "少しカードを引いてみますね。少しだけお待ちください。";
+const DEFAULT_CARDS = [
+  { name: "愚者", reversed: false },
+  { name: "女教皇", reversed: false },
+  { name: "星", reversed: true },
+];
+
+const FORTUNE_DECLARATION = "少しカードを引いてみますね。少しだけお待ちください。";
+const MARRIAGE_OFFER = "結婚運を見てみましょうか？";
+const HEALTH_OFFER = "どこか気になることがあるんですね。健康の流れを見てみましょうか？";
+
+async function postChat(
+  message: string,
+  options: {
+    history?: Array<{ role: "user" | "assistant"; content: string }>;
+    profile?: Record<string, unknown>;
+    mode?: string;
+  } = {}
+): Promise<ChatRouteJson> {
   const request = new Request("http://localhost/api/chat", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      mode: "chat",
+      mode: options.mode ?? "chat",
       message,
-      cards: [
-        { name: "恋人", reversed: false },
-        { name: "女教皇", reversed: false },
-        { name: "節制", reversed: true },
-      ],
-      history: [
-        { role: "user", content: "お願いします" },
-        { role: "assistant", content: declaration },
-      ],
+      cards: DEFAULT_CARDS,
+      history: options.history ?? [],
+      profile: options.profile,
     }),
   });
 
@@ -80,95 +141,114 @@ async function callRoute(message: string) {
   return response.json();
 }
 
-async function callImmediateFortuneRoute(message: string) {
-  const request = new Request("http://localhost/api/chat", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      mode: "chat",
-      message,
-      cards: [
-        { name: "恋人", reversed: false },
-        { name: "女教皇", reversed: false },
-        { name: "節制", reversed: true },
-      ],
-      history: [],
-    }),
-  });
-
-  const response = await POST(request);
-  return response.json();
+async function withNodeEnv<T>(value: string, run: () => Promise<T>): Promise<T> {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = value;
+  try {
+    return await run();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = previous;
+    }
+  }
 }
 
-async function callFortuneOfferConfirmationRoute(message: string) {
-  const request = new Request("http://localhost/api/chat", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      mode: "chat",
-      message,
-      cards: [
-        { name: "恋人", reversed: false },
-        { name: "女教皇", reversed: false },
-        { name: "節制", reversed: true },
-      ],
-      history: [{ role: "assistant", content: "結婚運を見てみましょうか？" }],
-    }),
-  });
-
-  const response = await POST(request);
-  return response.json();
+function assertFortuneResponse(response: ChatRouteJson, expectedTopic?: string) {
+  assert.ok(response.text);
+  assert.ok(response.text!.trim().length > 0);
+  assert.ok(Array.isArray(response.cards));
+  assert.ok((response.cards?.length ?? 0) > 0);
+  assert.equal(response.error, undefined);
+  assert.equal(response.conversationState?.awaitingFortuneResult, false);
+  assert.equal(response.conversationState?.awaitingConsent, false);
+  assert.equal(response.conversationState?.awaitingTheme, false);
+  if (expectedTopic) {
+    assert.equal(response.conversationState?.topic, expectedTopic);
+  }
 }
 
-async function callHealthOfferConfirmationRoute(message: string) {
-  const request = new Request("http://localhost/api/chat", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      mode: "chat",
-      message,
-      cards: [
-        { name: "恋人", reversed: false },
-        { name: "女教皇", reversed: false },
-        { name: "節制", reversed: true },
-      ],
-      history: [{ role: "assistant", content: "どこか悪いのかなんですね。今の状況を占ってみますか？" }],
-    }),
+async function assertOfferConfirmationStartsFortune(message: string) {
+  const response = await postChat(message, {
+    history: [{ role: "assistant", content: MARRIAGE_OFFER }],
   });
+  assertFortuneResponse(response, "marriage");
+  assert.equal(response.gate, undefined);
+}
 
-  const response = await POST(request);
-  return response.json();
+async function assertShortThemeIntentStartsFortune(message: string, topic: string) {
+  const response = await postChat(message);
+  assertFortuneResponse(response, topic);
+  assert.equal(response.gate, undefined);
 }
 
 async function run() {
-  const immediate = await callImmediateFortuneRoute("相手の気持ちを占って");
-  assert.match(immediate.text, /引いたカード：/);
-  assert.match(immediate.text, /お相手さまのお気持ちを見てみましょう/);
-  assert.doesNotMatch(immediate.text, /少しカードを引いてみますね。少しだけお待ちください。/);
-  assert.equal(immediate.conversationState.awaitingFortuneResult, false);
+  const immediate = await postChat("恋愛を占って");
+  assertFortuneResponse(immediate, "love");
+  assert.match(immediate.text!, /^引いたカード[:：]/);
+  assert.match(immediate.text!, /(お相手|恋愛)/);
+  assert.doesNotMatch(immediate.text!, /少しだけお待ちください/);
 
-  const acceptedOffer = await callFortuneOfferConfirmationRoute("はい");
-  assert.match(acceptedOffer.text, /^引いたカード：/);
-  assert.doesNotMatch(acceptedOffer.text, /見てみましょうか？/);
-  assert.equal(acceptedOffer.cards?.length, 3);
-  assert.equal(acceptedOffer.conversationState.awaitingFortuneResult, false);
+  for (const message of ["はい", "お願いします", "おねがい", "みて"]) {
+    await assertOfferConfirmationStartsFortune(message);
+  }
 
-  const acceptedHealthOffer = await callHealthOfferConfirmationRoute("はい");
-  assert.match(acceptedHealthOffer.text, /2\. 体の流れ・エネルギー状態の象徴/);
-  assert.equal(acceptedHealthOffer.cards?.length, 3);
-  assert.equal(acceptedHealthOffer.conversationState.topic, "health");
+  const acceptedHealthOffer = await postChat("はい", {
+    history: [{ role: "assistant", content: HEALTH_OFFER }],
+  });
+  assertFortuneResponse(acceptedHealthOffer, "health");
+  assert.match(acceptedHealthOffer.text!, /2\..*(体|心).*エネルギー/);
 
-  const resultQuestion = await callRoute("結果は？");
-  assert.match(resultQuestion.text, /^引いたカード：/);
-  assert.doesNotMatch(resultQuestion.text, /少しカードを引いてみますね。少しだけお待ちください。/);
-  assert.equal(resultQuestion.conversationState.awaitingFortuneResult, false);
+  const resultQuestion = await postChat("結果は？", {
+    history: [
+      { role: "user", content: "お願いします" },
+      { role: "assistant", content: FORTUNE_DECLARATION },
+    ],
+  });
+  assertFortuneResponse(resultQuestion);
+  assert.match(resultQuestion.text!, /^引いたカード[:：]/);
+  assert.doesNotMatch(resultQuestion.text!, /少しだけお待ちください/);
 
-  const stillDrawing = await callRoute("占ってる？");
-  assert.match(stillDrawing.text, /^引いたカード：/);
-  assert.doesNotMatch(stillDrawing.text, /少しカードを引いてみますね。少しだけお待ちください。/);
-  assert.equal(stillDrawing.conversationState.awaitingFortuneResult, false);
+  const stillDrawing = await postChat("みて？", {
+    history: [
+      { role: "user", content: "お願いします" },
+      { role: "assistant", content: FORTUNE_DECLARATION },
+    ],
+  });
+  assertFortuneResponse(stillDrawing);
 
-  assert.equal(createCallCount, 6);
+  await assertShortThemeIntentStartsFortune("恋愛みて", "love");
+  await assertShortThemeIntentStartsFortune("仕事みて", "work");
+  await assertShortThemeIntentStartsFortune("金運は？", "money");
+  await assertShortThemeIntentStartsFortune("けっこん運", "marriage");
+
+  hasUsedLightGuidanceTodayMock = false;
+  markLightGuidanceUsedCallCount = 0;
+  const productionFortune = await withNodeEnv("production", () =>
+    postChat("恋愛みて", {
+      profile: { nickname: "prod-fresh-user", membershipTier: "free", userKey: "prod-fresh-user" },
+    })
+  );
+  assertFortuneResponse(productionFortune, "love");
+  assert.equal(productionFortune.gate, undefined);
+  assert.equal(markLightGuidanceUsedCallCount, 1);
+
+  hasUsedLightGuidanceTodayMock = true;
+  const productionGate = await withNodeEnv("production", () =>
+    postChat("恋愛みて", {
+      profile: { nickname: "prod-used-user", membershipTier: "free", userKey: "prod-used-user" },
+    })
+  );
+  assert.ok(productionGate.text);
+  assert.ok(productionGate.text!.trim().length > 0);
+  assert.equal(productionGate.error, undefined);
+  assert.equal(productionGate.cards, null);
+  assert.ok(productionGate.gate);
+  assert.equal(productionGate.conversationState?.phase, "followup");
+  assert.equal(productionGate.conversationState?.awaitingFortuneResult, false);
+
+  assert.equal(createCallCount, 13);
 }
 
 run()

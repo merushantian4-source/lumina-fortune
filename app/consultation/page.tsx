@@ -6,6 +6,8 @@ import Image from "next/image";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
+import { runClientModerationCheck } from "@/lib/moderation/clientCheck";
+import { getOrCreateChatVisitorKey } from "@/lib/membership";
 
 const PROFILE_STORAGE_KEY = "lumina_profile";
 
@@ -62,6 +64,14 @@ export default function ConsultationPage() {
       return;
     }
 
+    const moderation = runClientModerationCheck(content.trim(), getOrCreateChatVisitorKey(), {
+      maxLength: 500,
+    });
+    if (!moderation.ok) {
+      setError(moderation.error);
+      return;
+    }
+
     try {
       setSending(true);
       const response = await fetch("/api/reading-request", {
@@ -75,7 +85,7 @@ export default function ConsultationPage() {
           email: email.trim(),
           category,
           partnerBirthdate: category === "相性" ? partnerBirthdate.trim() : undefined,
-          content: content.trim(),
+          content: moderation.normalizedText,
           agreed,
         }),
       });

@@ -2,21 +2,29 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { LightCalendarCard } from "@/components/light-calendar/LightCalendarCard";
 import UnmeiVisual from "@/components/unmei/UnmeiVisual";
 import { PageShell } from "@/components/ui/page-shell";
 import { GlassCard } from "@/components/ui/glass-card";
-import { LuminaButton, LuminaLinkButton } from "@/components/ui/button";
+import { LuminaButton } from "@/components/ui/button";
 import { getFixedDayForDate } from "@/lib/holidays";
-import { getMoonPhaseForDateKey, type MajorMoonPhase } from "@/lib/moon-phase";
+import { getMoonPhaseForDateKey } from "@/lib/moon-phase";
 import { destinyNumberFromBirthdate } from "@/lib/fortune/fortuneNumber";
 import { isFortuneNumber, type FortuneNumber } from "@/lib/fortune/types";
 import { BIRTHDATE_STORAGE_KEY, getInitialBirthdate } from "@/lib/profile/getProfile";
 import { getLightWaveForDay, getPersonalScore } from "@/lib/light-wave";
 import {
+  getCalendarCellBadges,
+  getCellAccent,
+  getLightCalendarUi,
+} from "@/lib/light-calendar/lightCalendarUi2026";
+import {
   getLuckyDaysForMonth,
   LUCKY_DAY_DESCRIPTIONS,
   LUCKY_DAY_LABELS,
   ROKUYO_DESCRIPTIONS,
+  UNLUCKY_DAY_DESCRIPTIONS,
+  UNLUCKY_DAY_LABELS,
   type LuckyDayRecord,
 } from "@/lib/lucky-days";
 
@@ -166,9 +174,8 @@ export default function CalendarPage({ serverBirthdate }: CalendarClientProps) {
   const selectedEvents = selectedDateKey
     ? buildDayEvents(selectedDateKey, monthDays[selectedDateKey], holidays[selectedDateKey])
     : [];
-  const selectedMoonMajorPhase = selectedDateKey
-    ? getMoonPhaseForDateKey(selectedDateKey).majorPhase
-    : null;
+  const selectedMoonInfo = selectedDateKey ? getMoonPhaseForDateKey(selectedDateKey) : null;
+  const selectedMoonMajorPhase = selectedMoonInfo?.majorPhase ?? null;
   const wavePoints = useMemo(() => {
     const points: WavePoint[] = [];
     for (const cell of grid) {
@@ -280,8 +287,15 @@ export default function CalendarPage({ serverBirthdate }: CalendarClientProps) {
               return <div key={`blank-${idx}`} className="h-24 rounded-xl border border-transparent" />;
             }
             const entry = monthDays[cell.dateKey];
+            const lightDayUi = getLightCalendarUi(cell.dateKey) ?? {
+              badges: [],
+              primaryBadge: null,
+            };
+            const cellBadges = getCalendarCellBadges(cell.dateKey);
+            const accent = getCellAccent(cell.dateKey);
             const active = selectedDateKey === cell.dateKey;
             const isToday = cell.dateKey === todayDateKey;
+            const moon = getMoonPhaseForDateKey(cell.dateKey);
             const events = buildDayEvents(cell.dateKey, entry, holidays[cell.dateKey]);
             return (
               <button
@@ -293,28 +307,49 @@ export default function CalendarPage({ serverBirthdate }: CalendarClientProps) {
                     ? "border-[#b9a78b] bg-[#fff8ed]"
                     : isToday
                       ? "border-[#b9a0dc]/80 bg-[#f3eefc] hover:bg-[#efe7fb]"
-                    : "border-[#e1d5bf]/72 bg-white/60 hover:bg-[#fff8ed]/80"
+                      : accent === "gold"
+                        ? "border-[#d4b06a]/80 bg-[linear-gradient(180deg,rgba(255,248,227,0.96),rgba(255,241,214,0.88))] hover:bg-[#fff3d8]"
+                        : accent === "warm"
+                          ? "border-[#d7c1a0]/80 bg-[#fff8ed]/90 hover:bg-[#fff2e2]"
+                          : accent === "muted"
+                            ? "border-[#d8d0c7]/80 bg-[#f7f3ee] hover:bg-[#f1ebe4]"
+                            : "border-[#e1d5bf]/72 bg-white/60 hover:bg-[#fff8ed]/80"
                 }`}
               >
-                <p className={`text-sm font-medium ${isToday ? "text-[#5e4c86]" : "text-[#2e2a26]"}`}>{cell.day}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className={`text-sm font-medium ${isToday ? "text-[#5e4c86]" : "text-[#2e2a26]"}`}>{cell.day}</p>
+                  <span className="text-xs text-[#8c7e6a]" title={moon.phaseLabel}>
+                    {moon.icon}
+                  </span>
+                </div>
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {events.length > 0 ? (
-                    events.slice(0, 3).map((event) => (
+                  {cellBadges.length > 0 ? (
+                    cellBadges.map((badge) => (
                       <span
-                        key={event.id}
-                        className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#efe4d0] px-1 text-[10px] font-semibold leading-none text-[#6a5d4c]"
-                        title={buildIconTitle(event)}
+                        key={`${cell.dateKey}-${badge.type}`}
+                        className={`inline-flex h-5 items-center justify-center rounded-full px-2 text-[10px] font-semibold leading-none ${
+                          badge.tone === "best"
+                            ? "bg-[#e8c977] text-[#5a430f]"
+                            : badge.tone === "good"
+                              ? "bg-[#efe4d0] text-[#6a5d4c]"
+                              : badge.tone === "caution"
+                                ? "bg-[#e6ddd3] text-[#6c5743]"
+                                : "bg-[#eceaf3] text-[#5d5673]"
+                        }`}
+                        title={badge.label}
                       >
-                        {event.icon}
+                        {badge.shortLabel}
                       </span>
                     ))
                   ) : (
                     <span className="text-xs leading-relaxed text-[#6f6556]">—</span>
                   )}
                 </div>
-                <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-[#6f6556]">
-                  {getCellCaption(events)}
-                </p>
+                {lightDayUi.primaryBadge ? null : (
+                  <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-[#6f6556]">
+                    {getCellCaption(events)}
+                  </p>
+                )}
               </button>
             );
           })}
@@ -447,7 +482,14 @@ export default function CalendarPage({ serverBirthdate }: CalendarClientProps) {
               </LuminaButton>
             </div>
 
-            <DayDetail events={selectedEvents} moonMajorPhase={selectedMoonMajorPhase} />
+            <div className="mt-4">
+              <LightCalendarCard
+                date={selectedDateKey}
+                moon={selectedMoonInfo}
+                moonMajorPhase={selectedMoonMajorPhase}
+              />
+            </div>
+            <DayDetail events={selectedEvents} />
           </div>
         </div>
       ) : null}
@@ -455,19 +497,9 @@ export default function CalendarPage({ serverBirthdate }: CalendarClientProps) {
   );
 }
 
-function DayDetail({
-  events,
-  moonMajorPhase,
-}: {
-  events: DayEvent[];
-  moonMajorPhase: MajorMoonPhase;
-}) {
+function DayDetail({ events }: { events: DayEvent[] }) {
   if (events.length === 0) {
-    return (
-      <div className="mt-4 rounded-xl border border-[#e1d5bf]/72 bg-white/65 p-4">
-        <p className="text-sm leading-relaxed text-[#544c42]">この日は特別な登録がありません。</p>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -478,16 +510,6 @@ function DayDetail({
           <p className="mt-1 text-sm leading-relaxed text-[#544c42]">{event.description}</p>
         </div>
       ))}
-      {moonMajorPhase === "new_moon" ? (
-        <LuminaLinkButton href="/moon-rituals/new" className="inline-flex">
-          新月の小さな儀式
-        </LuminaLinkButton>
-      ) : null}
-      {moonMajorPhase === "full_moon" ? (
-        <LuminaLinkButton href="/moon-rituals/full" className="inline-flex">
-          満月の小さな儀式
-        </LuminaLinkButton>
-      ) : null}
     </div>
   );
 }
@@ -498,14 +520,6 @@ function buildDayEvents(
   holidayName: string | undefined
 ): DayEvent[] {
   const events: DayEvent[] = [];
-  const moon = getMoonPhaseForDateKey(dateKey);
-  events.push({
-    id: `moon-${dateKey}`,
-    icon: moon.icon,
-    label: `月の満ち欠け✨ ${moon.phaseLabel}`,
-    description: buildMoonDescription(moon.phaseLabel, moon.majorPhase, moon.age),
-    priority: 5,
-  });
 
   const fixed = getFixedDayForDate(dateKey);
   if (fixed) {
@@ -538,6 +552,15 @@ function buildDayEvents(
         priority: 30,
       });
     }
+    for (const kind of entry.bad ?? []) {
+      events.push({
+        id: `bad-${dateKey}-${kind}`,
+        icon: "慎",
+        label: UNLUCKY_DAY_LABELS[kind],
+        description: `${UNLUCKY_DAY_DESCRIPTIONS[kind]}。急いで決めるより、確認と手直しを優先すると流れを整えやすくなります。`,
+        priority: 35,
+      });
+    }
     if (entry.rokuyo) {
       const base = ROKUYO_DESCRIPTIONS[entry.rokuyo] ?? "六曜の流れを意識して過ごす日";
       events.push({
@@ -553,23 +576,6 @@ function buildDayEvents(
   return events.sort((a, b) => a.priority - b.priority);
 }
 
-function buildMoonDescription(label: string, majorPhase: MajorMoonPhase, age: number): string {
-  const ageText = `月齢はおよそ${age.toFixed(1)}です。`;
-  if (majorPhase === "new_moon") {
-    return `${ageText}新月。静かに願いを置くほど、これからの流れがやさしく芽吹いていきます。`;
-  }
-  if (majorPhase === "first_quarter") {
-    return `${ageText}上弦の月。動き出す力が満ちるとき。小さな一歩を丁寧に重ねると道が明るくなります。`;
-  }
-  if (majorPhase === "full_moon") {
-    return `${ageText}満月。ここまでの歩みを受け取り、感謝を向けるほど心に澄んだ光が広がります。`;
-  }
-  if (majorPhase === "last_quarter") {
-    return `${ageText}下弦の月。いらない力みをほどき、整え直すことで次の流れが軽やかになります。`;
-  }
-  return `${ageText}${label}。今の自分の呼吸にそっと合わせるように過ごすと、今日の流れが穏やかに整います。`;
-}
-
 function getCellCaption(events: DayEvent[]): string {
   const holiday = events.find((event) => event.id.startsWith("holiday-"));
   if (holiday) return holiday.label.replace(/^祝日:\s*/, "");
@@ -581,10 +587,6 @@ function getCellCaption(events: DayEvent[]): string {
   if (lucky) return lucky.label;
 
   return " ";
-}
-
-function buildIconTitle(event: DayEvent): string {
-  return `${event.label}：${event.description}`;
 }
 
 function toWaveX(index: number, total: number, width: number): number {

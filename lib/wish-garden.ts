@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { validateModerationText } from "@/lib/moderation/validateText";
 
 export type WishEntry = {
   id: string;
@@ -46,9 +47,15 @@ async function writeStore(entries: WishEntry[]): Promise<void> {
   await fs.writeFile(STORE_PATH, JSON.stringify(entries, null, 2), "utf-8");
 }
 
+const HIDDEN_WORD_PATTERN = /\bunko\b/i;
+
+function isHiddenWish(entry: WishEntry): boolean {
+  return HIDDEN_WORD_PATTERN.test(entry.message);
+}
+
 export async function listLatestWishes(limit = 24): Promise<WishEntry[]> {
   const entries = await readStore();
-  return entries.slice(0, Math.max(1, limit));
+  return entries.filter((e) => !isHiddenWish(e)).slice(0, Math.max(1, limit));
 }
 
 export async function addWish(messageInput: string): Promise<WishEntry> {
@@ -56,13 +63,19 @@ export async function addWish(messageInput: string): Promise<WishEntry> {
   if (!message) {
     throw new Error("message is required");
   }
-  if (countChars(message) > 100) {
+
+  const moderation = validateModerationText(message, { maxLength: 100 });
+  if (!moderation.ok) {
+    throw new Error(moderation.error);
+  }
+
+  if (countChars(moderation.normalizedText) > 100) {
     throw new Error("message is too long");
   }
 
   const entry: WishEntry = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-    message,
+    message: moderation.normalizedText,
     createdAt: new Date().toISOString(),
   };
 

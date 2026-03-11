@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { validateModerationText } from "@/lib/moderation/validateText";
 
 export type ConsultationLetter = {
   id: string;
@@ -35,7 +36,13 @@ export async function saveConsultationLetter(payload: {
   if (!message) {
     throw new Error("message is required");
   }
-  if (Array.from(message).length > 300) {
+
+  const moderation = validateModerationText(message, { maxLength: 300 });
+  if (!moderation.ok) {
+    throw new Error(moderation.error);
+  }
+
+  if (Array.from(moderation.normalizedText).length > 300) {
     throw new Error("message is too long");
   }
 
@@ -43,7 +50,7 @@ export async function saveConsultationLetter(payload: {
   const letter: ConsultationLetter = {
     id: `CL-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     nickname: nickname ? nickname.slice(0, 40) : null,
-    message,
+    message: moderation.normalizedText,
     createdAt: new Date().toISOString(),
   };
 

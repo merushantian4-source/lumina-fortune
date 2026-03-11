@@ -10,6 +10,8 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
 import { pickHakuMessage } from "@/lib/haku-messages";
+import { runClientModerationCheck } from "@/lib/moderation/clientCheck";
+import { getOrCreateChatVisitorKey } from "@/lib/membership";
 
 const MAX_MESSAGE_LENGTH = 300;
 const PROFILE_STORAGE_KEY = "lumina_profile";
@@ -63,6 +65,14 @@ export default function LetterPage() {
       return;
     }
 
+    const moderation = runClientModerationCheck(trimmed, getOrCreateChatVisitorKey(), {
+      maxLength: MAX_MESSAGE_LENGTH,
+    });
+    if (!moderation.ok) {
+      setError(moderation.error);
+      return;
+    }
+
     try {
       setSending(true);
       setError(null);
@@ -71,7 +81,7 @@ export default function LetterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nickname: nickname.trim(),
-          message: trimmed,
+          message: moderation.normalizedText,
         }),
       });
       const data = (await response.json()) as { ok?: boolean; error?: string; reply?: string };

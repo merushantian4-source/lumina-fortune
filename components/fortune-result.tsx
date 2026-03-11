@@ -170,6 +170,32 @@ export default function FortuneResult({
             </div>
           </section>
 
+          {template.luminaMessage ? (
+            <section className="rounded-2xl border border-[#d9c8a3]/80 bg-[linear-gradient(155deg,rgba(255,251,243,0.9),rgba(250,242,225,0.78))] p-5 shadow-[0_12px_24px_-24px_rgba(117,88,43,0.32)]">
+              <SectionHeading>ルミナからのひとこと</SectionHeading>
+              <div className="mt-4 rounded-xl border border-[#eadfc7]/80 bg-white/80 p-4">
+                <MarkdownText text={template.luminaMessage} />
+              </div>
+            </section>
+          ) : null}
+
+          {variantLabel === "NUMEROLOGY 2026" ? (
+            <section className="rounded-[1.45rem] border border-[#d8cde7] bg-[#f6f1fb] px-5 py-5 shadow-[0_18px_38px_-28px_rgba(95,79,128,0.24)]">
+              <p className="text-sm font-medium text-[#5e5246]">もっと深く知りたい方はこちら</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#7a6d60]">
+                あなたの2026年の流れを、今の状況に合わせて丁寧に読み解きます。
+              </p>
+              <div className="mt-3">
+                <Link
+                  href="/consultation"
+                  className="inline-flex items-center rounded-full border border-[#cfc2e2] bg-[linear-gradient(160deg,#ffffff,#f2eafb)] px-4 py-2 text-sm font-medium text-[#5f5472] shadow-[0_10px_24px_-20px_rgba(95,79,128,0.28)] transition hover:border-[#bdaed7] hover:bg-[#f8f2ff] hover:text-[#4f4660]"
+                >
+                  個人鑑定を依頼する
+                </Link>
+              </div>
+            </section>
+          ) : null}
+
           {bottomLinkHref && bottomLinkLabel ? (
             <section className="flex justify-center pt-2">
               <LuminaLinkButton href={bottomLinkHref} tone="secondary" className="min-w-[220px]">

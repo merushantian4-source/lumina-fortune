@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { BRAND } from "@/lib/brand";
 
 const EXIT_LINKS = [
@@ -24,8 +25,28 @@ const SOCIAL_LINKS = [
 
 export function Footer() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const year = new Date().getFullYear();
-  if (pathname === "/") return null;
+  const [isTarotScreenActive, setIsTarotScreenActive] = useState(
+    () => typeof document !== "undefined" && document.body.dataset.homeScreen === "tarot"
+  );
+
+  useEffect(() => {
+    if (pathname !== "/") return;
+
+    const update = () => {
+      setIsTarotScreenActive(document.body.dataset.homeScreen === "tarot");
+    };
+
+    const observer = new MutationObserver(update);
+    observer.observe(document.body, { attributes: true, attributeFilter: ["data-home-screen"] });
+
+    return () => observer.disconnect();
+  }, [pathname]);
+
+  const shouldHideFooter = pathname === "/" && (searchParams.get("start") === "tarot" || isTarotScreenActive);
+  if (shouldHideFooter) return null;
+
   return (
     <footer className="relative mx-auto mt-8 w-full max-w-5xl px-4 pb-8 sm:pb-10">
       <div className="rounded-3xl border border-[#e1d5bf]/72 bg-[linear-gradient(165deg,rgba(255,252,246,0.86),rgba(248,242,231,0.76))] p-5 shadow-[0_10px_22px_-22px_rgba(82,69,53,0.22)] sm:p-6">

@@ -10,6 +10,7 @@ import { getCompatibilityReading } from "@/lib/fortune/compatibility-map";
 import { PageShell } from "@/components/ui/page-shell";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
+import Link from "next/link";
 
 const PROFILE_STORAGE_KEY = "lumina_profile";
 
@@ -185,6 +186,21 @@ export default function CompatibilityPage() {
             <section className="rounded-xl border border-[#d2c4e7] bg-[#f5f0ff]/55 p-4">
               <h2 className="text-sm font-medium tracking-wide text-[#2e2a26]">ひと言メッセージ</h2>
               <p className="mt-2 text-sm leading-relaxed text-[#544c42]">{result.reading.luminaMessage}</p>
+            </section>
+
+            <section className="rounded-[1.45rem] border border-[#d8cde7] bg-[#f6f1fb] px-5 py-5 shadow-[0_18px_38px_-28px_rgba(95,79,128,0.24)]">
+              <p className="text-sm font-medium text-[#5e5246]">もっと深く知りたい方はこちら</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#7a6d60]">
+                ふたりの流れを、今の状況に合わせて丁寧に読み解きます。
+              </p>
+              <div className="mt-3">
+                <Link
+                  href="/consultation"
+                  className="inline-flex items-center rounded-full border border-[#cfc2e2] bg-[linear-gradient(160deg,#ffffff,#f2eafb)] px-4 py-2 text-sm font-medium text-[#5f5472] shadow-[0_10px_24px_-20px_rgba(95,79,128,0.28)] transition hover:border-[#bdaed7] hover:bg-[#f8f2ff] hover:text-[#4f4660]"
+                >
+                  個人鑑定を依頼する
+                </Link>
+              </div>
             </section>
           </div>
         </GlassCard>

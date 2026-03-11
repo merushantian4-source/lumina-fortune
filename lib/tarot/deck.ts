@@ -90,10 +90,10 @@ const majorSeeds: MajorSeed[] = [
   },
   {
     code: "major-05-hierophant",
-    nameJa: "教皇",
+    nameJa: "法王",
     nameEn: "The Hierophant",
     symbolKeywords: ["学び", "規範", "助言"],
-    imageDescription: "儀式的な衣装の教皇が座り、前には教えを受ける人物たちがいます。",
+    imageDescription: "儀式的な衣装の法王が座り、前には教えを受ける人物たちがいます。",
     uprightMeaning: "基本に戻ることで道が見える流れ",
     reversedMeaning: "形式だけに縛られない工夫が必要な時期",
   },

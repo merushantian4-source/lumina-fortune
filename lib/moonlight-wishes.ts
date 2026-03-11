@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { getMoonPhaseForDateKey } from "@/lib/moon-phase";
+import { validateModerationText } from "@/lib/moderation/validateText";
 
 export type MoonlightWishRecord = {
   id: string;
@@ -68,7 +69,11 @@ export async function saveMoonlightWish(payload: {
   if (!wish_text) {
     throw new Error("wish_text is required");
   }
-  if (Array.from(wish_text).length > 200) {
+  const moderation = validateModerationText(wish_text, { maxLength: 200 });
+  if (!moderation.ok) {
+    throw new Error(moderation.error);
+  }
+  if (Array.from(moderation.normalizedText).length > 200) {
     throw new Error("wish_text is too long");
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(newmoon_date)) {
@@ -87,7 +92,7 @@ export async function saveMoonlightWish(payload: {
   const record: MoonlightWishRecord = {
     id: `MW-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     user_id: user_id.slice(0, 60),
-    wish_text,
+    wish_text: moderation.normalizedText,
     newmoon_date,
     created_at: new Date().toISOString(),
   };

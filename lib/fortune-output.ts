@@ -128,6 +128,7 @@ export function ensureFortuneOutputFormat(text: string, cards: LiteCard[]): stri
   const orientationAligned = normalizeOrientationMentions(normalizeText(text), cards[0]);
   const normalized = softenAnxiety(removeQuestions(orientationAligned));
   const { bodyParagraphs, hints, closing } = splitBodyAndHints(normalized);
+  const legacyHeading = `引いたカード：${cardLabel(cards[0])}`;
 
   const paragraphs = ensureBodyLength(
     bodyParagraphs.length > 0
@@ -143,6 +144,8 @@ export function ensureFortuneOutputFormat(text: string, cards: LiteCard[]): stri
   const finalLine = closing && closing.length <= 28 ? closing : GENTLE_CLOSING;
 
   const composed = [
+    legacyHeading,
+    "",
     "🌿 今日の一枚",
     "",
     cardLabel(cards[0]),

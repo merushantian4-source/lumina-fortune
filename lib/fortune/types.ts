@@ -6,6 +6,7 @@ export type FortuneTemplate = {
   fortuneNumber: FortuneNumber;
   introTitle: string;
   manualOverride?: boolean;
+  luminaMessage?: string;
   introBody: string;
   themeCatch: string;
   firstHalf: string;

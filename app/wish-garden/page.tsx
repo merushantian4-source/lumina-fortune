@@ -10,6 +10,9 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
 import { pickHakuMessage } from "@/lib/haku-messages";
+import { runClientModerationCheck } from "@/lib/moderation/clientCheck";
+import { containsNgWord } from "@/lib/moderation/checkNgWord";
+import { getOrCreateChatVisitorKey } from "@/lib/membership";
 
 type WishEntry = {
   id: string;
@@ -90,6 +93,15 @@ export default function WishGardenPage() {
       return;
     }
 
+    const userKey = getOrCreateChatVisitorKey();
+    const moderation = runClientModerationCheck(trimmed, userKey, {
+      maxLength: MAX_MESSAGE_LENGTH,
+    });
+    if (!moderation.ok) {
+      setError(moderation.error);
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
@@ -98,7 +110,7 @@ export default function WishGardenPage() {
       const res = await fetch("/api/wish-garden", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed }),
+        body: JSON.stringify({ message: moderation.normalizedText, userKey }),
       });
       const data = (await res.json()) as { wish?: WishEntry; error?: string };
       if (!res.ok || !data.wish) {
@@ -168,7 +180,15 @@ export default function WishGardenPage() {
         <form onSubmit={handleSubmit} className="mt-3 space-y-3">
           <textarea
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => {
+            const val = e.target.value;
+            setMessage(val);
+            if (val.trim() && containsNgWord(val.trim())) {
+              setError("その言葉は願いの庭には置けないようです。別の表現でそっと書き直してみてください。");
+            } else if (error) {
+              setError(null);
+            }
+          }}
             maxLength={MAX_MESSAGE_LENGTH}
             placeholder="ここに置きたい願いを、短い言葉で書いてみてください。"
             className="lumina-input min-h-28 w-full rounded-xl px-3 py-2 text-sm leading-relaxed"

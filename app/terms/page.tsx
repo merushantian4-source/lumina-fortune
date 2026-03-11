@@ -3,23 +3,24 @@ import Link from "next/link";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/ui/page-shell";
 
-const establishedAt = "2026年3月8日";
+const establishedAt = "2026年3月11日";
 
 const termsSections = [
   {
     title: "第1条（サービスの内容）",
     body: [
-      "本サービスは、AIを活用したタロット占いのエンターテインメントサービスです。ユーザーの質問やお悩みに対し、AIキャラクター「白の魔女ルミナ」がタロットカードを用いた占いの結果をお伝えします。",
+      "本サービスは、占い師・白の魔女ルミナが監修・運営するタロット占いサービスです。現役占い師としての知識・経験・感性をもとに鑑定文のチェックおよびAI占い師「白の魔女ルミナ」の教育・監修を行っています。",
+      "ユーザーの質問やお悩みに対し、白の魔女ルミナの監修のもとで育てられたAI占い師がタロットカードを用いた鑑定をお届けします。また、白の魔女ルミナ本人による本格的な個人鑑定もお受けしています。",
     ],
   },
   {
-    title: "第2条（エンターテインメント目的のサービス）",
-    body: ["本サービスは、純粋なエンターテインメントおよび娯楽を目的として提供されています。以下の点にご注意ください。"],
+    title: "第2条（鑑定の性質について）",
+    body: ["本サービスの鑑定は、プロ占い師の監修・指導を受けたAIによって提供されます。以下の点についてご理解のうえご利用ください。"],
     items: [
-      "本サービスの占い結果は、科学的根拠に基づくものではありません。",
-      "占い結果を、医療・法律・金融・進路・人間関係などの重要な判断の根拠として利用しないでください。",
-      "重要な意思決定を行う場合は、必ず専門家（医師・弁護士・ファイナンシャルプランナー等）にご相談ください。",
-      "占い結果の正確性・的中率について、当サービスは一切の保証をいたしません。",
+      "本サービスの鑑定結果は、占いという性質上、科学的根拠に基づくものではありません。",
+      "鑑定結果を、医療・法律・金融・進路・人間関係などの重大な判断の唯一の根拠として利用することはお控えください。",
+      "重要な意思決定においては、各分野の専門家（医師・弁護士・ファイナンシャルプランナー等）にもご相談されることをおすすめします。",
+      "鑑定結果の的中を保証するものではありません。",
     ],
   },
   {
@@ -59,7 +60,7 @@ const termsSections = [
   {
     title: "第6条（知的財産権）",
     body: [
-      "本サービスに含まれるすべてのコンテンツ（テキスト・画像・デザイン・AIキャラクター「白の魔女ルミナ」の設定・会話内容等）に関する著作権その他の知的財産権は、当サービス運営者または正当な権利を有する第三者に帰属します。ユーザーは、これらのコンテンツを当サービス運営者の事前の書面による許可なく、複製・転載・公衆送信・改変・販売等の行為を行うことはできません。",
+      "本サービスに含まれるすべてのコンテンツ（テキスト・画像・デザイン・AI占い師「白の魔女ルミナ」のキャラクター設定・占い師が監修した鑑定スタイル・会話内容等）に関する著作権その他の知的財産権は、当サービス運営者または正当な権利を有する第三者に帰属します。ユーザーは、これらのコンテンツを当サービス運営者の事前の書面による許可なく、複製・転載・公衆送信・改変・販売等の行為を行うことはできません。",
     ],
   },
   {
@@ -84,7 +85,7 @@ const termsSections = [
     title: "第10条（お問い合わせ）",
     body: ["本規約に関するお問い合わせは、本サービス内のお問い合わせフォームよりご連絡ください。"],
   },
-];
+] as const;
 
 export const metadata: Metadata = {
   title: "利用規約 | 白の魔女ルミナの占い",
@@ -103,8 +104,8 @@ export default function TermsPage() {
         <section className="space-y-3">
           <p className="text-xs uppercase tracking-[0.2em] text-[#8a7a66]">Terms of Service</p>
           <div className="space-y-2">
-            <h2 className="text-xl font-medium text-[#2e2a26]">白の魔女ルミナの占い</h2>
-            <p>制定日：{establishedAt}</p>
+            <h2 className="text-xl font-medium text-[#2e2a26]">白の魔女ルミナの占い 利用規約</h2>
+            <p>制定日: {establishedAt}</p>
           </div>
           <p>
             本利用規約（以下「本規約」といいます）は、「白の魔女ルミナの占い」（以下「本サービス」といいます）をご利用いただくすべての方
@@ -126,7 +127,7 @@ export default function TermsPage() {
             ) : (
               section.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)
             )}
-            {section.items ? (
+            {"items" in section && section.items ? (
               <ul className="list-disc space-y-2 pl-5">
                 {section.items.map((item) => (
                   <li key={item}>{item}</li>
@@ -137,7 +138,7 @@ export default function TermsPage() {
         ))}
 
         <section className="space-y-2 border-t border-[#e7dcc7]/70 pt-5 text-xs text-[#6f6355]">
-          <p>制定日：{establishedAt}</p>
+          <p>制定日: {establishedAt}</p>
           <p>白の魔女ルミナの占い 運営者</p>
         </section>
       </GlassCard>
