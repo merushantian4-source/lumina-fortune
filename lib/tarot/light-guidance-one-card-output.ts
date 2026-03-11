@@ -39,15 +39,22 @@ function trimSentenceCount(text: string, min: number, max: number): string {
 
 function inferIntro(theme: LightGuidanceTheme, message: string): string {
   const text = message.trim();
-  if (/気持ち|本音|どう思/.test(text)) return "お相手のお気持ちですね。では、カードから見ていきますね。";
-  if (/復縁|戻れ|やり直/.test(text)) return "このご縁の流れですね。では、静かに見ていきますね。";
+  if (/復縁|元[彼カレ女ジョ]|やり直|よりを戻|戻れ/.test(text)) {
+    return "復縁の可能性を静かに見ていきますね。";
+  }
+  if (/結婚|結婚運|けっこん|婚活|入籍|プロポーズ/.test(text)) {
+    return "結婚の流れについて見ていきましょう。";
+  }
+  if (/気持ち|本音|どう思/.test(text)) return "お相手のお気持ちの流れを見ていきますね。";
+  if (/恋愛|恋|好き|片思い|彼氏|彼女/.test(text)) return "恋の流れを見ていきましょう。";
   if (/仕事|転職|職場|働/.test(text)) return "お仕事の流れですね。では、この一枚から読み解いていきますね。";
   if (/人間関係|友達|家族/.test(text)) return "その関わりの流れですね。では、カードから見ていきますね。";
 
   switch (theme) {
     case "love":
+      return "恋の流れを見ていきましょう。";
     case "marriage":
-      return "恋の流れですね。では、カードから見ていきますね。";
+      return "結婚の流れについて見ていきましょう。";
     case "work":
       return "お仕事の流れですね。では、この一枚から読み解いていきますね。";
     case "money":
@@ -202,7 +209,12 @@ export function ensureLightGuidanceOneCardOutput(
   const parsed = parseJsonObject(rawText) ?? salvageFreeformSections(rawText, theme, card, message);
   luminaDevLog("[lumina] parsed response:", parsed);
 
-  const intro = ensureSentenceEnding(parsed?.intro?.trim() || inferIntro(theme, message));
+  const inferredIntro = inferIntro(theme, message);
+  const introSource =
+    theme === "love" || theme === "marriage"
+      ? inferredIntro
+      : parsed?.intro?.trim() || inferredIntro;
+  const intro = ensureSentenceEnding(introSource);
   const readingShort = trimSentenceCount(parsed?.readingShort ?? "", 1, 1) || buildFallbackReadingShort(card, theme, message);
   const readingDetail = trimSentenceCount(parsed?.readingDetail ?? "", 3, 5) || buildFallbackReadingDetail(card, theme, message);
 

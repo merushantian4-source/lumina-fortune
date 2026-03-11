@@ -376,7 +376,8 @@ const PRESET_FORTUNE_QUESTIONS: Array<{
 }> = [
   { question: "彼は私のことをどう思っていますか？", theme: "love" },
   { question: "この恋のゆくえを占って", theme: "love" },
-  { question: "復縁できますか？", theme: "marriage" },
+  { question: "復縁できますか？", theme: "love" },
+  { question: "結婚できますか？", theme: "marriage" },
   { question: "転職はうまくいきますか？", theme: "work" },
   { question: "今の運気はどうなっていますか？", theme: "future" },
   { question: "いつ頃運気の流れが変わりますか？", theme: "future" },

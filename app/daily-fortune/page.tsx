@@ -446,6 +446,16 @@ function buildFallbackDailyFortune(card: DrawnCard, profile: DailyFortuneProfile
   });
 }
 
+function isDailyFortuneTransportErrorText(text: string | null | undefined) {
+  const normalized = text?.trim();
+  if (!normalized) return false;
+
+  return (
+    normalized.includes("ルミナさんとの通信に失敗しました。") ||
+    normalized.includes("占い結果の取得に失敗しました。")
+  );
+}
+
 function encodeCookiePayload(payload: DailyFortuneCookiePayload): string {
   const json = JSON.stringify(payload);
   const utf8 = new TextEncoder().encode(json);
@@ -599,6 +609,7 @@ export default function DailyFortunePage() {
 
     return sections;
   }, [fortuneSections]);
+  const hasDisplayReading = Boolean((fullText ?? "").trim() || (summary ?? "").trim());
   const sharePreview = useMemo(() => {
     const sourceText = (fullText ?? "").trim();
     const fallback = (summary ?? "").trim();
@@ -812,17 +823,21 @@ export default function DailyFortunePage() {
       const resolvedText = data.text
         ? sanitizeFortuneText(normalizeOrientationMentions(data.text, card))
         : null;
-      setFullText(resolvedText);
+      const finalText =
+        resolvedText && !isDailyFortuneTransportErrorText(resolvedText)
+          ? resolvedText
+          : sanitizeFortuneText(normalizeOrientationMentions(buildFallbackDailyFortune(card, profile), card));
+      setFullText(finalText);
 
-      if (resolvedText) {
-        const topWhisper = extractTopWhisper(resolvedText, card.meaningJa);
+      if (finalText) {
+        const topWhisper = extractTopWhisper(finalText, card.meaningJa);
         const payload: DailyFortuneCookiePayload = {
           dateKey: getJstDateKey(),
           result: {
             cardId: card.id,
             reversed: card.reversed,
             summary: card.meaningJa,
-            fullText: resolvedText,
+            fullText: finalText,
           },
         };
         setCookieValue(
@@ -849,8 +864,9 @@ export default function DailyFortunePage() {
         setHasTodayResult(true);
         void fetchRecentCards();
       }
-    } catch {
+    } catch (caughtError) {
       if (requestIdRef.current !== requestId) return;
+      console.error("Daily fortune request failed; using fallback reading.", caughtError);
       const fallbackText = sanitizeFortuneText(
         normalizeOrientationMentions(buildFallbackDailyFortune(card, profile), card)
       );
@@ -1171,7 +1187,7 @@ export default function DailyFortunePage() {
                 </span>
               </button>
 
-              {error ? <p className="text-sm text-red-700">{error}</p> : null}
+              {error && !hasDisplayReading ? <p className="text-sm text-red-700">{error}</p> : null}
 
               {isFlipped && !flipFinished ? (
                 <p className="text-sm text-amber-800/80">カードを読み解いています…</p>
@@ -1211,7 +1227,7 @@ export default function DailyFortunePage() {
                     </div>
                   </div>
 
-                  {error ? (
+                  {error && !hasDisplayReading ? (
                     <div className="mt-4 rounded-xl border border-red-200 bg-red-50/80 p-3">
                       <p className="text-sm text-red-700">{error}</p>
                     </div>

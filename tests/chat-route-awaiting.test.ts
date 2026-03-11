@@ -223,6 +223,14 @@ async function run() {
   await assertShortThemeIntentStartsFortune("金運は？", "money");
   await assertShortThemeIntentStartsFortune("けっこん運", "marriage");
 
+  const reunion = await postChat("復縁できますか？");
+  assertFortuneResponse(reunion, "love");
+  assert.match(reunion.text!, /復縁の可能性を静かに見ていきますね。/);
+
+  const marriage = await postChat("結婚できますか？");
+  assertFortuneResponse(marriage, "marriage");
+  assert.match(marriage.text!, /結婚の流れについて見ていきましょう。/);
+
   hasUsedLightGuidanceTodayMock = false;
   markLightGuidanceUsedCallCount = 0;
   const productionFortune = await withNodeEnv("production", () =>
@@ -248,7 +256,7 @@ async function run() {
   assert.equal(productionGate.conversationState?.phase, "followup");
   assert.equal(productionGate.conversationState?.awaitingFortuneResult, false);
 
-  assert.equal(createCallCount, 13);
+  assert.equal(createCallCount, 15);
 }
 
 run()
