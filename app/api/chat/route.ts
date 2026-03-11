@@ -705,12 +705,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: moderation.error }, { status: 400 });
       }
 
-      const rateLimit = await checkModerationPostInterval(
-        resolveModerationUserKey(request, [rawUserKey])
-      );
-      if (!rateLimit.ok) {
-        return NextResponse.json({ error: rateLimit.error }, { status: 400 });
-      }
     }
     const incomingConversationState = normalizeTarotChatConversationState(body.conversationState);
     const trimmedMessage = message?.trim() || "こんにちは";
@@ -1026,6 +1020,18 @@ export async function POST(request: Request) {
             awaitingTheme: false,
           };
         }
+      }
+    }
+
+    console.log("[lumina] resolvedMode:", resolvedMode);
+    console.log("[lumina] rate limit:", resolvedMode === "fortune" ? "skipped" : "applied");
+
+    if (resolvedMode !== "fortune") {
+      const rateLimit = await checkModerationPostInterval(
+        resolveModerationUserKey(request, [rawUserKey])
+      );
+      if (!rateLimit.ok) {
+        return NextResponse.json({ error: rateLimit.error }, { status: 400 });
       }
     }
 

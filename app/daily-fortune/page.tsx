@@ -10,7 +10,7 @@ import { PageShell } from "@/components/ui/page-shell";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton, LuminaLinkButton } from "@/components/ui/button";
 import { pickHakuMessage } from "@/lib/haku-messages";
-import { parseDailyFortuneSections } from "@/lib/daily-fortune-output";
+import { ensureFortuneOutputFormat, parseDailyFortuneSections } from "@/lib/daily-fortune-output";
 import { runClientModerationCheck } from "@/lib/moderation/clientCheck";
 import { getOrCreateChatVisitorKey } from "@/lib/membership";
 import type { FortuneSection } from "@/lib/types/content";
@@ -342,6 +342,13 @@ function getJstDateKey(date = new Date()) {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+function getJstWeekdayJa(date = new Date()) {
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: DAILY_FORTUNE_TIMEZONE,
+    weekday: "long",
+  }).format(date);
+}
+
 function getJstMonthDayKey(date = new Date()) {
   const { month, day } = getJstDateParts(date);
   return `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -420,6 +427,23 @@ function getSpecialFortuneEvent(profile: DailyFortuneProfile): SpecialFortuneEve
 function getTodayLabel() {
   const { year, month, day } = getJstDateParts();
   return `${year}年${month}月${day}日`;
+}
+
+function buildFallbackDailyFortune(card: DrawnCard, profile: DailyFortuneProfile) {
+  const reading = card.reversed
+    ? `${card.nameJa}が示すテーマは「${card.meaningJa}」です。
+今は少し気持ちや流れを整えながら進むことで、見えてくるものが増えやすいでしょう。
+急いで答えを出すより、自分の感覚を信じて丁寧に進めることが今日の助けになります。`
+    : `${card.nameJa}が示すテーマは「${card.meaningJa}」です。
+努力してきたことが少しずつ形になりやすく、前向きな流れを受け取りやすい日でしょう。
+今日は自信を持って、今できることをひとつ進めてみてください。`;
+
+  return ensureFortuneOutputFormat(reading, [{ name: card.nameJa, reversed: card.reversed }], {
+    nickname: profile.nickname,
+    job: profile.job,
+    loveStatus: profile.loveStatus,
+    weekdayJa: getJstWeekdayJa(),
+  });
 }
 
 function encodeCookiePayload(payload: DailyFortuneCookiePayload): string {
@@ -766,8 +790,9 @@ export default function DailyFortunePage() {
       flipTimerRef.current = null;
     }, flipDelay);
 
+    const profile = loadProfileForDailyFortune();
+
     try {
-      const profile = loadProfileForDailyFortune();
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -824,9 +849,29 @@ export default function DailyFortunePage() {
         setHasTodayResult(true);
         void fetchRecentCards();
       }
-    } catch (err) {
+    } catch {
       if (requestIdRef.current !== requestId) return;
-      setError(err instanceof Error ? err.message : "通信エラーが発生しました。");
+      const fallbackText = sanitizeFortuneText(
+        normalizeOrientationMentions(buildFallbackDailyFortune(card, profile), card)
+      );
+      const payload: DailyFortuneCookiePayload = {
+        dateKey: getJstDateKey(),
+        result: {
+          cardId: card.id,
+          reversed: card.reversed,
+          summary: card.meaningJa,
+          fullText: fallbackText,
+        },
+      };
+      setFullText(fallbackText);
+      setError(null);
+      setCookieValue(
+        DAILY_FORTUNE_COOKIE_NAME,
+        encodeCookiePayload(payload),
+        DAILY_FORTUNE_COOKIE_MAX_AGE_SECONDS
+      );
+      setHasTodayResult(true);
+      void fetchRecentCards();
     } finally {
       if (requestIdRef.current === requestId) {
         flipLockRef.current = false;
