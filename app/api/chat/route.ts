@@ -44,6 +44,7 @@ import {
 import { checkModerationPostInterval, resolveModerationUserKey } from "@/lib/moderation/rateLimit";
 import { validateModerationText } from "@/lib/moderation/validateText";
 import { PRESET_FORTUNE_QUESTIONS } from "@/lib/preset-fortune-questions";
+import { hasUsedLightGuidanceToday, markLightGuidanceUsed } from "@/lib/light-guidance-usage";
 import type { ChatMessagePart } from "@/lib/chat-message-parts";
 
 type RequestBody = {
