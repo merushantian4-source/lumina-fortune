@@ -31,6 +31,7 @@ type NavigationCard = {
   href: string;
   ctaLabel: string;
   badge?: string;
+  ctaStyle?: "default" | "gold-button";
 };
 
 type SectionGroup = {
@@ -245,7 +246,13 @@ function NavigationCardItem({ item, featured = false, compact = false }: { item:
         ) : null}
       </div>
       {compact ? null : (
-        item.ctaLabel ? <p className="mt-3 text-[12px] font-medium tracking-[0.08em] text-[#b09a6f] group-hover:text-[#9a8455]">{item.ctaLabel} →</p> : null
+        item.ctaLabel ? (
+          item.ctaStyle === "gold-button" ? (
+            <span className="mt-3 inline-flex items-center justify-center rounded-full border border-[#c7ab73]/90 bg-[#c1a062] px-5 py-2 text-sm font-medium text-white transition group-hover:bg-[#b59558]">{item.ctaLabel}</span>
+          ) : (
+            <p className="mt-3 text-[12px] font-medium tracking-[0.08em] text-[#b09a6f] group-hover:text-[#9a8455]">{item.ctaLabel} →</p>
+          )
+        ) : null
       )}
     </SmartLink>
   );
@@ -383,8 +390,6 @@ export function WelcomeScreen({ initialDailyWhisper, serverBirthdate = null, onS
   return (
     <TarotContext.Provider value={onStartTarot}>
       <div className="relative min-h-screen overflow-hidden px-0 py-5 sm:py-7">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(247,244,237,0.32)_0%,rgba(245,240,230,0.22)_46%,rgba(247,244,237,0.32)_100%)]" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(circle_at_top,rgba(255,252,245,0.5),transparent_72%)]" />
 
         <section className="relative mx-auto w-full max-w-6xl px-4">
           <motion.div

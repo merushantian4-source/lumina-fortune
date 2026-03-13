@@ -82,9 +82,7 @@ export default function CompatibilityPage() {
     setErrorMessage("");
 
     if (!myBirthdate || !partnerBirthdate) {
-      setErrorMessage(
-        "\u3042\u306a\u305f\u3068\u304a\u76f8\u624b\u3001\u4e21\u65b9\u306e\u751f\u5e74\u6708\u65e5\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
-      );
+      setErrorMessage("あなたとお相手、両方の生年月日を入力してください。");
       return;
     }
 
@@ -100,25 +98,23 @@ export default function CompatibilityPage() {
       });
     } catch {
       setResult(null);
-      setErrorMessage(
-        "\u751f\u5e74\u6708\u65e5\u306f YYYY-MM-DD \u306e\u5f62\u5f0f\u3067\u6b63\u3057\u304f\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044\u3002",
-      );
+      setErrorMessage("生年月日は YYYY-MM-DD の形式で正しく入力してください。");
     }
   };
 
   return (
     <PageShell
       maxWidth="content"
-      title="\u76f8\u6027\u5360\u3044"
-      description="\u3075\u305f\u308a\u306e\u751f\u5e74\u6708\u65e5\u304b\u3089\u3001\u95a2\u4fc2\u306e\u6d41\u308c\u3068\u5fc3\u306e\u97ff\u304d\u3092\u3084\u3055\u3057\u304f\u8aad\u307f\u89e3\u304d\u307e\u3059\u3002"
+      title="相性占い"
+      description="ふたりの生年月日から、関係の流れと心の響きをやさしく読み解きます。"
       backHref="/"
-      backLabel="\u30c8\u30c3\u30d7\u3078\u623b\u308b"
+      backLabel="トップへ戻る"
       className="font-serif"
     >
       <div className="mb-4 overflow-hidden rounded-3xl">
         <Image
           src="/gazou/aisyou.jpg"
-          alt="LUMINA\u306e\u76f8\u6027\u5360\u3044\u3002\u3075\u305f\u308a\u306e\u95a2\u4fc2\u3092\u3084\u3055\u3057\u304f\u8aad\u307f\u89e3\u304f\u30a4\u30e1\u30fc\u30b8"
+          alt="LUMINAの相性占い。ふたりの関係をやさしく読み解くイメージ"
           width={1050}
           height={500}
           className="w-full"
@@ -129,18 +125,18 @@ export default function CompatibilityPage() {
       <GlassCard className="rounded-3xl">
         <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
           <label className="block text-sm font-medium text-[#2e2a26]">
-            {"\u3042\u306a\u305f\u306e\u30cb\u30c3\u30af\u30cd\u30fc\u30e0\uff08\u4efb\u610f\uff09"}
+            あなたのニックネーム（任意）
             <input
               type="text"
               value={myNickname}
               onChange={(event) => setMyNickname(event.target.value)}
               className="lumina-input mt-2 w-full rounded-xl px-4 py-3 text-base"
-              placeholder="\u4f8b: \u3086\u308a"
+              placeholder="例: ゆり"
             />
           </label>
 
           <label className="block text-sm font-medium text-[#2e2a26]">
-            {"\u3042\u306a\u305f\u306e\u751f\u5e74\u6708\u65e5"}
+            あなたの生年月日
             <input
               type="date"
               value={myBirthdate}
@@ -151,18 +147,18 @@ export default function CompatibilityPage() {
           </label>
 
           <label className="block text-sm font-medium text-[#2e2a26]">
-            {"\u304a\u76f8\u624b\u306e\u30cb\u30c3\u30af\u30cd\u30fc\u30e0\uff08\u4efb\u610f\uff09"}
+            お相手のニックネーム（任意）
             <input
               type="text"
               value={partnerNickname}
               onChange={(event) => setPartnerNickname(event.target.value)}
               className="lumina-input mt-2 w-full rounded-xl px-4 py-3 text-base"
-              placeholder="\u4f8b: \u3042\u304a\u3044"
+              placeholder="例: あおい"
             />
           </label>
 
           <label className="block text-sm font-medium text-[#2e2a26]">
-            {"\u304a\u76f8\u624b\u306e\u751f\u5e74\u6708\u65e5"}
+            お相手の生年月日
             <input
               type="date"
               value={partnerBirthdate}
@@ -174,7 +170,7 @@ export default function CompatibilityPage() {
 
           <div className="md:col-span-2">
             <LuminaButton type="submit" className="rounded-xl px-6">
-              {"\u76f8\u6027\u3092\u8aad\u307f\u89e3\u304f"}
+              相性を読み解く
             </LuminaButton>
           </div>
         </form>
@@ -185,21 +181,21 @@ export default function CompatibilityPage() {
         <GlassCard className="mt-4 rounded-3xl">
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded-xl border border-[#e1d5bf]/72 bg-white/65 p-4">
-              <p className="text-xs tracking-wide text-[#847967]">{"\u3042\u306a\u305f"}</p>
+              <p className="text-xs tracking-wide text-[#847967]">あなた</p>
               <p className="mt-1 text-lg font-medium text-[#2e2a26]">
-                {myNickname || "\u3042\u306a\u305f"}: {fortuneNumberNames[result.myNumber]}
+                {myNickname || "あなた"}: {fortuneNumberNames[result.myNumber]}
               </p>
               <p className="mt-1 text-sm text-[#544c42]">
-                {"\u9b42\u306e\u540d"}: {result.mySoulName}
+                魂の名: {result.mySoulName}
               </p>
             </div>
             <div className="rounded-xl border border-[#e1d5bf]/72 bg-white/65 p-4">
-              <p className="text-xs tracking-wide text-[#847967]">{"\u304a\u76f8\u624b"}</p>
+              <p className="text-xs tracking-wide text-[#847967]">お相手</p>
               <p className="mt-1 text-lg font-medium text-[#2e2a26]">
-                {partnerNickname || "\u304a\u76f8\u624b"}: {fortuneNumberNames[result.partnerNumber]}
+                {partnerNickname || "お相手"}: {fortuneNumberNames[result.partnerNumber]}
               </p>
               <p className="mt-1 text-sm text-[#544c42]">
-                {"\u9b42\u306e\u540d"}: {result.partnerSoulName}
+                魂の名: {result.partnerSoulName}
               </p>
             </div>
           </div>
@@ -207,7 +203,7 @@ export default function CompatibilityPage() {
           <div className="mt-5 space-y-4 sm:space-y-5">
             <section className="rounded-[1.35rem] border border-[#e1d5bf]/72 bg-white/72 px-4 py-4 sm:px-5 sm:py-5">
               <h2 className="text-sm font-medium tracking-[0.08em] text-[#2e2a26]">
-                {"\u76f8\u6027\u306e\u7279\u5fb4"}
+                相性の特徴
               </h2>
               <div className="mt-3 space-y-3 text-sm leading-7 text-[#544c42] sm:leading-8">
                 {strengthsParagraphs.map((paragraph) => (
@@ -218,7 +214,7 @@ export default function CompatibilityPage() {
 
             <section className="rounded-[1.35rem] border border-[#e1d5bf]/72 bg-white/72 px-4 py-4 sm:px-5 sm:py-5">
               <h2 className="text-sm font-medium tracking-[0.08em] text-[#2e2a26]">
-                {"\u3064\u307e\u305a\u304d\u3084\u3059\u3044\u70b9"}
+                つまずきやすい点
               </h2>
               <div className="mt-3 space-y-3 text-sm leading-7 text-[#544c42] sm:leading-8">
                 {pitfallsParagraphs.map((paragraph) => (
@@ -229,7 +225,7 @@ export default function CompatibilityPage() {
 
             <section className="rounded-[1.35rem] border border-[#e1d5bf]/72 bg-white/72 px-4 py-4 sm:px-5 sm:py-5">
               <h2 className="text-sm font-medium tracking-[0.08em] text-[#2e2a26]">
-                {"\u3046\u307e\u304f\u3044\u304f\u30b3\u30c4"}
+                うまくいくコツ
               </h2>
               <ul className="mt-3 space-y-2.5 text-sm leading-7 text-[#544c42] sm:space-y-3">
                 {result.reading.tips.map((tip, index) => (
@@ -248,7 +244,7 @@ export default function CompatibilityPage() {
 
             <section className="rounded-[1.6rem] border border-[#d9cbe9] bg-[linear-gradient(180deg,rgba(250,246,255,0.92),rgba(244,236,252,0.86))] px-5 py-5 text-center shadow-[0_20px_40px_-30px_rgba(95,79,128,0.3)] sm:px-6 sm:py-6">
               <h2 className="text-sm font-medium tracking-[0.12em] text-[#4f4660]">
-                {"\u3072\u3068\u8a00\u30e1\u30c3\u30bb\u30fc\u30b8"}
+                ひと言メッセージ
               </h2>
               <div className="mt-3 space-y-2 text-sm leading-7 text-[#544c42] sm:text-[15px] sm:leading-8">
                 {messageParagraphs.map((paragraph) => (
@@ -259,21 +255,17 @@ export default function CompatibilityPage() {
 
             <section className="rounded-[1.45rem] border border-[#d8cde7] bg-[#f6f1fb] px-5 py-5 shadow-[0_18px_38px_-28px_rgba(95,79,128,0.24)]">
               <p className="text-sm font-medium text-[#5e5246]">
-                {
-                  "\u3082\u3063\u3068\u6df1\u304f\u77e5\u308a\u305f\u3044\u3068\u304d\u306f\u3001\u3053\u3061\u3089\u3078\u3002"
-                }
+                もっと深く知りたいときは、こちらへ。
               </p>
               <p className="mt-1 text-xs leading-relaxed text-[#7a6d60]">
-                {
-                  "\u3075\u305f\u308a\u306e\u6d41\u308c\u3092\u3001\u5bfe\u8a71\u3092\u901a\u3057\u3066\u3082\u3046\u5c11\u3057\u4e01\u5be7\u306b\u8aad\u307f\u89e3\u304f\u3053\u3068\u3082\u3067\u304d\u307e\u3059\u3002"
-                }
+                ふたりの流れを、対話を通してもう少し丁寧に読み解くこともできます。
               </p>
               <div className="mt-3">
                 <Link
                   href="/consultation"
                   className="inline-flex items-center rounded-full border border-[#cfc2e2] bg-[linear-gradient(160deg,#ffffff,#f2eafb)] px-4 py-2 text-sm font-medium text-[#5f5472] shadow-[0_10px_24px_-20px_rgba(95,79,128,0.28)] transition hover:border-[#bdaed7] hover:bg-[#f8f2ff] hover:text-[#4f4660]"
                 >
-                  {"\u5bfe\u8a71\u9451\u5b9a\u3092\u3072\u3089\u304f"}
+                  対話鑑定をひらく
                 </Link>
               </div>
             </section>
