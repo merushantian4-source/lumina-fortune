@@ -431,6 +431,87 @@ function normalizeTarotChatConversationState(
   };
 }
 
+function updateConversationState(
+  base: TarotChatConversationState,
+  patch: Partial<TarotChatConversationState>
+): TarotChatConversationState {
+  return {
+    ...base,
+    ...patch,
+  };
+}
+
+function buildIdleState(
+  base: TarotChatConversationState,
+  patch: Partial<TarotChatConversationState> = {}
+): TarotChatConversationState {
+  return updateConversationState(base, {
+    phase: "idle",
+    awaitingConsent: false,
+    awaitingTheme: false,
+    awaitingFortuneResult: false,
+    ...patch,
+  });
+}
+
+function buildIntentConfirmState(
+  base: TarotChatConversationState,
+  topic: TarotChatTheme | null,
+  patch: Partial<TarotChatConversationState> = {}
+): TarotChatConversationState {
+  return updateConversationState(base, {
+    phase: "intent_confirm",
+    topic,
+    lastTopic: topic ?? base.lastTopic,
+    awaitingTheme: false,
+    awaitingConsent: true,
+    awaitingFortuneResult: false,
+    ...patch,
+  });
+}
+
+function buildThemeSelectionState(
+  base: TarotChatConversationState,
+  patch: Partial<TarotChatConversationState> = {}
+): TarotChatConversationState {
+  return updateConversationState(base, {
+    phase: "intent_confirm",
+    awaitingTheme: true,
+    awaitingConsent: false,
+    awaitingFortuneResult: false,
+    ...patch,
+  });
+}
+
+function buildReadingState(
+  base: TarotChatConversationState,
+  topic: TarotChatTheme | null,
+  patch: Partial<TarotChatConversationState> = {}
+): TarotChatConversationState {
+  return updateConversationState(base, {
+    phase: "reading",
+    topic,
+    lastTopic: topic ?? base.lastTopic,
+    awaitingConsent: false,
+    awaitingTheme: false,
+    awaitingFortuneResult: false,
+    ...patch,
+  });
+}
+
+function buildFollowupState(
+  base: TarotChatConversationState,
+  patch: Partial<TarotChatConversationState> = {}
+): TarotChatConversationState {
+  return updateConversationState(base, {
+    phase: "followup",
+    awaitingConsent: false,
+    awaitingTheme: false,
+    awaitingFortuneResult: false,
+    ...patch,
+  });
+}
+
 function detectTarotTheme(input: string): TarotChatTheme | null {
   // ① 健康は最優先
   if (HEALTH_THEME_RE.test(input)) return "health";
@@ -746,16 +827,12 @@ export async function POST(request: Request) {
     let shouldPrependThemeAcceptance = false;
     void shouldPrependThemeAcceptance;
     if (detectedTheme === "health") {
-      nextConversationState = {
-        ...nextConversationState,
-        phase: "idle",
-        awaitingConsent: false,
-        awaitingTheme: false,
+      nextConversationState = buildIdleState(nextConversationState, {
         questionStreak: 0,
         offtopicStreak: 0,
         topic: "health",
         lastTopic: "health",
-      };
+      });
     }
     const awaitingFortuneResult = isAwaitingFortuneResultFromHistory(history);
     const awaitingFollowupIntent = awaitingFortuneResult
@@ -818,15 +895,7 @@ export async function POST(request: Request) {
         return jsonChatResponse({
           text: buildRestrictedTarotReply(restrictedTopic),
           cards: null,
-          conversationState: {
-            ...nextConversationState,
-            phase: "intent_confirm",
-            topic: "health",
-            lastTopic: "health",
-            awaitingTheme: false,
-            awaitingConsent: true,
-            awaitingFortuneResult: false,
-          },
+          conversationState: buildIntentConfirmState(nextConversationState, "health"),
         });
       }
     }
@@ -839,31 +908,22 @@ export async function POST(request: Request) {
       if (
         resolvedMode === "chat" &&
         detectedTheme &&
+        explicitTarotIntent &&
         trimmedMessage.trim().length <= 120
       ) {
         resolvedMode = "fortune";
         fortunePromptMessage = toFortunePromptMessage(activeTheme, trimmedMessage);
-        nextConversationState = {
-          ...nextConversationState,
-          phase: "reading",
-          topic: activeTheme,
-          lastTopic: activeTheme,
-          awaitingConsent: false,
-          awaitingTheme: false,
-        };
+        nextConversationState = buildReadingState(nextConversationState, activeTheme);
       }
 
-      if (resolvedMode === "chat" && isDirectFortuneStartInput(trimmedMessage, activeTheme)) {
+      if (
+        resolvedMode === "chat" &&
+        nextConversationState.awaitingTheme &&
+        isDirectFortuneStartInput(trimmedMessage, activeTheme)
+      ) {
         resolvedMode = "fortune";
         fortunePromptMessage = toFortunePromptMessage(activeTheme, trimmedMessage);
-        nextConversationState = {
-          ...nextConversationState,
-          phase: "reading",
-          topic: activeTheme,
-          lastTopic: activeTheme,
-          awaitingConsent: false,
-          awaitingTheme: false,
-        };
+        nextConversationState = buildReadingState(nextConversationState, activeTheme);
         shouldPrependThemeAcceptance = true;
       }
 
@@ -871,14 +931,10 @@ export async function POST(request: Request) {
         return jsonChatResponse({
           text: buildFollowupPrompt(activeTheme),
           cards: null,
-          conversationState: {
-            ...nextConversationState,
-            phase: "followup",
+          conversationState: buildFollowupState(nextConversationState, {
             topic: activeTheme,
             lastTopic: activeTheme ?? nextConversationState.lastTopic,
-            awaitingConsent: false,
-            awaitingTheme: false,
-          },
+          }),
         });
       }
 
@@ -893,26 +949,12 @@ export async function POST(request: Request) {
         if (affirmativeInput || explicitTarotIntent) {
           resolvedMode = "fortune";
           fortunePromptMessage = toFortunePromptMessage(activeTheme, trimmedMessage);
-          nextConversationState = {
-            ...nextConversationState,
-            phase: "reading",
-            topic: activeTheme,
-            lastTopic: activeTheme,
-            awaitingTheme: false,
-            awaitingConsent: false,
-          };
+          nextConversationState = buildReadingState(nextConversationState, activeTheme);
         } else {
           return jsonChatResponse({
             text: buildIntentConfirmReply(activeTheme),
             cards: null,
-            conversationState: {
-              ...nextConversationState,
-              phase: "intent_confirm",
-              topic: activeTheme,
-              lastTopic: activeTheme,
-              awaitingTheme: false,
-              awaitingConsent: true,
-            },
+            conversationState: buildIntentConfirmState(nextConversationState, activeTheme),
           });
         }
       }
@@ -927,37 +969,21 @@ export async function POST(request: Request) {
           return jsonChatResponse({
             text: buildThemeRequestedReply(),
             cards: null,
-            conversationState: {
-              ...nextConversationState,
-              phase: "intent_confirm",
-              awaitingTheme: true,
-              awaitingConsent: false,
-            },
+            conversationState: buildThemeSelectionState(nextConversationState),
           });
         }
         resolvedMode = "fortune";
         fortunePromptMessage = toFortunePromptMessage(confirmTheme, trimmedMessage);
-        nextConversationState = {
-          ...nextConversationState,
-          phase: "reading",
-          topic: confirmTheme,
-          lastTopic: confirmTheme,
-          awaitingConsent: false,
-          awaitingTheme: false,
-        };
+        nextConversationState = buildReadingState(nextConversationState, confirmTheme);
       }
 
       if (resolvedMode === "chat" && isSmalltalkLikeInput(trimmedMessage)) {
         return jsonChatResponse({
           text: buildSmalltalkReply(trimmedMessage),
           cards: null,
-          conversationState: {
-            ...nextConversationState,
-            phase: "idle",
-            awaitingConsent: false,
-            awaitingTheme: false,
+          conversationState: buildIdleState(nextConversationState, {
             offtopicStreak: Math.min((nextConversationState.offtopicStreak ?? 0) + 1, 3),
-          },
+          }),
         });
       }
 
@@ -965,12 +991,7 @@ export async function POST(request: Request) {
         return jsonChatResponse({
           text: buildThemeChoicePrompt(),
           cards: null,
-          conversationState: {
-            ...nextConversationState,
-            phase: "intent_confirm",
-            awaitingTheme: true,
-            awaitingConsent: false,
-          },
+          conversationState: buildThemeSelectionState(nextConversationState),
         });
       }
 
@@ -978,14 +999,21 @@ export async function POST(request: Request) {
         return jsonChatResponse({
           text: buildIntentConfirmReply(activeTheme),
           cards: null,
-          conversationState: {
-            ...nextConversationState,
-            phase: "intent_confirm",
-            topic: activeTheme,
-            lastTopic: activeTheme,
-            awaitingTheme: false,
-            awaitingConsent: true,
-          },
+          conversationState: buildIntentConfirmState(nextConversationState, activeTheme),
+        });
+      }
+
+      if (
+        resolvedMode === "chat" &&
+        detectedTheme &&
+        !explicitTarotIntent &&
+        !nextConversationState.awaitingTheme &&
+        !nextConversationState.awaitingConsent
+      ) {
+        return jsonChatResponse({
+          text: buildIntentConfirmReply(detectedTheme),
+          cards: null,
+          conversationState: buildIntentConfirmState(nextConversationState, detectedTheme),
         });
       }
 
@@ -995,24 +1023,12 @@ export async function POST(request: Request) {
           return jsonChatResponse({
             text: buildThemeChoicePrompt(),
             cards: null,
-            conversationState: {
-              ...nextConversationState,
-              phase: "intent_confirm",
-              awaitingTheme: true,
-              awaitingConsent: false,
-            },
+            conversationState: buildThemeSelectionState(nextConversationState),
           });
         }
         resolvedMode = "fortune";
         fortunePromptMessage = toFortunePromptMessage(confirmTheme, trimmedMessage);
-        nextConversationState = {
-          ...nextConversationState,
-          phase: "reading",
-          topic: confirmTheme,
-          lastTopic: confirmTheme,
-          awaitingTheme: false,
-          awaitingConsent: false,
-        };
+        nextConversationState = buildReadingState(nextConversationState, confirmTheme);
       }
 
       if (
@@ -1025,20 +1041,10 @@ export async function POST(request: Request) {
         if (followupTheme) {
           resolvedMode = "fortune";
           fortunePromptMessage = toFortunePromptMessage(followupTheme, trimmedMessage);
-          nextConversationState = {
-            ...nextConversationState,
-            phase: "reading",
-            topic: followupTheme,
-            lastTopic: followupTheme,
-            awaitingConsent: false,
-            awaitingTheme: false,
-          };
+          nextConversationState = buildReadingState(nextConversationState, followupTheme);
         }
       }
     }
-
-    console.log("[lumina] resolvedMode:", resolvedMode);
-    console.log("[lumina] rate limit:", resolvedMode === "fortune" ? "skipped" : "applied");
 
     const nextLightGuidanceCount =
       resolvedMode === "fortune"
@@ -1049,14 +1055,9 @@ export async function POST(request: Request) {
       return jsonChatResponse({
         text: "このセッションでの光の導きはここまでです。少し間をあけて、また新しい流れで受け取りましょう。",
         cards: null,
-        conversationState: {
-          ...nextConversationState,
-          phase: "followup",
-          awaitingConsent: false,
-          awaitingTheme: false,
-          awaitingFortuneResult: false,
+        conversationState: buildFollowupState(nextConversationState, {
           lightGuidanceCount: LIGHT_GUIDANCE_SESSION_LIMIT,
-        },
+        }),
       });
     }
 
@@ -1093,7 +1094,6 @@ export async function POST(request: Request) {
     }
 
     if (
-      false &&
       resolvedMode === "fortune" &&
       !isPaidMember(profile) &&
       !awaitingFortuneResult &&
@@ -1112,15 +1112,10 @@ export async function POST(request: Request) {
             text: "今日の1枚はここまでです",
             gate: buildLightGuidanceGatePayload(),
             cards: null,
-            conversationState: {
-              ...nextConversationState,
-              phase: "followup",
-              awaitingConsent: false,
-              awaitingTheme: false,
+            conversationState: buildFollowupState(nextConversationState, {
               questionStreak: 0,
               offtopicStreak: 0,
-              awaitingFortuneResult: false,
-            },
+            }),
           });
         }
       }
@@ -1230,9 +1225,6 @@ export async function POST(request: Request) {
     let rawText = completion.choices[0].message?.content || "";
     if (resolvedMode === "fortune") {
       luminaDevLog("[lumina] raw model response:", rawText);
-    }
-    if (resolvedMode === "daily-fortune") {
-      console.log("[daily-fortune] rawText length:", rawText.length, "starts:", rawText.slice(0, 80));
     }
     const isHealthThemeFortune =
       resolvedMode === "fortune" && nextConversationState.topic === "health";
@@ -1347,7 +1339,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (false && resolvedMode === "fortune" && !isPaidMember(profile) && !isLuminaDevMode) {
+    if (resolvedMode === "fortune" && !isPaidMember(profile) && !isLuminaDevMode) {
       try {
         await markLightGuidanceUsed(resolveLightGuidanceUserKey(profile), dailyDateKey);
       } catch {

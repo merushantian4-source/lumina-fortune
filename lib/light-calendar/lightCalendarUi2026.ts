@@ -69,7 +69,7 @@ const BADGE_MASTER: Record<LightDayBadgeType, LightDayBadge> = {
   tsuchinotomi: {
     type: "tsuchinotomi",
     label: "己巳の日",
-    shortLabel: "己巳の日",
+    shortLabel: "己巳",
     priority: 75,
     tone: "best",
   },
@@ -93,6 +93,10 @@ function sortBadges(badges: LightDayBadge[]) {
   return [...badges].sort((a, b) => b.priority - a.priority);
 }
 
+function pickPrimaryBadge(badges: LightDayBadge[]) {
+  return sortBadges(badges)[0] ?? null;
+}
+
 function makeDay(
   date: string,
   badgeTypes: LightDayBadgeType[],
@@ -107,7 +111,7 @@ function makeDay(
   return {
     date,
     badges,
-    primaryBadge: badges[0] ?? null,
+    primaryBadge: pickPrimaryBadge(badges),
     headline,
     softMessage,
     actionTip: options?.actionTip,
@@ -115,14 +119,14 @@ function makeDay(
   };
 }
 
-const lightCalendarUiOverrides2026: Record<string, LightDayUi> = {
+export const lightCalendarUiMarch2026: Record<string, LightDayUi> = {
   "2026-03-04": makeDay(
     "2026-03-04",
     ["ichiryumanbai"],
     "小さな一歩が実りにつながる日",
     "今日は蒔いた種がふくらみやすい流れです。大きく動くよりも、未来につながる小さな着手を大切にすると光が育っていきます。",
     {
-      actionTip: "申込み、勉強開始、発信の初投稿に向く日。",
+      actionTip: "申込み、口座づくり、勉強開始、発信の初投稿に向く日。",
     }
   ),
   "2026-03-05": makeDay(
@@ -224,6 +228,7 @@ function hasDate(dates: readonly string[], date: string): boolean {
 
 function getBadgeTypesForDate(date: string): LightDayBadgeType[] {
   const badgeTypes: LightDayBadgeType[] = [];
+
   if (hasDate(lightCalendar2026.luckyDays.tenshaNichi, date)) badgeTypes.push("tensha");
   if (hasDate(lightCalendar2026.luckyDays.ichiryumanbai, date)) badgeTypes.push("ichiryumanbai");
   if (hasDate(lightCalendar2026.luckyDays.taian, date)) badgeTypes.push("taian");
@@ -232,21 +237,24 @@ function getBadgeTypesForDate(date: string): LightDayBadgeType[] {
   if (hasDate(lightCalendar2026.luckyDays.miNoHi, date)) badgeTypes.push("mi");
   if (getHolidayLabel(date)) badgeTypes.push("holiday");
   if (hasDate(lightCalendar2026.luckyDays.fujoujuNichi, date)) badgeTypes.push("fujouju");
+
   return badgeTypes;
 }
 
 function buildGenericHeadline(primaryBadge: LightDayBadge | null, badges: LightDayBadge[]): string {
-  if (!primaryBadge) return "穏やかな通常日";
+  if (!primaryBadge) return "穏やかに過ごしたい日";
+
   const hasCaution = badges.some((badge) => badge.type === "fujouju");
-  if (primaryBadge.type === "tensha") return "特別な追い風を感じやすい日";
+
+  if (primaryBadge.type === "tensha") return "特別感のある強い開運日";
   if (primaryBadge.type === "ichiryumanbai") return "小さな行動が実りにつながりやすい日";
-  if (primaryBadge.type === "taian" && hasCaution) return "慎重さも意識したい安定日";
-  if (primaryBadge.type === "taian") return "安心感のある穏やかな吉日";
-  if (primaryBadge.type === "tsuchinotomi") return "金運と祈りに意識を向けたい日";
-  if (primaryBadge.type === "tora") return "軽やかな前進に向く日";
-  if (primaryBadge.type === "mi") return "金運や持ち物を整えたい日";
-  if (primaryBadge.type === "holiday") return "節目をやさしく味わいたい日";
-  return "無理に進めず整えることを優先したい日";
+  if (primaryBadge.type === "taian" && hasCaution) return "吉意はありつつ慎重さも持ちたい日";
+  if (primaryBadge.type === "taian") return "安心して進めやすい安定日";
+  if (primaryBadge.type === "tsuchinotomi") return "金運とご縁を丁寧に育てたい日";
+  if (primaryBadge.type === "tora") return "軽やかな前進と巡りを意識したい日";
+  if (primaryBadge.type === "mi") return "金運や感性を整えるのに向く日";
+  if (primaryBadge.type === "holiday") return "余白を活かして整えたい日";
+  return "無理せず慎重に整えたい日";
 }
 
 function buildGenericSoftMessage(
@@ -256,52 +264,53 @@ function buildGenericSoftMessage(
 ): string {
   const hasCaution = badges.some((badge) => badge.type === "fujouju");
   const holiday = getHolidayLabel(date);
+
   if (!primaryBadge) {
-    return "大きな吉日ではありませんが、呼吸を整えて過ごすことで静かな追い風を受け取りやすい日です。";
+    return "大きな吉日ではないぶん、気持ちや予定を整えながら軽やかに過ごしたい日です。";
   }
   if (primaryBadge.type === "tensha") {
-    return "天赦日らしく、新しい流れに心を開きやすい日です。前向きな決断や使い始めに光が差し込みやすいでしょう。";
+    return "天赦日の追い風がある日です。新しい決断や区切りをつけたいことに、やさしい後押しが入りやすいでしょう。";
   }
   if (primaryBadge.type === "ichiryumanbai") {
-    return "一粒万倍日の光が流れる日です。未来につながる小さな着手を大切にすると、後から意味を持って育ちやすくなります。";
+    return "一粒万倍日の流れがあり、小さな着手が後から実りにつながりやすい日です。完璧さより始めることを大切に。";
   }
   if (primaryBadge.type === "taian") {
     return hasCaution
-      ? "大安の安心感はありますが、不成就日も重なるため、勢いだけで決めるより丁寧な確認を挟むと落ち着いて進めやすい日です。"
-      : "大安らしく全体にやわらかく整いやすい日です。安心して進めたい予定と相性がよいでしょう。";
+      ? "大安の安心感はありますが、急ぎすぎるより条件確認を丁寧にしたい日です。"
+      : "全体がやわらかく整いやすく、安心して進めたい予定と相性がよい日です。";
   }
   if (primaryBadge.type === "tsuchinotomi") {
-    return "己巳の日は、金運や弁財天とのご縁を意識した行動と相性がよい日です。感謝を込めて整えるほど流れが軽くなります。";
+    return "己巳の日らしく、金運や豊かさにまつわる願いを丁寧に扱うことで流れが整いやすい日です。";
   }
   if (primaryBadge.type === "tora") {
-    return "寅の日は、前向きな出費や行動のスタートに明るさが出やすい日です。軽やかに動くほど追い風を感じやすくなります。";
+    return "寅の日は前向きなお金の巡りや行動力と相性がよい日です。価値ある使い方を意識すると流れが軽くなります。";
   }
   if (primaryBadge.type === "mi") {
     return hasCaution
-      ? "巳の日のめぐりはありますが、不成就日も重なるため、大きな勝負よりも浄化や整理、見直しに寄せるほうが穏やかです。"
-      : "巳の日は、金運や弁財天にまつわる行動と相性がよい日です。お金や持ち物を整えることで流れが軽やかになります。";
+      ? "巳の日の良さはありますが、勢いで決めきるより浄化や見直しに寄せると穏やかです。"
+      : "巳の日のやわらかな流れがあり、お金や持ち物、感性を整えるのに向く日です。";
   }
   if (primaryBadge.type === "holiday") {
-    return `今日は${holiday ?? "祝日"}です。急ぎすぎず、心と暮らしの余白を取り戻すように過ごすとやわらかな流れにつながります。`;
+    return `${holiday ?? "祝日"}です。予定を詰め込みすぎず、休息や見直しに少し時間を使うと整いやすいでしょう。`;
   }
-  return "今日は結果を急がず、見直しや準備を丁寧に重ねると穏やかに過ごしやすい日です。";
+  return "今日は結果を急がず、準備や確認を優先するほうが流れに合いやすい日です。";
 }
 
 function buildGenericActionTip(primaryBadge: LightDayBadge | null): string | undefined {
   if (!primaryBadge) return undefined;
-  if (primaryBadge.type === "tensha") return "新しい挑戦、使い始め、申し込みのスタートに。";
+  if (primaryBadge.type === "tensha") return "新しい挑戦、申し込み、使い始めに。";
   if (primaryBadge.type === "ichiryumanbai") return "申込み、勉強開始、発信の初投稿に。";
-  if (primaryBadge.type === "taian") return "予約、相談、提出ごとを落ち着いて進めたい日に。";
+  if (primaryBadge.type === "taian") return "予約、相談、提出ごとに。";
   if (primaryBadge.type === "tsuchinotomi" || primaryBadge.type === "mi") {
-    return "財布の整理、出費の見直し、参拝、持ち物の手入れに。";
+    return "財布の整理、参拝、持ち物の見直しに。";
   }
-  if (primaryBadge.type === "tora") return "買い物、旅の計画、前向きな着手に。";
+  if (primaryBadge.type === "tora") return "買い物、使い始め、前向きな投資の検討に。";
   return undefined;
 }
 
 function buildGenericCaution(badges: LightDayBadge[]): string | undefined {
   return badges.some((badge) => badge.type === "fujouju")
-    ? "契約や一発勝負は慎重に。決める前に条件の見直しを。"
+    ? "大きな決断は急がず、最終確認を丁寧に。"
     : undefined;
 }
 
@@ -310,7 +319,7 @@ function buildGenericDay(date: string): LightDayUi | null {
   if (badgeTypes.length === 0) return null;
 
   const badges = sortBadges(badgeTypes.map((type) => BADGE_MASTER[type]));
-  const primaryBadge = badges[0] ?? null;
+  const primaryBadge = pickPrimaryBadge(badges);
 
   return {
     date,
@@ -324,15 +333,20 @@ function buildGenericDay(date: string): LightDayUi | null {
 }
 
 export function getLightCalendarUi(date: string): LightDayUi | null {
-  return lightCalendarUiOverrides2026[date] ?? buildGenericDay(date);
+  return lightCalendarUiMarch2026[date] ?? buildGenericDay(date);
 }
 
-export function getCalendarCellBadges(date: string): LightDayBadge[] {
+export function getCalendarCellBadges(date: string) {
   return getLightCalendarUi(date)?.badges.slice(0, 2) ?? [];
+}
+
+export function getCalendarModalData(date: string) {
+  return getLightCalendarUi(date);
 }
 
 export function getCellAccent(date: string): "normal" | "gold" | "warm" | "muted" {
   const primary = getLightCalendarUi(date)?.primaryBadge;
+
   if (!primary) return "normal";
   if (primary.tone === "best") return "gold";
   if (primary.tone === "good") return "warm";

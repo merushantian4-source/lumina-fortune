@@ -14,7 +14,8 @@
       "Bash(npx next:*)",
       "Bash(grep -E \"\\\\.\\(tsx?|json\\)$\")",
       "Bash(npx tsx:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(grep -r \"SUPABASE\" /c/Users/yuri3/lumina-fortune/.env*)"
     ]
   }
 }

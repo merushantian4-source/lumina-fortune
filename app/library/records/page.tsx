@@ -13,8 +13,8 @@ export default function RecordsPage() {
   return (
     <PageShell
       maxWidth="content"
-      title="白の庭の記録（物語）"
-      description="白の庭から白の館へ。ルミナの記録を章ごとに辿るための目次です。"
+      title="白の庭から白の館へ。"
+      description="ここは、ルミナの世界観を描いた小さな物語のコーナーです。"
       backHref="/library"
       backLabel="光の書庫へ戻る"
     >

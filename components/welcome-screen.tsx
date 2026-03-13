@@ -56,11 +56,11 @@ const loveFortuneSection: SectionGroup = {
   title: "恋愛占い",
   description: "恋の悩みに寄り添う5つの占い",
   items: [
-    { title: "片思い占い", description: "恋の行方と進展のきっかけ", href: "/uranai/kataomoi", ctaLabel: "はじめる" },
-    { title: "あの人の気持ち占い", description: "相手の本音と今の距離感", href: "/uranai/kare-no-kimochi", ctaLabel: "はじめる" },
-    { title: "復縁占い", description: "復縁の可能性と流れ", href: "/uranai/fukuen", ctaLabel: "はじめる" },
-    { title: "相性占い", description: "二人の相性とアドバイス", href: "/compatibility", ctaLabel: "見る" },
-    { title: "結婚占い", description: "結婚の時期とご縁の流れ", href: "/marriage-timing", ctaLabel: "見る" },
+    { title: "片思い占い", description: "恋の行方と進展のきっかけ", href: "/uranai/kataomoi", ctaLabel: "カードを引く" },
+    { title: "あの人の気持ち占い", description: "相手の本音と今の距離感", href: "/uranai/kare-no-kimochi", ctaLabel: "カードを引く" },
+    { title: "復縁占い", description: "復縁の可能性と流れ", href: "/uranai/fukuen", ctaLabel: "カードを引く" },
+    { title: "相性占い", description: "二人の相性とアドバイス", href: "/compatibility", ctaLabel: "生年月日で占う" },
+    { title: "結婚占い", description: "結婚の時期とご縁の流れ", href: "/marriage-timing", ctaLabel: "生年月日で占う" },
   ],
   sectionImage: "/gazou/renai.png",
 };
@@ -71,11 +71,11 @@ const fortuneSection: SectionGroup = {
   title: "運勢占い",
   description: "日々の流れを整える5つの占い",
   items: [
-    { title: "毎日の運勢", description: "今日の流れとヒント", href: "/daily-fortune", ctaLabel: "見る" },
-    { title: "毎月の運勢", description: "今月のテーマと過ごし方", href: "/fortune-monthly", ctaLabel: "見る" },
-    { title: "2026年の運勢", description: "一年全体の流れ", href: "/fortune-2026", ctaLabel: "見る" },
-    { title: "光の暦カレンダー", description: "月の満ち欠けと開運日", href: "/calendar", ctaLabel: "見る" },
-    { title: "基本性格", description: "生年月日から本質を読み解く", href: "/basic-personality", ctaLabel: "見る" },
+    { title: "毎日の運勢", description: "今日の流れとヒント", href: "/daily-fortune", ctaLabel: "生年月日で占う" },
+    { title: "毎月の運勢", description: "今月のテーマと過ごし方", href: "/fortune-monthly", ctaLabel: "生年月日で占う" },
+    { title: "2026年の運勢", description: "一年全体の流れ", href: "/fortune-2026", ctaLabel: "生年月日で占う" },
+    { title: "光の暦カレンダー", description: "月の満ち欠けと開運日", href: "/calendar", ctaLabel: "カレンダーを見る" },
+    { title: "基本性格", description: "生年月日から本質を読み解く", href: "/basic-personality", ctaLabel: "生年月日で占う" },
   ],
   sectionImage: "/gazou/unsei2.png",
 };
@@ -95,11 +95,12 @@ const mansionSection: SectionGroup = {
   id: "mansion",
   eyebrow: "Mansion",
   title: "白の館をめぐる",
+  description: "体験と実践のコーナー",
   items: [
-    { title: "光のワーク", description: "日常を整える小さな実践", href: "/light-work", ctaLabel: "はじめる" },
-    { title: "未来の手紙", description: "未来の自分へのメッセージ", href: "/future-letter", ctaLabel: "開く" },
-    { title: "音の休息室", description: "心癒される音楽と瞑想の時間", href: "/healing", ctaLabel: "開く" },
-    { title: "光の願いの庭", description: "小さな願いを残せる場所", href: "/wish-garden", ctaLabel: "開く" },
+    { title: "光のワーク", description: "日常を整える小さな実践", href: "/light-work", ctaLabel: "" },
+    { title: "未来の手紙", description: "未来の自分へのメッセージ", href: "/future-letter", ctaLabel: "" },
+    { title: "音の休息室", description: "心癒される音楽と瞑想の時間", href: "/healing", ctaLabel: "" },
+    { title: "光の願いの庭", description: "小さな願いを残せる場所", href: "/wish-garden", ctaLabel: "" },
   ],
   backgroundImage: "/gazou/sasayaki.jpg",
   backgroundOverlayClassName: "bg-[linear-gradient(135deg,rgba(255,250,244,0.62),rgba(247,240,232,0.68))]",
@@ -109,13 +110,14 @@ const recordsSection: SectionGroup = {
   id: "records",
   eyebrow: "Records",
   title: "白の書庫",
+  description: "読みものと待ち受け",
   backgroundImage: "/gazou/IMG_4219.webp",
   backgroundOverlayClassName: "bg-[linear-gradient(135deg,rgba(255,251,243,0.56),rgba(247,241,231,0.62))]",
   items: [
-    { title: "白の庭の記録", description: "白の館とルミナの物語をたどります。", href: "/library/records", ctaLabel: "開く" },
-    { title: "節の書簡", description: "日々を整える短い読み物です。", href: "/columns", ctaLabel: "開く" },
-    { title: "光の待ち受け", description: "静かな光を受け取る待ち受けです。", href: "/lucky-wallpapers", ctaLabel: "見る" },
-    { title: "月灯りの間", description: "静かな動画をゆっくり眺められます。", href: "/library/limited-video", ctaLabel: "見る" },
+    { title: "白の庭の記録", description: "白の館とルミナの物語をたどります。", href: "/library/records", ctaLabel: "" },
+    { title: "節の書簡", description: "日々を整える短い読み物です。", href: "/columns", ctaLabel: "" },
+    { title: "光の待ち受け", description: "静かな光を受け取る待ち受けです。", href: "/lucky-wallpapers", ctaLabel: "" },
+    { title: "月灯りの間", description: "静かな動画をゆっくり眺められます。", href: "/library/limited-video", ctaLabel: "" },
   ],
 };
 
@@ -124,8 +126,8 @@ const consultationSection: SectionGroup = {
   eyebrow: "Consultation",
   title: "個人相談・手紙",
   items: [
-    { title: "ルミナへの手紙", description: "今の気持ちを言葉にして届けます。", href: "/letter", ctaLabel: "開く" },
-    { title: "個人鑑定のご依頼", description: "恋愛や仕事を個別に相談できます。", href: "/consultation", ctaLabel: "はじめる" },
+    { title: "ルミナへの手紙", description: "今の気持ちを言葉にして届けます。", href: "/letter", ctaLabel: "" },
+    { title: "個人鑑定のご依頼", description: "恋愛や仕事を個別に相談できます。", href: "/consultation", ctaLabel: "" },
   ],
   backgroundImage: "/gazou/tarot.png",
   backgroundOverlayClassName: "bg-[linear-gradient(135deg,rgba(255,250,244,0.62),rgba(247,240,232,0.68))]",
@@ -239,11 +241,11 @@ function NavigationCardItem({ item, featured = false, compact = false }: { item:
           <p className="mt-1.5 text-[13px] leading-5 text-[#7a7063]">{item.description}</p>
         )}
         {compact ? (
-          <p className="ml-auto shrink-0 text-[12px] font-medium tracking-[0.08em] text-[#b09a6f] group-hover:text-[#9a8455]">{item.ctaLabel} →</p>
+          item.ctaLabel ? <p className="ml-auto shrink-0 text-[12px] font-medium tracking-[0.08em] text-[#b09a6f] group-hover:text-[#9a8455]">{item.ctaLabel} →</p> : null
         ) : null}
       </div>
       {compact ? null : (
-        <p className="mt-3 text-[12px] font-medium tracking-[0.08em] text-[#b09a6f] group-hover:text-[#9a8455]">{item.ctaLabel} →</p>
+        item.ctaLabel ? <p className="mt-3 text-[12px] font-medium tracking-[0.08em] text-[#b09a6f] group-hover:text-[#9a8455]">{item.ctaLabel} →</p> : null
       )}
     </SmartLink>
   );
@@ -278,7 +280,7 @@ function CardSection({ section, columns = "three", compact = false }: { section:
             <div className="flex flex-col gap-5 md:flex-row md:items-stretch">
               <div className="relative mx-auto aspect-[4/5] w-[60%] shrink-0 overflow-hidden rounded-2xl border border-[#e2d6c0]/60 shadow-[0_12px_32px_-12px_rgba(82,69,53,0.18)] md:mx-0 md:aspect-auto md:w-[200px]">
                 <Image src={section.sectionImage} alt="" fill className="object-cover" sizes="(max-width: 768px) 60vw, 200px" />
-                <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[linear-gradient(180deg,transparent_60%,rgba(255,250,244,0.3)_100%)]" />
+                <div className="pointer-events-none absolute inset-0 rounded-2xl bg-white/20" />
               </div>
               <div className="flex-1">
                 <SectionHeader eyebrow={section.eyebrow} title={section.title} description={section.description} />
@@ -325,6 +327,7 @@ export function WelcomeScreen({ initialDailyWhisper, serverBirthdate = null, onS
     monthlyClaimed: false,
   });
   const [visitorName, setVisitorName] = useState<string>("ゲスト");
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
 
   useEffect(() => {
     setSpecialOccasion(getSpecialOccasionEvent(getInitialBirthdate(serverBirthdate)));
@@ -338,6 +341,11 @@ export function WelcomeScreen({ initialDailyWhisper, serverBirthdate = null, onS
       const profile = rawProfile ? (JSON.parse(rawProfile) as { nickname?: string }) : {};
       const nickname = typeof profile.nickname === "string" && profile.nickname.trim() ? profile.nickname.trim() : "";
       if (nickname) setVisitorName(nickname);
+      const hasVisited = localStorage.getItem("lumina_has_visited");
+      if (!hasVisited) {
+        setIsFirstVisit(true);
+        localStorage.setItem("lumina_has_visited", "1");
+      }
       const visitorKey = makeVisitorKey(nickname);
       const previous = getVisitStreakForVisitor(localStorage, visitorKey);
       const next = updateVisitStreakForVisitor(localStorage, visitorKey);
@@ -369,8 +377,8 @@ export function WelcomeScreen({ initialDailyWhisper, serverBirthdate = null, onS
   const collectedFeathers = Math.min(visitStreak.monthlyVisitCount, 7);
   const giftStatusText =
     visitStreak.monthlyVisitCount >= 7 || visitStreak.monthlyClaimed
-      ? "今月の小さな贈り物を受け取れます。"
-      : `あと${remainingDays}回で小さな贈り物が届きます。`;
+      ? "今月の白い羽はすべて揃いました。\n来月、また新しい羽が舞い降ります。"
+      : `あと${remainingDays}枚でそろいます。`;
 
   return (
     <TarotContext.Provider value={onStartTarot}>
@@ -431,9 +439,27 @@ export function WelcomeScreen({ initialDailyWhisper, serverBirthdate = null, onS
 
         {specialOccasion ? <SpecialOccasionCard event={specialOccasion} /> : null}
 
-        <div className="mt-5">
-          <CardSection section={firstVisitSection} compact />
-        </div>
+        {isFirstVisit ? (
+          <section className="relative mx-auto mt-5 w-full max-w-6xl px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="rounded-[2rem] border-2 border-[#d4c19f]/90 bg-[linear-gradient(135deg,rgba(255,250,240,0.95),rgba(248,240,225,0.92))] px-5 py-5 shadow-[0_18px_32px_-20px_rgba(106,86,52,0.3)] sm:px-8 sm:py-6"
+            >
+              <div className="mb-4 text-center">
+                <p className="text-[11px] tracking-[0.22em] text-[#8b7e6b] uppercase">Welcome</p>
+                <h2 className="mt-1 text-xl font-medium tracking-[0.04em] text-[#2f2a25]">はじめまして、白の館へようこそ</h2>
+                <p className="mt-2 text-sm text-[#6a6054]">まずはこちらからお試しください</p>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {firstVisitSection.items.map((item) => (
+                  <NavigationCardItem key={item.href} item={item} compact />
+                ))}
+              </div>
+            </motion.div>
+          </section>
+        ) : null}
 
         <section className="relative mx-auto mt-5 w-full max-w-6xl px-4">
           <motion.div
@@ -478,7 +504,7 @@ export function WelcomeScreen({ initialDailyWhisper, serverBirthdate = null, onS
                   <FeatherIcon key={`feather-${index}`} dimmed={index >= collectedFeathers} />
                 ))}
               </div>
-              <p className="mt-2 text-sm leading-5 text-[#5e5549]">{giftStatusText}</p>
+              <p className="mt-2 whitespace-pre-line text-sm leading-5 text-[#5e5549]">{giftStatusText}</p>
               {featherNotice ? <p className="mt-1 text-xs text-[#8d816f]">{featherNotice}</p> : null}
             </article>
           </motion.div>

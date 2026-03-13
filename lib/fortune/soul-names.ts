@@ -1,15 +1,15 @@
 import type { FortuneNumber } from "@/lib/fortune/types";
 
 export const SOUL_NAME_BY_NUMBER: Record<FortuneNumber, string> = {
-  1: "黎明のひかり",
-  2: "月雫のこころ",
-  3: "花ひらく声",
-  4: "白土のまもり",
-  5: "風巡る羽",
-  6: "灯火のまなざし",
-  7: "星影の叡智",
-  8: "黄金の礎",
-  9: "満ちる慈愛",
+  1: "\u306f\u3058\u307e\u308a\u306e\u706f\u3092\u9078\u3076\u4eba",
+  2: "\u6708\u306e\u3055\u3056\u3081\u304d\u3092\u8074\u304f\u4eba",
+  3: "\u661f\u306e\u3088\u3046\u306b\u5fc3\u3092\u7167\u3089\u3059\u4eba",
+  4: "\u5927\u5730\u306b\u9858\u3044\u3092\u6839\u3065\u304b\u305b\u308b\u4eba",
+  5: "\u98a8\u3068\u3068\u3082\u306b\u9053\u3092\u958b\u304f\u4eba",
+  6: "\u3044\u3068\u3057\u3044\u5834\u6240\u3092\u80b2\u3066\u308b\u4eba",
+  7: "\u9759\u3051\u3055\u306e\u5965\u3067\u771f\u5b9f\u3092\u898b\u3064\u3081\u308b\u4eba",
+  8: "\u5149\u3092\u73fe\u5b9f\u3078\u5c4a\u3051\u308b\u4eba",
+  9: "\u3072\u3068\u3064\u306e\u611b\u3092\u6df1\u304f\u7d50\u3076\u4eba",
 };
 
 export function getSoulNameByNumber(number: FortuneNumber): string {

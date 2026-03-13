@@ -32,5 +32,11 @@
       "cardName": "ペンタクルのペイジ",
       "reversed": true
     }
+  },
+  "guest": {
+    "2026-03-13": {
+      "cardName": "塔",
+      "reversed": false
+    }
   }
 }

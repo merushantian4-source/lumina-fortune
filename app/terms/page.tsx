@@ -43,6 +43,7 @@ const sections: TermsSection[] = [
     title: "第4条（個人情報の取り扱い）",
     body: [
       "本サービスにおける個人情報の取り扱いについては、別途定める",
+      "プライバシーポリシー",
       "に従います。ユーザーが入力した情報は、サービスの提供・改善のために利用される場合があります。センシティブな個人情報（氏名・住所・電話番号・金融情報等）の入力はお控えください。",
     ],
     hasPrivacyLink: true,
@@ -105,8 +106,9 @@ export default function TermsPage() {
         <section className="space-y-3">
           <p className="text-xs uppercase tracking-[0.2em] text-[#8a7a66]">Terms of Service</p>
           <div className="space-y-2">
-            <h2 className="text-xl font-medium text-[#2e2a26]">白の魔女ルミナの占い 利用規約</h2>
-            <p>制定日: {establishedAt}</p>
+            <h2 className="text-xl font-medium text-[#2e2a26]">白の魔女ルミナの占い</h2>
+            <p className="text-base font-medium text-[#2e2a26]">利用規約</p>
+            <p>制定日：{establishedAt}</p>
           </div>
           <p>
             本利用規約（以下「本規約」といいます）は、「白の魔女ルミナの占い」（以下「本サービス」といいます）をご利用いただくすべての方
@@ -121,9 +123,9 @@ export default function TermsPage() {
               <p>
                 {section.body[0]}
                 <Link href="/privacy" className="underline decoration-[#b7a98f] underline-offset-4">
-                  プライバシーポリシー
+                  {section.body[1]}
                 </Link>
-                {section.body[1]}
+                {section.body[2]}
               </p>
             ) : (
               section.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)
@@ -139,7 +141,7 @@ export default function TermsPage() {
         ))}
 
         <section className="space-y-2 border-t border-[#e7dcc7]/70 pt-5 text-xs text-[#6f6355]">
-          <p>制定日: {establishedAt}</p>
+          <p>制定日：{establishedAt}</p>
           <p>白の魔女ルミナの占い 運営者</p>
         </section>
       </GlassCard>

@@ -363,7 +363,7 @@ export type LuckyDayKind =
   | "tsuchinotomi-no-hi";
 
 export type UnluckyDayKind = "fujouju-nichi";
-export type Rokuyo = "大安" | "赤口" | "先勝" | "先負" | "友引" | "仏滅";
+export type Rokuyo = "大安" | "赤口" | "先勝" | "友引" | "先負" | "仏滅";
 
 export type LuckyDayRecord = {
   lucky: LuckyDayKind[];
@@ -382,10 +382,10 @@ export const LUCKY_DAY_LABELS: Record<LuckyDayKind, string> = {
 
 export const LUCKY_DAY_DESCRIPTIONS: Record<LuckyDayKind, string> = {
   ichiryumanbaibi: "小さな着手が後の実りにつながりやすい日",
-  tenshabi: "新しい願いや前向きな決断を後押ししやすい特別日",
-  "tora-no-hi": "前向きな出費や旅立ちに明るさを乗せやすい日",
-  "mi-no-hi": "金運や持ち物の浄化・整理と相性のよい日",
-  "tsuchinotomi-no-hi": "弁財天とのご縁や金運祈願に向く特別な巳の日",
+  tenshabi: "新しい始まりや節目の行動を後押ししやすい日",
+  "tora-no-hi": "出ていくものが巡って戻るとされ、前向きな投資と相性が良い日",
+  "mi-no-hi": "芸術・財運・学びを静かに整えるのに向く日",
+  "tsuchinotomi-no-hi": "弁財天とのご縁が深まりやすい特別な巳の日",
 };
 
 export const UNLUCKY_DAY_LABELS: Record<UnluckyDayKind, string> = {
@@ -393,11 +393,16 @@ export const UNLUCKY_DAY_LABELS: Record<UnluckyDayKind, string> = {
 };
 
 export const UNLUCKY_DAY_DESCRIPTIONS: Record<UnluckyDayKind, string> = {
-  "fujouju-nichi": "勢いで決めるより、見直しや準備を丁寧にしたい日",
+  "fujouju-nichi": "物事が実りにくいとされるため、無理な決断は控えめに",
 };
 
 export const ROKUYO_DESCRIPTIONS: Partial<Record<Rokuyo, string>> = {
-  大安: "全体に穏やかで、安心して予定を進めやすい日",
+  大安: "全体に動きやすく、申し込みや開始に向きやすい日",
+  赤口: "急ぎすぎず、落ち着いて進めたい日",
+  先勝: "午前の行動がまとまりやすい日",
+  友引: "人との調和や共有を意識すると流れに乗りやすい日",
+  先負: "午後からゆるやかに整えていくと良い日",
+  仏滅: "無理に進めず、見直しや手放しに向く日",
 };
 
 function hasDate(dates: readonly string[], date: string): boolean {
@@ -424,17 +429,18 @@ function buildBaseBadges(date: string): LightDayBadge[] {
 function buildHeadline(primaryBadge: LightDayBadge | null, badges: LightDayBadge[]): string {
   const hasCaution = badges.some((badge) => badge.type === "fujouju");
   const strongCount = badges.filter((badge) => badge.tone === "best" || badge.tone === "good").length;
-  if (!primaryBadge) return "流れを整えて過ごしたい日";
-  if (primaryBadge.type === "tensha" && strongCount >= 3) return "特別感の強い追い風を感じやすい日";
-  if (hasCaution && primaryBadge.type !== "fujouju") return "吉意はあるけれど慎重さも忘れたくない日";
-  if (primaryBadge.type === "tensha") return "新しい願いに光を乗せやすい特別日";
-  if (primaryBadge.type === "ichiryumanbai") return "小さな一歩が未来の実りにつながりやすい日";
-  if (primaryBadge.type === "taian") return "安心感のある穏やかな吉日";
-  if (primaryBadge.type === "tsuchinotomi") return "金運と祈りの流れが濃く宿りやすい日";
-  if (primaryBadge.type === "tora") return "軽やかに動くほど追い風を感じやすい日";
-  if (primaryBadge.type === "mi") return "金運や美意識を整えるのに向く日";
-  if (primaryBadge.type === "holiday") return "暮らしの呼吸を整えやすい祝日";
-  return "無理に進めず整えることを優先したい日";
+
+  if (!primaryBadge) return "穏やかに整えて過ごしたい日";
+  if (primaryBadge.type === "tensha" && strongCount >= 3) return "特に追い風の強い開運日";
+  if (hasCaution && primaryBadge.type !== "fujouju") return "良さはあるけれど慎重さも添えたい日";
+  if (primaryBadge.type === "tensha") return "新しい一歩を後押ししやすい日";
+  if (primaryBadge.type === "ichiryumanbai") return "小さな行動が実りにつながりやすい日";
+  if (primaryBadge.type === "taian") return "全体が整いやすい安定の日";
+  if (primaryBadge.type === "tsuchinotomi") return "金運とご縁を丁寧に育てたい日";
+  if (primaryBadge.type === "tora") return "前向きなお金の巡りを意識したい日";
+  if (primaryBadge.type === "mi") return "美しさと感性を整えるのに向く日";
+  if (primaryBadge.type === "holiday") return "余白を活かして整えたい祝日";
+  return "焦らず足元を整えたい日";
 }
 
 function buildSoftMessage(date: string, primaryBadge: LightDayBadge | null, badges: LightDayBadge[]): string {
@@ -443,55 +449,56 @@ function buildSoftMessage(date: string, primaryBadge: LightDayBadge | null, badg
 
   if (!primaryBadge) {
     return holiday
-      ? `今日は${holiday.label}です。予定を詰め込みすぎず、心と暮らしの余白を取り戻すように過ごすと流れが整いやすくなります。`
-      : "派手な追い風の日ではないぶん、呼吸を整えて小さな選択を丁寧に重ねるほど、静かな安定につながりやすい日です。";
+      ? `${holiday.label}です。予定を詰め込みすぎず、心と暮らしを整える時間を意識すると穏やかに過ごせます。`
+      : "大きく動く日というより、足元を整えて次の流れに備えるのに向く日です。";
   }
   if (primaryBadge.type === "tensha") {
     return has("ichiryumanbai") || has("taian") || has("tora")
-      ? "天赦日を中心に複数の吉日が重なる華やかな開運日です。新しい願いを言葉にしたり、前向きな決断をするのにぴったりです。"
-      : "天赦日は、流れを切り替えたい時にやさしく背中を押してくれる特別日です。ためらっていたことを、明るい気持ちで始めやすいでしょう。";
+      ? "強い追い風が重なる日です。新しい宣言や申し込み、形にしたいことの着手に向きます。"
+      : "天赦日の軽やかさがあります。背負いすぎず、今の自分に必要な一歩を選ぶと流れに乗りやすくなります。";
   }
   if (primaryBadge.type === "ichiryumanbai") {
     return has("taian") || has("tora")
-      ? "一粒万倍日の伸びやかさに、大安や寅の日の動きやすさが重なる日です。勢いだけでなく安心感もあるので、前向きな着手に向いています。"
-      : "今日は蒔いた種がふくらみやすい流れです。大きく動くよりも、未来につながる小さな着手を大切にすると光が育っていきます。";
+      ? "育てたいことの種まきに向く日です。小さな着手でも後から広がりやすい流れがあります。"
+      : "完璧さより着手を優先すると良い日です。小さく始めることで次の展開につながりやすくなります。";
   }
   if (primaryBadge.type === "taian") {
-    return "大安らしく、全体にやわらかく整いやすい日です。派手さよりも、安心して進めたい予定と相性がよさそうです。";
+    return "全体が整いやすく、申し込みや約束ごとを進めやすい日です。落ち着いて決めるほど追い風を活かせます。";
   }
   if (primaryBadge.type === "tsuchinotomi") {
-    return "己巳の日は、金運や弁財天とのご縁を意識した行動に深みが出やすい日です。感謝をこめて整えるほど、めぐりがやわらかくなります。";
+    return "金運や豊かさに関わる願いを丁寧に扱いたい日です。感謝を込めた行動が巡りを整えます。";
   }
   if (primaryBadge.type === "tora") {
-    return "寅の日は、前進のエネルギーを軽やかに使いやすい日です。新しい行動や前向きな出費に、明るい流れが乗りやすくなります。";
+    return "前向きなお金の使い方や投資の見直しに向く日です。価値ある使い道を選ぶ意識が鍵になります。";
   }
   if (primaryBadge.type === "mi") {
     return has("fujouju")
-      ? "巳の日のめぐりはありますが、不成就日も重なるため、勢いで大勝負に出るより、祈りや浄化、見直しに寄せるほうが穏やかです。"
-      : "巳の日は、金運や弁財天にまつわる行動と相性がよいとされる日です。感謝をもってお金や持ち物を整えると流れが軽やかになります。";
+      ? "感性は冴えやすい一方で、強引に進めるより調整を優先したい日です。"
+      : "美しさ、学び、金運を静かに整えるのに向く日です。丁寧な手入れが流れを整えます。";
   }
   if (primaryBadge.type === "holiday") {
-    return `今日は${holiday?.label ?? "祝日"}。急いで答えを出すより、気持ちをほどきながら暮らしのリズムを整えると、静かによい流れにつながります。`;
+    return `${holiday?.label ?? "祝日"}です。休息や見直しに少し時間を使うことで、次の動きが軽くなります。`;
   }
-  return "今日は結果を急がず、流れを見直すほうが穏やかです。大切な決断より、準備や確認、手入れに光が宿ります。";
+  return "勢い任せより、確認と調整を優先すると安定しやすい日です。";
 }
 
 function buildActionTip(primaryBadge: LightDayBadge | null, badges: LightDayBadge[]): string | undefined {
   const has = (type: LightDayBadgeType) => badges.some((badge) => badge.type === type);
+
   if (!primaryBadge) return undefined;
   if (primaryBadge.type === "tensha") {
-    return "新しい挑戦、使い始め、申込み、告知、買い物のスタートにおすすめ。";
+    return "新しい申込み、使い始め、願いの言語化に。";
   }
   if (primaryBadge.type === "ichiryumanbai") {
     return has("tora")
-      ? "発信開始、学びのスタート、購入、仕事の着手に。"
-      : "申込み、口座づくり、勉強開始、発信の初投稿に向く日。";
+      ? "口座整理、学びの開始、必要な自己投資に。"
+      : "申込み、勉強開始、発信の初投稿に。";
   }
-  if (primaryBadge.type === "taian") return "予約、相談、顔合わせ、提出ごとなどを穏やかに進めたい日に。";
+  if (primaryBadge.type === "taian") return "予約、契約前の確認、身の回りを整える行動に。";
   if (primaryBadge.type === "tsuchinotomi" || primaryBadge.type === "mi") {
-    return "財布の整理、出費の見直し、参拝、持ち物の手入れに。";
+    return "財布の整理、弁財天参り、感性を磨く時間に。";
   }
-  if (primaryBadge.type === "tora") return "使い始め、旅の計画、前向きな買い物、発信スタートに。";
+  if (primaryBadge.type === "tora") return "買い替えの検討、長く使う物への投資に。";
   return undefined;
 }
 
@@ -499,14 +506,15 @@ function buildCaution(primaryBadge: LightDayBadge | null, badges: LightDayBadge[
   const hasCaution = badges.some((badge) => badge.type === "fujouju");
   if (!hasCaution) return undefined;
   if (primaryBadge?.type === "fujouju") {
-    return "契約や勝負ごとは慎重に。見直しや保留の判断も吉です。";
+    return "無理な決断や見切り発車は避け、確認と保留を大切に。";
   }
-  return "勢いだけで決めず、条件や段取りをあと一度だけ確認すると安心です。";
+  return "開運要素はあっても、急ぎすぎず最終確認を挟むと安心です。";
 }
 
 export function getLightCalendarUi(date: string): LightDayUi {
   const badges = buildBaseBadges(date);
   const primaryBadge = pickPrimaryBadge(badges);
+
   return {
     date,
     badges,
@@ -533,6 +541,7 @@ function buildLuckyDaysData(): Record<string, LuckyDayRecord> {
   const ensure = (date: string): LuckyDayRecord => {
     const existing = data[date];
     if (existing) return existing;
+
     const next: LuckyDayRecord = { lucky: [] };
     data[date] = next;
     return next;
@@ -563,6 +572,7 @@ function buildLuckyDaysData(): Record<string, LuckyDayRecord> {
   for (const date of lightCalendar2026.luckyDays.taian) {
     ensure(date).rokuyo = "大安";
   }
+
   for (const date of Array.from(
     new Set([...Object.keys(data), ...lightCalendar2026.holidays.map((holiday) => holiday.date)])
   )) {
@@ -582,7 +592,7 @@ export function getLightCalendarLabels(date: string): LightCalendarDateLabel[] {
 }
 
 export function getHolidayLabel(date: string): string | null {
-  return getHolidayEntry(date)?.label ?? null;
+  return lightCalendar2026.holidays.find((holiday) => holiday.date === date)?.label ?? null;
 }
 
 export function getDayMeta(date: string) {
@@ -595,10 +605,12 @@ export function getDayMeta(date: string) {
 
 export function getLuckyDaysForMonth(month: string): Record<string, LuckyDayRecord> {
   const result: Record<string, LuckyDayRecord> = {};
+
   for (const [dateKey, value] of Object.entries(LUCKY_DAYS_DATA)) {
     if (dateKey.startsWith(`${month}-`)) {
       result[dateKey] = value;
     }
   }
+
   return result;
 }

@@ -123,6 +123,7 @@ async function postChat(
     history?: Array<{ role: "user" | "assistant"; content: string }>;
     profile?: Record<string, unknown>;
     mode?: string;
+    conversationState?: Record<string, unknown>;
   } = {}
 ): Promise<ChatRouteJson> {
   const request = new Request("http://localhost/api/chat", {
@@ -134,6 +135,7 @@ async function postChat(
       cards: DEFAULT_CARDS,
       history: options.history ?? [],
       profile: options.profile,
+      conversationState: options.conversationState,
     }),
   });
 
@@ -155,15 +157,19 @@ async function withNodeEnv<T>(value: string, run: () => Promise<T>): Promise<T> 
   }
 }
 
+function assertPendingCleared(response: ChatRouteJson) {
+  assert.equal(response.conversationState?.awaitingFortuneResult, false);
+  assert.equal(response.conversationState?.awaitingConsent, false);
+  assert.equal(response.conversationState?.awaitingTheme, false);
+}
+
 function assertFortuneResponse(response: ChatRouteJson, expectedTopic?: string) {
   assert.ok(response.text);
   assert.ok(response.text!.trim().length > 0);
   assert.ok(Array.isArray(response.cards));
   assert.ok((response.cards?.length ?? 0) > 0);
   assert.equal(response.error, undefined);
-  assert.equal(response.conversationState?.awaitingFortuneResult, false);
-  assert.equal(response.conversationState?.awaitingConsent, false);
-  assert.equal(response.conversationState?.awaitingTheme, false);
+  assertPendingCleared(response);
   if (expectedTopic) {
     assert.equal(response.conversationState?.topic, expectedTopic);
   }
@@ -220,8 +226,104 @@ async function run() {
 
   await assertShortThemeIntentStartsFortune("恋愛みて", "love");
   await assertShortThemeIntentStartsFortune("仕事みて", "work");
-  await assertShortThemeIntentStartsFortune("金運は？", "money");
-  await assertShortThemeIntentStartsFortune("けっこん運", "marriage");
+
+  const shortMarriageNeedsConfirm = await postChat("けっこん運");
+  assert.ok(shortMarriageNeedsConfirm.text);
+  assert.equal(shortMarriageNeedsConfirm.cards, null);
+  assert.equal(shortMarriageNeedsConfirm.conversationState?.phase, "intent_confirm");
+  assert.equal(shortMarriageNeedsConfirm.conversationState?.topic, "marriage");
+  assert.equal(shortMarriageNeedsConfirm.conversationState?.awaitingConsent, true);
+
+  const shortMoneyNeedsConfirm = await postChat("金運は？");
+  assert.ok(shortMoneyNeedsConfirm.text);
+  assert.equal(shortMoneyNeedsConfirm.cards, null);
+  assert.equal(shortMoneyNeedsConfirm.conversationState?.phase, "intent_confirm");
+  assert.equal(shortMoneyNeedsConfirm.conversationState?.topic, "money");
+  assert.equal(shortMoneyNeedsConfirm.conversationState?.awaitingConsent, true);
+
+  const switchedTheme = await postChat("仕事みて", {
+    conversationState: {
+      phase: "intent_confirm",
+      topic: "love",
+      awaitingTheme: true,
+      awaitingConsent: false,
+      awaitingFortuneResult: false,
+      lightGuidanceCount: 0,
+    },
+  });
+  assertFortuneResponse(switchedTheme, "work");
+  assert.equal(switchedTheme.conversationState?.phase, "followup");
+
+  const confirmationMisfire = await postChat("うどん", {
+    conversationState: {
+      phase: "intent_confirm",
+      topic: "marriage",
+      awaitingTheme: false,
+      awaitingConsent: true,
+      awaitingFortuneResult: false,
+      lightGuidanceCount: 0,
+    },
+  });
+  assert.ok(confirmationMisfire.text);
+  assert.equal(confirmationMisfire.cards, null);
+  assert.equal(confirmationMisfire.conversationState?.phase, "idle");
+  assertPendingCleared(confirmationMisfire);
+
+  const yesWithoutDirectOffer = await postChat("はい", {
+    conversationState: {
+      phase: "intent_confirm",
+      topic: null,
+      awaitingTheme: true,
+      awaitingConsent: false,
+      awaitingFortuneResult: false,
+      lightGuidanceCount: 0,
+    },
+  });
+  assert.ok(yesWithoutDirectOffer.text);
+  assert.equal(yesWithoutDirectOffer.cards, null);
+  assert.equal(yesWithoutDirectOffer.conversationState?.phase, "intent_confirm");
+  assert.equal(yesWithoutDirectOffer.conversationState?.awaitingTheme, true);
+  assert.equal(yesWithoutDirectOffer.conversationState?.awaitingConsent, false);
+
+  const completionReset = await postChat("はい", {
+    conversationState: {
+      phase: "intent_confirm",
+      topic: "love",
+      awaitingTheme: false,
+      awaitingConsent: true,
+      awaitingFortuneResult: false,
+      lightGuidanceCount: 0,
+    },
+  });
+  assertFortuneResponse(completionReset, "love");
+  assert.equal(completionReset.conversationState?.phase, "followup");
+
+  const greeting = await postChat("こんにちは");
+  assert.ok(greeting.text);
+  assert.ok(greeting.text!.trim().length > 0);
+
+  const restricted = await postChat("病気かどうか診断して");
+  assert.ok(restricted.text);
+  assert.ok(restricted.text!.trim().length > 0);
+  assert.equal(restricted.cards, null);
+  assert.equal(restricted.conversationState?.phase, "intent_confirm");
+  assert.equal(restricted.conversationState?.topic, "health");
+
+  const dailyFortune = await postChat("今日の運勢", {
+    mode: "daily-fortune",
+    conversationState: {
+      phase: "intent_confirm",
+      topic: "love",
+      awaitingTheme: true,
+      awaitingConsent: true,
+      awaitingFortuneResult: true,
+      lightGuidanceCount: 3,
+    },
+  });
+  assert.ok(dailyFortune.text);
+  assert.ok(dailyFortune.text!.trim().length > 0);
+  assert.ok(Array.isArray(dailyFortune.cards));
+  assert.equal(dailyFortune.cards?.length, 1);
 
   const reunion = await postChat("復縁できますか？");
   assertFortuneResponse(reunion, "love");
@@ -256,7 +358,7 @@ async function run() {
   assert.equal(productionGate.conversationState?.phase, "followup");
   assert.equal(productionGate.conversationState?.awaitingFortuneResult, false);
 
-  assert.equal(createCallCount, 15);
+  assert.equal(createCallCount, 16);
 }
 
 run()

@@ -10,7 +10,6 @@ function run() {
     "こんにちは",
     "こんにちは！",
     "こんばんは",
-    "はじめまして",
     "やあ",
     "hello!",
   ];
@@ -20,7 +19,7 @@ function run() {
   }
 
   const shouldNotBeGreeting = [
-    "こんにちは、恋愛みて",
+    "こんにちは、悩みを聞いて",
     "こんばんは 仕事で悩んでます",
     "はじめまして 占ってください",
     "やあ 今日の運勢は？",
@@ -34,18 +33,19 @@ function run() {
   const shortThemeIntents = [
     "恋愛みて",
     "仕事みて",
-    "金運は？",
-    "けっこん運",
-    "結婚運",
+    "金運を占い",
+    "結婚お願い",
   ];
   for (const sample of shortThemeIntents) {
     assert.equal(isFortuneRequestInput(sample), true, `Expected short intent: ${sample}`);
   }
 
-  assert.equal(isFortuneRequestInput("最近なんだか不安です"), false);
+  assert.equal(isFortuneRequestInput("最近なんだか不安で"), false);
   assert.equal(isFortuneRequestInput("仕事がうまくいかなくて"), false);
+  assert.equal(isFortuneRequestInput("けっこん運"), false);
+  assert.equal(isFortuneRequestInput("金運は？"), false);
 
-  assert.equal(isDialogueModeInput("最近なんだか不安です"), true);
+  assert.equal(isDialogueModeInput("最近なんだか不安で"), true);
   assert.equal(isDialogueModeInput("恋愛みて"), false);
   assert.equal(isDialogueModeInput("仕事みて"), false);
 }

@@ -36,6 +36,7 @@ export function LightCalendarCard({ date, moon, moonMajorPhase }: Props) {
         <p className="mt-3 text-sm leading-7 text-[#6f6254]">
           穏やかな通常日です。大きな吉日でなくても、心を整えて過ごすことで運の流れはやさしく育っていきます。
         </p>
+
         {moon ? (
           <div className="mt-4 rounded-2xl border border-[#eadfcf] bg-white/75 px-4 py-3">
             <p className="text-xs tracking-[0.18em] text-[#a18e75]">月の流れ</p>
@@ -44,17 +45,19 @@ export function LightCalendarCard({ date, moon, moonMajorPhase }: Props) {
             </p>
           </div>
         ) : null}
+
         {moonMajorPhase === "new_moon" ? (
           <div className="mt-4">
             <LuminaLinkButton href="/moon-rituals/new" className="inline-flex">
-              新月の小さな儀式
+              新月の小さな祈りへ
             </LuminaLinkButton>
           </div>
         ) : null}
+
         {moonMajorPhase === "full_moon" ? (
           <div className="mt-4">
             <LuminaLinkButton href="/moon-rituals/full" className="inline-flex">
-              満月の小さな儀式
+              満月の小さな祈りへ
             </LuminaLinkButton>
           </div>
         ) : null}
@@ -112,14 +115,15 @@ export function LightCalendarCard({ date, moon, moonMajorPhase }: Props) {
         {moonMajorPhase === "new_moon" ? (
           <div className="mt-4">
             <LuminaLinkButton href="/moon-rituals/new" className="inline-flex">
-              新月の小さな儀式
+              新月の小さな祈りへ
             </LuminaLinkButton>
           </div>
         ) : null}
+
         {moonMajorPhase === "full_moon" ? (
           <div className="mt-4">
             <LuminaLinkButton href="/moon-rituals/full" className="inline-flex">
-              満月の小さな儀式
+              満月の小さな祈りへ
             </LuminaLinkButton>
           </div>
         ) : null}
