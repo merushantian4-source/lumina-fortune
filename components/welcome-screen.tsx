@@ -62,7 +62,7 @@ const loveFortuneSection: SectionGroup = {
     { title: "相性占い", description: "二人の相性とアドバイス", href: "/compatibility", ctaLabel: "生年月日で占う" },
     { title: "結婚占い", description: "結婚の時期とご縁の流れ", href: "/marriage-timing", ctaLabel: "生年月日で占う" },
   ],
-  sectionImage: "/gazou/renai.png",
+  sectionImage: "/gazou/tarot2.png",
 };
 
 const fortuneSection: SectionGroup = {
