@@ -14,6 +14,8 @@ type PageShellProps = {
   headerBackground?: ReactNode;
   className?: string;
   showBottomHomeButton?: boolean;
+  bottomButtonHref?: string;
+  bottomButtonLabel?: string;
 };
 
 const widthClassMap: Record<NonNullable<PageShellProps["maxWidth"]>, string> = {
@@ -34,6 +36,8 @@ export function PageShell({
   headerBackground,
   className = "",
   showBottomHomeButton = true,
+  bottomButtonHref = "/",
+  bottomButtonLabel = "トップへ戻る",
 }: PageShellProps) {
   const widthClass = widthClassMap[maxWidth];
 
@@ -62,8 +66,8 @@ export function PageShell({
         {children}
         {showBottomHomeButton ? (
           <div className="mt-6 pb-1 text-center">
-            <LuminaLinkButton href="/" tone="secondary" className="px-6">
-              トップへ戻る
+            <LuminaLinkButton href={bottomButtonHref} tone="secondary" className="px-6">
+              {bottomButtonLabel}
             </LuminaLinkButton>
           </div>
         ) : null}

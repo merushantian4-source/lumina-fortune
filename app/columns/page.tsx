@@ -13,9 +13,23 @@ const CATEGORY_LABELS: Record<string, string> = {
   仕事: "仕事",
   失恋: "恋愛",
   不安: "不安",
+  心: "不安",
   願い: "願い",
   占い: "占い",
 };
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  仕事: "📖",
+  失恋: "❤️",
+  不安: "😰",
+  心: "😰",
+  願い: "✨",
+  占い: "🔮",
+};
+
+function stripTitleEmoji(title: string): string {
+  return title.replace(/^📖\s*/, "");
+}
 
 export default function ColumnsPage() {
   const [filter, setFilter] = useState<FilterValue>("すべて");
@@ -64,21 +78,23 @@ export default function ColumnsPage() {
         <div className="pointer-events-none absolute inset-0 bg-white/25" />
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {articles.map((article) => (
-          <GlassCard key={article.slug} className="h-full">
-            <p className="text-xs font-medium tracking-wide text-[#847967]">
+          <Link
+            key={article.slug}
+            href={`/columns/${article.slug}`}
+            className="group flex flex-col rounded-2xl border border-[#e1d5bf]/74 bg-white/60 px-5 py-4 shadow-[0_8px_20px_-16px_rgba(82,69,53,0.18)] backdrop-blur transition hover:bg-[#fff8ed]/80"
+          >
+            <span className="inline-flex self-start rounded-full border border-[#d8c8ab]/82 bg-[#fff8ed]/86 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-[#7f725f]">
               {CATEGORY_LABELS[article.category] ?? article.category}
+            </span>
+            <h2 className="mt-2 text-base font-medium leading-snug text-[#2e2a26] group-hover:text-[#4a3f2f]">
+              {CATEGORY_EMOJI[article.category] ? `${CATEGORY_EMOJI[article.category]} ` : ""}{stripTitleEmoji(article.title)}
+            </h2>
+            <p className="mt-1.5 line-clamp-1 text-sm leading-relaxed text-[#6f6556]">
+              {article.lead}
             </p>
-            <h2 className="mt-1 text-xl font-medium text-[#2e2a26]">{article.title}</h2>
-            <p className="mt-3 text-sm leading-relaxed text-[#544c42]">{article.lead}</p>
-            <Link
-              href={`/columns/${article.slug}`}
-              className="mt-4 inline-flex text-sm font-medium text-[#5f5344] underline decoration-[#b9a78b] underline-offset-2"
-            >
-              続きを読む
-            </Link>
-          </GlassCard>
+          </Link>
         ))}
       </div>
     </PageShell>
