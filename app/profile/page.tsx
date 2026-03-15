@@ -97,6 +97,11 @@ export default function ProfilePage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   // 分析: プロフィール登録画面を開いた
   useEffect(() => {
@@ -200,11 +205,11 @@ export default function ProfilePage() {
     }
   };
 
-  // プロフィールが登録済みかどうか
-  const hasExistingProfile = initialProfile.nickname.trim().length > 0;
+  // プロフィールが登録済みかどうか（ハイドレーション前はfalseで統一）
+  const hasExistingProfile = isHydrated && initialProfile.nickname.trim().length > 0;
 
   const birthdateFortuneLinks = [
-    { label: "2026年の運勢", href: "/fortune-yearly" },
+    { label: "2026年の運勢", href: "/fortune-2026" },
     { label: "毎月の運勢", href: "/fortune-monthly" },
     { label: "基本性格", href: "/basic-personality" },
     { label: "婚期占い", href: "/marriage-timing" },

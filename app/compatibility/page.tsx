@@ -83,7 +83,8 @@ export default function CompatibilityPage() {
     interpretationFrame: templateReading?.interpretationFrame,
   });
 
-  const activeReading = enhancedReading ?? result?.reading;
+  // Claude待ち中はテキストを表示しない（前の結果が見えるのを防ぐ）
+  const activeReading = enhancedReading ?? (isEnhancing ? null : result?.reading);
   const strengthsParagraphs = activeReading ? splitReadingParagraphs(activeReading.strengths) : [];
   const pitfallsParagraphs = activeReading ? splitReadingParagraphs(activeReading.pitfalls) : [];
   const messageParagraphs = activeReading ? splitReadingParagraphs(activeReading.luminaMessage) : [];
@@ -98,14 +99,19 @@ export default function CompatibilityPage() {
     }
 
     try {
+      // 前の結果を一旦クリアしてから新しい結果をセット
+      setResult(null);
       const myNumber = destinyNumberFromBirthdate(myBirthdate);
       const partnerNumber = destinyNumberFromBirthdate(partnerBirthdate);
-      setResult({
-        myNumber,
-        partnerNumber,
-        mySoulName: getSoulNameByNumber(myNumber),
-        partnerSoulName: getSoulNameByNumber(partnerNumber),
-        reading: getCompatibilityReading(myNumber, partnerNumber),
+      // requestAnimationFrame で次フレームにセットし、クリアが先に描画される
+      requestAnimationFrame(() => {
+        setResult({
+          myNumber,
+          partnerNumber,
+          mySoulName: getSoulNameByNumber(myNumber),
+          partnerSoulName: getSoulNameByNumber(partnerNumber),
+          reading: getCompatibilityReading(myNumber, partnerNumber),
+        });
       });
     } catch {
       setResult(null);

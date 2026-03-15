@@ -717,6 +717,21 @@ export default async function ColumnDetailPage({ params }: PageProps) {
           </section>
         ) : null}
 
+        {/* 個人鑑定への導線（全コラム共通） */}
+        <section className="mb-6 rounded-2xl border border-[#d8cde7]/50 bg-[linear-gradient(160deg,rgba(250,246,255,0.88),rgba(244,236,252,0.82))] p-6 shadow-[0_12px_28px_-20px_rgba(95,79,128,0.18)] sm:p-8">
+          <p className="text-center text-[0.92rem] leading-relaxed text-[#5f5472]">
+            もっと深く、あなただけの鑑定を受けたいときは
+          </p>
+          <p className="mt-2 text-center text-[0.82rem] leading-relaxed text-[#8a7d96]">
+            ルミナが一対一であなたの状況を読み解く個人鑑定もご用意しています。
+          </p>
+          <div className="mt-5 text-center">
+            <LuminaLinkButton href="/consultation" tone="secondary" className="px-6">
+              個人鑑定の詳細を見る
+            </LuminaLinkButton>
+          </div>
+        </section>
+
         {/* Related columns */}
         {RELATED_COLUMNS[slug] ? (
           <section className="mb-6 rounded-2xl border border-[#e1d5bf]/50 bg-white/60 p-6 shadow-[0_12px_28px_-20px_rgba(82,69,53,0.14)] backdrop-blur sm:p-8">

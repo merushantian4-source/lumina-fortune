@@ -49,7 +49,7 @@ function buildRelationsAddon(profile: MonthlyProfileContext): string {
 export function buildMonthlyTemplateForProfile(
   month: number,
   birthdate: string,
-  profile?: StoredProfile | null
+  profile?: StoredProfile | null,
 ): FortuneTemplate | null {
   const fortuneNumber = destinyNumberFromBirthdate(birthdate);
   const isEdited = hasManualMonthlyTemplate(month, fortuneNumber);

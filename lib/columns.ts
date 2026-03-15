@@ -202,6 +202,14 @@ const COLUMN_ARTICLES: ColumnArticle[] = [
     category: "失恋",
     lead: "うまくいかない恋が続くのは、もうすぐ「本当の人」に出会うための準備かもしれません。",
     readMinutes: 7,
+    heroImage: "/gazou/column/unmeinohito/aikyatti.png",
+    sectionImages: {
+      1: { src: "/gazou/column/unmeinohito/kawaritai.png", alt: "変わりたいと感じて街を歩き出す女性" },
+      2: { src: "/gazou/column/unmeinohito/syokuba.png", alt: "職場環境が変わる——人間関係の入れ替わり" },
+      3: { src: "/gazou/column/unmeinohito/kyuujitu.png", alt: "一人で静かに読書する休日の時間" },
+      6: { src: "/gazou/column/unmeinohito/yokan.png", alt: "恋愛はもういいと思い始めた頃の予感" },
+      7: { src: "/gazou/column/unmeinohito/deai.png", alt: "街角で出会うふたり——小さな偶然の先に" },
+    },
     preview: [
       "うまくいかない恋が続くのは、もうすぐ「本当の人」に出会うための準備かもしれません。",
       "「どうして私だけ、うまくいかないんだろう」",
@@ -210,14 +218,10 @@ const COLUMN_ARTICLES: ColumnArticle[] = [
       "そしてそのサインは、幸せの予感ではなく、つらさや違和感の形で現れることが多いのです。",
     ],
     full: [
-      "> 「どうして私だけ、うまくいかないんだろう」",
-      "好きになった人とは距離ができて、勇気を出しても空回りして、気づけばまた一人でスマホを見ている夜。",
       "周りの友達は幸せそうで、SNSを開けば誰かの記念日が流れてくる。",
       "> 「私には縁がないのかな」\n「このまま誰にも選ばれないのかな」",
       "——そんなふうに思っていませんか。",
       "でも、もし今のこの苦しさに意味があるとしたら。",
-      "実は、運命の人に出会う前には、いくつかの「サイン」が現れると言われています。",
-      "そしてそのサインは、幸せの予感ではなく、つらさや違和感の形で現れることが多いのです。",
       "## サイン①：今の恋がどうしてもうまくいかない",
       "片思いが実らない。好きな人に既読無視される。付き合っても長続きしない。",
       "> 「なんでいつもこうなるの？」\n「私の愛し方が間違ってるの？」",
@@ -289,6 +293,11 @@ const COLUMN_ARTICLES: ColumnArticle[] = [
     category: "失恋",
     lead: "あなたが一番泣いていた夜、あの人はまだ何も感じていなかったかもしれません。",
     readMinutes: 8,
+    heroImage: "/gazou/column/danjyonotigai/Gemini_Generated_Image_laxfpqlaxfpqlaxf.png",
+    sectionImages: {
+      1: { src: "/gazou/column/danjyonotigai/Gemini_Generated_Image_kek8ghkek8ghkek8.png", alt: "別れた後、友人と居酒屋で過ごす男性たち" },
+      2: { src: "/gazou/column/danjyonotigai/Gemini_Generated_Image_f789qaf789qaf789.png", alt: "夜ベッドでスマホを見つめる男性——遅れてやってくる後悔" },
+    },
     preview: [
       "あなたが一番泣いていた夜、あの人はまだ何も感じていなかったかもしれません。",
       "別れた直後、あなたは泣きました。なのに、元彼はどこか平気そうに見えた。",
@@ -297,12 +306,8 @@ const COLUMN_ARTICLES: ColumnArticle[] = [
       "男性と女性では、別れた後に悲しみがやってくるタイミングが根本的に違うのです。",
     ],
     full: [
-      "別れた直後、あなたは泣きました。",
       "眠れない夜を過ごして、何を食べても味がしなくて、ふとした瞬間にあの人の声が頭の中に蘇って、涙が止まらなくなった。",
       "なのに、元彼はどこか平気そうに見えた。SNSも普通に更新している。友達と遊んでいる。まるで何事もなかったみたいに。",
-      "「私だけがこんなに苦しいんだ」——そう感じて、さらにつらくなった経験はありませんか。",
-      "でも、それはあの人に気持ちがなかったからではありません。",
-      "男性と女性では、別れた後に悲しみがやってくるタイミングが根本的に違うのです。",
       "## 女性の心理——別れた直後が一番深い谷",
       "女性は、別れた瞬間から感情が一気にあふれ出します。",
       "悲しみ、怒り、後悔、不安、寂しさ。あらゆる感情が同時に押し寄せて、生活のすべてに影響が出る。食欲がなくなる。集中できない。友達に泣きながら電話する。",
@@ -365,6 +370,12 @@ const COLUMN_ARTICLES: ColumnArticle[] = [
     category: "失恋",
     lead: "別れたからといって、気持ちがゼロになるわけではありません。",
     readMinutes: 5,
+    heroImage: "/gazou/column/motokarenokimoti/Gemini_Generated_Image_38whs838whs838wh.png",
+    sectionImages: {
+      1: { src: "/gazou/column/motokarenokimoti/Gemini_Generated_Image_24xhsc24xhsc24xh.png", alt: "仕事に追われながら元カノを思い出す男性" },
+      2: { src: "/gazou/column/motokarenokimoti/Gemini_Generated_Image_ei3fmsei3fmsei3f.png", alt: "カフェでスマホを見つめる女性——連絡がこない夜" },
+      3: { src: "/gazou/column/motokarenokimoti/Gemini_Generated_Image_yu6bjyu6bjyu6bjy.png", alt: "神社でお参りする女性——復縁への祈り" },
+    },
     preview: [
       "別れたからといって、気持ちがゼロになるわけではありません。",
       "別れてからも、ふとした瞬間にあの人のことを考えてしまう。",
@@ -425,6 +436,12 @@ const COLUMN_ARTICLES: ColumnArticle[] = [
     category: "失恋",
     lead: "連絡しないことが、気持ちがない証拠だとは限りません。",
     readMinutes: 5,
+    heroImage: "/gazou/column/sukinanonirenrakusitekonai/Gemini_Generated_Image_vw4iplvw4iplvw4i.png",
+    sectionImages: {
+      0: { src: "/gazou/column/sukinanonirenrakusitekonai/Gemini_Generated_Image_7wj7vk7wj7vk7wj7.png", alt: "深夜のオフィスで仕事に没頭する男性" },
+      3: { src: "/gazou/column/sukinanonirenrakusitekonai/Gemini_Generated_Image_tlmwgvtlmwgvtlmw.png", alt: "連絡しようか迷いながらスマホを見つめる女性" },
+      4: { src: "/gazou/column/sukinanonirenrakusitekonai/Gemini_Generated_Image_g7w1n7g7w1n7g7w1.png", alt: "川沿いを寄り添って歩くカップル" },
+    },
     preview: [
       "連絡しないことが、気持ちがない証拠だとは限りません。",
       "「たぶん、嫌われてはいない。でも、連絡はこない。」",
@@ -476,6 +493,10 @@ const COLUMN_ARTICLES: ColumnArticle[] = [
     category: "失恋",
     lead: "返信しない理由は、「あなたに興味がないから」だけではありません。",
     readMinutes: 5,
+    heroImage: "/gazou/column/kidokumusi/Gemini_Generated_Image_9kw7mn9kw7mn9kw7.png",
+    sectionImages: {
+      0: { src: "/gazou/column/kidokumusi/Gemini_Generated_Image_186rpv186rpv186r.png", alt: "仕事中にスマホのLINEを見る男性——後回しにしているだけかもしれない" },
+    },
     preview: [
       "返信しない理由は、「あなたに興味がないから」だけではありません。",
       "既読がついたのに返信がこない。",
@@ -591,9 +612,6 @@ const COLUMN_ARTICLES: ColumnArticle[] = [
       "時計を見る。もう夜中の1時。さっきから何度もスマホの画面を点けては消している。ロック画面に通知が来ていないか確認して、何もなくて、また布団の中にスマホを引き寄せる。",
     ],
     full: [
-      "送ったメッセージを、もう一度開いて確認する。",
-      "既読はついていない。あるいは、既読スルーのまま、何時間も返信がこない。",
-      "時計を見る。もう夜中の1時。さっきから何度もスマホの画面を点けては消している。ロック画面に通知が来ていないか確認して、何もなくて、また布団の中にスマホを引き寄せる。",
       "> 「なんで返してくれないんだろう」\n「私、なにか変なこと送ったかな」\n「嫌われたのかもしれない」",
       "——そんな不安が、暗い部屋の中でどんどん大きくなっていく。",
       "もし今、あなたがそういう夜の中にいるなら、少しだけここで立ち止まってみてください。",

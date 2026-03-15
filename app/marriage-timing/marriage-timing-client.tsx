@@ -44,7 +44,12 @@ export default function MarriageTimingClient({ serverBirthdate }: MarriageTiming
     }
 
     try {
-      setTemplateResult(getMarriageTimingReading(birthdate));
+      // 前の結果を一旦クリアしてから新しい結果をセット
+      setTemplateResult(null);
+      const newReading = getMarriageTimingReading(birthdate);
+      requestAnimationFrame(() => {
+        setTemplateResult(newReading);
+      });
     } catch {
       setTemplateResult(null);
       setErrorMessage("生年月日は YYYY-MM-DD の形式で正しく入力してください。");

@@ -1,5 +1,6 @@
 ﻿import { fortuneNumberNames } from "@/lib/fortune/names";
 import { priorityMonthlyOverrides } from "@/lib/fortune/monthly-priority-overrides";
+import { rewrittenMonthlyOverrides } from "@/lib/fortune/monthly-rewritten-overrides";
 import { staticMonthlyOverrides } from "@/lib/fortune/monthly-static-overrides";
 import {
   isFortuneMonth,
@@ -6434,13 +6435,16 @@ function buildAllMonthlyTemplates(): Record<FortuneMonth, Record<FortuneNumber, 
     const monthKey = month as FortuneMonth;
     const monthly = {} as Record<FortuneNumber, FortuneMonthlyTemplate>;
     const monthOverride = monthKey >= 2 ? monthlyOverrides[monthKey] : undefined;
+    // リライト版を最優先で使用（全108パターン生成済み・ロック済み）
+    const rewritten = rewrittenMonthlyOverrides[monthKey];
 
     for (let number = 1; number <= 9; number += 1) {
       const numberKey = number as FortuneNumber;
       monthly[numberKey] =
-        monthKey === 1
+        rewritten?.[numberKey] ??
+        (monthKey === 1
           ? resolvedJanuaryTemplates[numberKey]
-          : monthOverride?.[numberKey] ?? generateMonthlyTemplate(monthKey, numberKey);
+          : monthOverride?.[numberKey] ?? generateMonthlyTemplate(monthKey, numberKey));
     }
 
     result[monthKey] = monthly;
@@ -6459,7 +6463,11 @@ export function hasManualMonthlyTemplate(month: number, number: number): boolean
   return fortuneMonthlyTemplates[month][number]?.manualOverride === true;
 }
 
-export function getFortuneMonthlyTemplate(month: number, number: number): FortuneMonthlyTemplate | null {
+/** Get the monthly template for a given month and destiny number. */
+export function getFortuneMonthlyTemplate(
+  month: number,
+  number: number,
+): FortuneMonthlyTemplate | null {
   if (!isFortuneMonth(month) || !isFortuneNumber(number)) {
     return null;
   }

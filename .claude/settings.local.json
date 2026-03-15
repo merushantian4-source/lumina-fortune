@@ -29,7 +29,13 @@
       "Bash(npm uninstall:*)",
       "Bash(grep -E \"\\\\.ts$\")",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(find /c/Users/yuri3/lumina-fortune -type f \\\\\\(-name *compatibility* -o -name *soushoku* -o -name *相性* \\\\\\) -o -path */compatibility/* -o -path */相性/*)"
+      "Bash(find /c/Users/yuri3/lumina-fortune -type f \\\\\\(-name *compatibility* -o -name *soushoku* -o -name *相性* \\\\\\) -o -path */compatibility/* -o -path */相性/*)",
+      "Bash(npm ls:*)",
+      "Bash(for m:*)",
+      "Bash(do npx:*)",
+      "Bash(node -e \"const d=require\\(''./scripts/.monthly-gen-progress.json''\\); console.log\\(''Total:'', Object.keys\\(d\\).length\\)\")",
+      "Bash(done)",
+      "Bash(node -e \"const d=require\\(''./scripts/.monthly-gen-progress.json''\\); console.log\\(''Total:'', Object.keys\\(d\\).length, ''/ 108''\\)\")"
     ]
   }
 }

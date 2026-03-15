@@ -1186,6 +1186,14 @@ function buildPhaseAwareCandidateText(
   const seasonalWords = seasonal ? [seasonal.word] : [];
   const seasonalMetaphors = seasonal ? [`season:${context.month}:${seasonal.bucket}:${seasonal.word}`] : [];
 
+  const detectEnding = (text: string): string => {
+    if (text.endsWith("日")) return "日";
+    if (text.endsWith("とき")) return "とき";
+    if (text.endsWith("ころ")) return "ころ";
+    if (text.endsWith("タイミング")) return "タイミング";
+    return text.slice(-3);
+  };
+
   const build = (
     text: string,
     words: string[],
@@ -1199,7 +1207,7 @@ function buildPhaseAwareCandidateText(
     stems,
     pattern,
     skeleton,
-    ending: "日",
+    ending: detectEnding(text),
     metaphorGroups,
     rhythm: toRhythm(text),
     naturalness,
@@ -1211,15 +1219,17 @@ function buildPhaseAwareCandidateText(
       const templates =
         context.monthPhase === "early"
           ? [
-              build("自分の本音に気づきやすい日", ["自分", "本音"], ["気づく"], "core-notice-true-feeling", 34),
-              build("気持ちの整理が少しつきやすい日", ["気持ち", "整理"], ["つく"], "core-feeling-organize", 36),
+              build("自分の本音にふと気づけるとき", ["自分", "本音"], ["気づく"], "core-notice-true-feeling", 34),
+              build("気持ちの整理が少しずつ進むころ", ["気持ち", "整理"], ["つく"], "core-feeling-organize", 36),
               build("考えていたことがまとまりやすい日", ["考え"], ["まとまる"], "core-thoughts-settle", 34),
-              build(`自分の${innerFocus}に向き合いやすい日`, ["自分", innerFocus], ["向き合う"], "core-face-self-clue", 33),
+              build(`自分の${innerFocus}に静かに向き合えるとき`, ["自分", innerFocus], ["向き合う"], "core-face-self-clue", 33),
+              build("心の声を聴くのにちょうどいいタイミング", ["心", "声"], ["聴く"], "core-listen-heart", 35),
             ]
           : [
               build("自分の気持ちを言葉にしやすい日", ["自分", "気持ち", "言葉"], ["言葉にする"], "core-put-feelings-into-words", 36),
-              build("考えていたことがまとまりやすい日", ["考え"], ["まとまる"], "core-thoughts-settle", 34),
-              build("本音を言葉にしやすい日", ["本音", "言葉"], ["言葉にする"], "core-honest-words", 35),
+              build("考えがすっと整ってくるころ", ["考え"], ["まとまる"], "core-thoughts-settle", 34),
+              build("本音をそっと言葉にできるとき", ["本音", "言葉"], ["言葉にする"], "core-honest-words", 35),
+              build("内側の声がクリアに聞こえはじめる日", ["声"], ["聞こえる"], "core-inner-voice-clear", 36),
             ];
       return templates[seededIndex(seed, offset + 18, templates.length)]!;
     }
@@ -1227,14 +1237,16 @@ function buildPhaseAwareCandidateText(
       const templates =
         context.monthPhase === "early"
           ? [
-              build("迷いがやわらぎやすい日", ["迷い"], ["やわらぐ"], "flow-doubt-softens", 34),
+              build("迷いがすこしずつほどけていくとき", ["迷い"], ["やわらぐ"], "flow-doubt-softens", 34),
               build("停滞していた空気が動き出す日", ["停滞", "空気"], ["動き出す"], "flow-stagnation-breaks", 35),
-              build("心が少し落ち着きを取り戻す日", ["心", "落ち着き"], ["取り戻す"], "flow-calm-returns", 35),
+              build("心に落ち着きが戻ってくるころ", ["心", "落ち着き"], ["取り戻す"], "flow-calm-returns", 35),
+              build("流れが静かに変わりはじめるタイミング", ["流れ"], ["変わる"], "flow-quiet-shift", 36),
             ]
           : [
-              build("物事が少しずつ進みやすい日", ["物事"], ["進む"], "flow-things-move", 36),
+              build("物事が少しずつ前に進むころ", ["物事"], ["進む"], "flow-things-move", 36),
               build("小さな行動が流れを変えやすい日", ["行動", "流れ"], ["変える"], "flow-small-action-shifts", 35),
-              build("ひとつずつ進めると流れに乗りやすい日", ["流れ"], ["進める", "乗る"], "flow-step-by-step", 36),
+              build("ひとつずつ進めると手応えが出るとき", ["流れ"], ["進める"], "flow-step-by-step", 36),
+              build("背中をそっと押される感覚がある日", ["背中"], ["押される"], "flow-gentle-push", 35),
             ];
       return templates[seededIndex(seed, offset + 19, templates.length)]!;
     }
@@ -1251,7 +1263,7 @@ function buildPhaseAwareCandidateText(
                 seasonalMetaphors
               ),
               build(
-                `${seasonal?.word ?? "季節の空気"}とともに迷いがやわらぎやすい日`,
+                `${seasonal?.word ?? "季節の空気"}とともに迷いがほどけていくとき`,
                 [...seasonalWords, "迷い"],
                 ["やわらぐ"],
                 "seasonal-early-soften",
@@ -1269,7 +1281,7 @@ function buildPhaseAwareCandidateText(
                 seasonalMetaphors
               ),
               build(
-                `${seasonal?.word ?? "季節の空気"}とともに言葉がまとまりやすい日`,
+                `${seasonal?.word ?? "季節の空気"}とともに言葉がまとまるころ`,
                 [...seasonalWords, "言葉"],
                 ["まとまる"],
                 "seasonal-late-words",
@@ -1280,13 +1292,14 @@ function buildPhaseAwareCandidateText(
       const plainTemplates =
         context.monthPhase === "early"
           ? [
-              build("気持ちの整理が少し進みやすい日", ["気持ち", "整理"], ["進む"], "scene-sorting-progress", 34),
-              build("今日は落ち着いて判断しやすい日", ["判断"], ["判断する"], "scene-calm-judgment", 35),
+              build("気持ちの整理がすこし進むころ", ["気持ち", "整理"], ["進む"], "scene-sorting-progress", 34),
+              build("落ち着いて判断できるタイミング", ["判断"], ["判断する"], "scene-calm-judgment", 35),
+              build("身近なことを整えると気分が軽くなる日", ["身近", "気分"], ["整える"], "scene-tidy-mood", 35),
             ]
           : [
-              build("迷っていたことの答えが出やすい日", ["迷い", "答え"], ["出る"], "hesitation-answer-comes", 35),
+              build("迷いの先にふと答えが見えるとき", ["迷い", "答え"], ["出る"], "hesitation-answer-comes", 35),
               build("話し合いが少し前に進みやすい日", ["話し合い"], ["進む"], "scene-talk-moves", 35),
-              build("様子を見ていたことを決めやすい日", ["様子"], ["決める"], "scene-decide-pending", 35),
+              build("決断のタイミングが近づいてくるころ", ["様子"], ["決める"], "scene-decide-pending", 35),
             ];
       const templates = seasonal ? seasonalTemplates : plainTemplates;
       return templates[seededIndex(seed, offset + 20, templates.length)]!;
@@ -1295,14 +1308,15 @@ function buildPhaseAwareCandidateText(
       const templates =
         context.monthPhase === "early"
           ? [
-              build("急がず丁寧に進めたい日", ["丁寧"], ["進める"], "hint-go-slow", 36),
+              build("急がず丁寧に進めると心地よいとき", ["丁寧"], ["進める"], "hint-go-slow", 36),
               build("身近なことを整えると気分が軽くなる日", ["身近", "気分"], ["整える", "軽くなる"], "hint-tidy-space", 35),
-              build("細かな確認をしておきたい日", ["確認"], ["しておく"], "hint-check-details", 35),
+              build("小さな確認が安心につながるころ", ["確認"], ["しておく"], "hint-check-details", 35),
+              build("丁寧さが結果に表れやすいタイミング", ["丁寧"], ["表れる"], "hint-careful-timing", 36),
             ]
           : [
               build("身近なことを整えると運気が上向く日", ["身近", "運気"], ["整える", "上向く"], "hint-tidy-nearby", 35),
-              build("小さな違和感を見逃さないでいたい日", ["違和感"], ["見逃さない"], "hint-notice-discomfort", 34),
-              build("今できることから手をつけたい日", ["今"], ["手をつける"], "hint-start-now", 35),
+              build("小さな違和感がヒントになるとき", ["違和感"], ["見逃さない"], "hint-notice-discomfort", 34),
+              build("今できることから始めると流れが生まれるころ", ["今"], ["手をつける"], "hint-start-now", 35),
             ];
       return templates[seededIndex(seed, offset + 21, templates.length)]!;
     }
@@ -1311,7 +1325,7 @@ function buildPhaseAwareCandidateText(
         context.monthPhase === "early"
           ? [
               build(
-                `${seasonal?.word ?? "季節の空気"}の中で心が落ち着きやすい日`,
+                `${seasonal?.word ?? "季節の空気"}の中で心が落ち着くとき`,
                 [...seasonalWords, "心", "落ち着き"],
                 ["落ち着く"],
                 "seasonal-early-calm",
@@ -1321,7 +1335,7 @@ function buildPhaseAwareCandidateText(
             ]
           : [
               build(
-                `${seasonal?.word ?? "季節の空気"}とともに足取りが軽くなる日`,
+                `${seasonal?.word ?? "季節の空気"}とともに足取りが軽くなるころ`,
                 [...seasonalWords, "足取り"],
                 ["軽くなる"],
                 "seasonal-late-step",
@@ -1332,12 +1346,14 @@ function buildPhaseAwareCandidateText(
       const plainTemplates =
         context.monthPhase === "early"
           ? [
-              build(`今日は少し${mood}気持ちで過ごせる日`, [mood, "気持ち"], ["過ごせる"], "inner-soft-day", 35),
-              build("今日は自分のペースを守りたい日", ["自分", "ペース"], ["守る"], "inner-keep-pace", 35),
+              build(`少し${mood}気持ちで過ごせるとき`, [mood, "気持ち"], ["過ごせる"], "inner-soft-day", 35),
+              build("自分のペースを大切にしたいころ", ["自分", "ペース"], ["守る"], "inner-keep-pace", 35),
+              build(`${mood}空気の中で自分を取り戻せる日`, [mood, "自分"], ["取り戻す"], "inner-recover", 35),
             ]
           : [
-              build("本音を素直に言葉にしやすい日", ["本音", "言葉"], ["言葉にする"], "inner-honest-words", 36),
-              build("気持ちの整理が少し進みやすい日", ["気持ち", "整理"], ["進む"], "inner-sorting-progress", 35),
+              build("本音がすっと言葉になるとき", ["本音", "言葉"], ["言葉にする"], "inner-honest-words", 36),
+              build("気持ちの整理がひと区切りつくころ", ["気持ち", "整理"], ["進む"], "inner-sorting-progress", 35),
+              build("自分の気持ちに素直でいられる日", ["自分", "気持ち"], ["素直"], "inner-honest-self", 36),
             ];
       const templates = seasonal ? seasonalTemplates : plainTemplates;
       return templates[seededIndex(seed, offset + 22, templates.length)]!;
@@ -1348,7 +1364,7 @@ function buildPhaseAwareCandidateText(
         context.monthPhase === "early"
           ? [
               build(
-                `${seasonal?.word ?? "季節の空気"}に包まれて気持ちがやわらぐ日`,
+                `${seasonal?.word ?? "季節の空気"}に包まれて気持ちがやわらぐとき`,
                 [...seasonalWords, "気持ち"],
                 ["やわらぐ"],
                 "seasonal-early-wrap",
@@ -1358,7 +1374,7 @@ function buildPhaseAwareCandidateText(
             ]
           : [
               build(
-                `${seasonal?.word ?? "季節の空気"}の中で人とのつながりを感じやすい日`,
+                `${seasonal?.word ?? "季節の空気"}の中で人とのつながりを感じるころ`,
                 [...seasonalWords, "人", "つながり"],
                 ["感じる"],
                 "seasonal-late-connect",
@@ -1369,12 +1385,14 @@ function buildPhaseAwareCandidateText(
       const plainTemplates =
         context.monthPhase === "early"
           ? [
-              build("気持ちに少し余裕が戻りやすい日", ["気持ち", "余裕"], ["戻る"], "omen-room-returns", 35),
-              build(`${recovery}を意識すると軽くなれる日`, [recovery], ["意識する", "軽くなる"], "omen-recovery-focus", 34),
+              build("気持ちに少し余裕が戻ってくるころ", ["気持ち", "余裕"], ["戻る"], "omen-room-returns", 35),
+              build(`${recovery}を意識すると軽くなれるとき`, [recovery], ["意識する", "軽くなる"], "omen-recovery-focus", 34),
+              build("自分を労わる時間をつくりたい日", ["自分"], ["労わる"], "omen-self-care", 35),
             ]
           : [
-              build("うれしい流れを受け取りやすい日", ["流れ"], ["受け取る"], "omen-positive-flow", 35),
-              build("今ある流れを素直に受け止めたい日", ["流れ"], ["受け止める"], "omen-accept-flow", 35),
+              build("うれしい流れを受け取れるとき", ["流れ"], ["受け取る"], "omen-positive-flow", 35),
+              build("今ある流れを素直に受け止めたいころ", ["流れ"], ["受け止める"], "omen-accept-flow", 35),
+              build("気持ちを整えると過ごしやすくなる日", ["気持ち"], ["整える"], "omen-settle-mood", 35),
             ];
       const templates = seasonal ? seasonalTemplates : plainTemplates;
       return templates[seededIndex(seed, offset + 23, templates.length)]!;
@@ -1395,7 +1413,7 @@ function evaluateNaturalness(text: string): NaturalnessDiagnostics {
   const reasons: string[] = [];
   let score = 0;
 
-  if (/(日|くる|いる|やすい|なれる|進める|保てる)$/.test(text)) {
+  if (/(日|くる|いる|やすい|なれる|進める|保てる|とき|ころ|タイミング)$/.test(text)) {
     score += 30;
   } else {
     reasons.push("結びが曖昧");
@@ -1600,13 +1618,13 @@ function buildUniqueFallbackLine(
   const mood = pickWord("mood", state, seed, 42);
   const options = [
     "目の前のことを丁寧に進めたい日",
-    "自分の気持ちを整えて過ごしたい日",
-    "身近な用事から片づけていきたい日",
-    "今日は無理なく物事を進めたい日",
-    `${recovery}を大切にしながら過ごしたい日`,
-    "小さな確認を重ねておきたい日",
-    `${mood}視点で選び直したい日`,
-    "今できることから手をつけたい日",
+    "自分の気持ちを整えて過ごせるとき",
+    "身近な用事から片づけると気持ちが軽くなるころ",
+    "無理なく物事が進むタイミング",
+    `${recovery}を大切にしながら過ごしたいとき`,
+    "小さな確認が安心につながる日",
+    `${mood}視点で選び直せるころ`,
+    "今できることから手をつけると流れが生まれるとき",
   ];
 
   for (let index = 0; index < options.length; index += 1) {
@@ -1618,7 +1636,7 @@ function buildUniqueFallbackLine(
       stems: text.includes("進め") ? ["進める"] : text.includes("整え") ? ["整える"] : ["過ごす"],
       pattern: "sense",
       skeleton: `fallback-${index}`,
-      ending: "日",
+      ending: text.endsWith("とき") ? "とき" : text.endsWith("ころ") ? "ころ" : text.endsWith("タイミング") ? "タイミング" : "日",
       metaphorGroups: [],
       score: 0,
       rhythm: toRhythm(text),

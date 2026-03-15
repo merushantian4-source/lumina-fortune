@@ -70,6 +70,7 @@ type RequestBody = {
     offtopicStreak?: number;
     awaitingFortuneResult?: boolean;
     lightGuidanceCount?: number;
+    lastCard?: { name: string; reversed: boolean } | null;
   };
 };
 
@@ -93,6 +94,8 @@ type TarotChatConversationState = {
   offtopicStreak: number;
   awaitingFortuneResult: boolean;
   lightGuidanceCount: number;
+  /** 直前に引いたカード情報（フォローアップ時に同じカードを参照するため） */
+  lastCard?: { name: string; reversed: boolean } | null;
 };
 
 type ChatRouteResponse = {
@@ -416,6 +419,7 @@ function defaultTarotChatConversationState(): TarotChatConversationState {
     offtopicStreak: 0,
     awaitingFortuneResult: false,
     lightGuidanceCount: 0,
+    lastCard: null,
   };
 }
 
@@ -456,6 +460,10 @@ function normalizeTarotChatConversationState(
       typeof raw.lightGuidanceCount === "number"
         ? Math.max(0, Math.min(raw.lightGuidanceCount, LIGHT_GUIDANCE_SESSION_LIMIT))
         : 0,
+    lastCard:
+      raw.lastCard && typeof raw.lastCard === "object" && "name" in raw.lastCard
+        ? { name: String(raw.lastCard.name), reversed: Boolean(raw.lastCard.reversed) }
+        : null,
   };
 }
 
@@ -1067,9 +1075,15 @@ export async function POST(request: Request) {
       ) {
         const followupTheme = activeTheme ?? nextConversationState.topic;
         if (followupTheme) {
-          resolvedMode = "fortune";
-          fortunePromptMessage = toFortunePromptMessage(followupTheme, trimmedMessage);
-          nextConversationState = buildReadingState(nextConversationState, followupTheme);
+          // 前回のカード情報がある場合、新しいカードを引かずに
+          // 会話履歴＋リーディングコンテキストで応答する（フォローアップモード）
+          if (nextConversationState.lastCard) {
+            resolvedMode = "followup-chat";
+          } else {
+            resolvedMode = "fortune";
+            fortunePromptMessage = toFortunePromptMessage(followupTheme, trimmedMessage);
+            nextConversationState = buildReadingState(nextConversationState, followupTheme);
+          }
         }
       }
     }
@@ -1165,7 +1179,10 @@ export async function POST(request: Request) {
         ? await getPreviousDailyCard(dailyFortuneUserKey, dailyDateKey)
         : null;
 
-    if (resolvedMode === "chat") {
+    if (resolvedMode === "followup-chat") {
+      // フォローアップ: 前回のカードを参照して応答する（新しいカードは引かない）
+      prompt = trimmedMessage;
+    } else if (resolvedMode === "chat") {
       if (
         isDialogueModeInput(
           trimmedMessage,
@@ -1223,24 +1240,55 @@ export async function POST(request: Request) {
     }
 
     // Claude呼び出し
+    // 会話履歴をClaudeに渡して文脈を保持する
     const recentHistoryMessages = toRecentHistoryMessages(history);
+
+    // フォローアップ用システムプロンプト: 前回のカード情報を含める
+    const buildFollowupChatSystemPrompt = () => {
+      const card = nextConversationState.lastCard;
+      const topic = nextConversationState.topic ?? nextConversationState.lastTopic ?? "全般";
+      const cardDesc = card
+        ? `${card.name}（${card.reversed ? "逆位置" : "正位置"}）`
+        : "不明";
+      return `${LUMINA_SYSTEM_PROMPT}
+
+【重要：フォローアップモード】
+あなたは直前のタロット鑑定について質問を受けています。
+直前に引いたカード: ${cardDesc}
+テーマ: ${topic}
+
+以下のルールを厳守してください:
+- 新しいカードを引いたり、別のカードを提案することは禁止です。
+- 上記のカードに基づいて、より深い解釈や補足を行ってください。
+- 「先ほどの${cardDesc}は…」のように前回の鑑定を自然に参照してください。
+- 会話履歴にある前回の鑑定内容と矛盾しないようにしてください。
+- 回答はJSON形式ではなく、自然な日本語の文章で返してください。`;
+    };
+
     const completionMessages =
-      resolvedMode === "chat"
+      resolvedMode === "followup-chat"
         ? [
-            { role: "system" as const, content: LUMINA_SYSTEM_PROMPT },
+            { role: "system" as const, content: buildFollowupChatSystemPrompt() },
             ...recentHistoryMessages,
-            { role: "user" as const, content: trimmedMessage },
+            { role: "user" as const, content: prompt },
           ]
-        : resolvedMode === "fortune"
+        : resolvedMode === "chat"
           ? [
-              { role: "system" as const, content: buildLightGuidanceOneCardSystemPrompt() },
-              { role: "user" as const, content: prompt },
-            ]
-          : [
               { role: "system" as const, content: LUMINA_SYSTEM_PROMPT },
               ...recentHistoryMessages,
-              { role: "user" as const, content: prompt },
-            ];
+              { role: "user" as const, content: trimmedMessage },
+            ]
+          : resolvedMode === "fortune"
+            ? [
+                { role: "system" as const, content: buildLightGuidanceOneCardSystemPrompt() },
+                ...recentHistoryMessages,
+                { role: "user" as const, content: prompt },
+              ]
+            : [
+                { role: "system" as const, content: LUMINA_SYSTEM_PROMPT },
+                ...recentHistoryMessages,
+                { role: "user" as const, content: prompt },
+              ];
 
     const isJsonMode = resolvedMode === "daily-fortune" || resolvedMode === "fortune";
     let rawText = await callClaude(completionMessages, { jsonMode: isJsonMode });
@@ -1264,6 +1312,7 @@ export async function POST(request: Request) {
       );
       const rewriteMessages = [
         { role: "system" as const, content: buildLightGuidanceOneCardSystemPrompt() },
+        ...recentHistoryMessages,
         { role: "user" as const, content: rewrittenHealthPrompt },
       ];
       luminaDevWarn("[lumina] health rewrite route triggered");
@@ -1289,6 +1338,7 @@ export async function POST(request: Request) {
       );
       const rewriteMessages = [
         { role: "system" as const, content: buildLightGuidanceOneCardSystemPrompt() },
+        ...recentHistoryMessages,
         { role: "user" as const, content: rewrittenMarriagePrompt },
       ];
       luminaDevWarn("[lumina] marriage rewrite route triggered");
@@ -1297,10 +1347,12 @@ export async function POST(request: Request) {
     }
 
     const formattedText =
-      resolvedMode === "chat"
-        ? usedDialogueMode
-          ? sanitizeDialogueReply(trimmedMessage, rawText)
-          : sanitizeChatReply(trimmedMessage, rawText)
+      resolvedMode === "followup-chat"
+        ? sanitizeChatReply(trimmedMessage, rawText)
+        : resolvedMode === "chat"
+          ? usedDialogueMode
+            ? sanitizeDialogueReply(trimmedMessage, rawText)
+            : sanitizeChatReply(trimmedMessage, rawText)
         : resolvedMode === "fortune"
           ? (() => {
               lightGuidanceSections = ensureLightGuidanceOneCardOutput(
@@ -1420,8 +1472,22 @@ export async function POST(request: Request) {
                   offtopicStreak: 0,
                   awaitingFortuneResult: false,
                   lightGuidanceCount: nextLightGuidanceCount,
+                  lastCard: lightGuidanceCard
+                    ? { name: lightGuidanceCard.card.nameJa, reversed: lightGuidanceCard.reversed }
+                    : nextConversationState.lastCard ?? null,
                 }
-              : undefined,
+              : resolvedMode === "followup-chat"
+                ? {
+                    ...nextConversationState,
+                    phase: "followup",
+                    awaitingConsent: false,
+                    awaitingTheme: false,
+                    questionStreak: 0,
+                    offtopicStreak: 0,
+                    awaitingFortuneResult: false,
+                    lightGuidanceCount: nextConversationState.lightGuidanceCount ?? 0,
+                  }
+                : undefined,
       meta:
         awaitingFortuneResult && awaitingFollowupIntent
           ? { awaitingFollowupIntent, devMode: isLuminaDevMode }
