@@ -130,7 +130,7 @@ function TarotCardArtworkInner({
   className,
   sizes,
 }: TarotCardArtworkProps) {
-  const [currentSrc, setCurrentSrc] = useState(imagePath);
+  const [currentSrc, setCurrentSrc] = useState(imagePath || CARD_BACK_IMAGE_PATH);
   const [showPlaceholder, setShowPlaceholder] = useState(false);
 
   if (showPlaceholder) {

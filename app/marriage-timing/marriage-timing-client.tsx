@@ -6,8 +6,9 @@ import Link from "next/link";
 import { GlassCard } from "@/components/ui/glass-card";
 import { LuminaButton } from "@/components/ui/button";
 import { PageShell } from "@/components/ui/page-shell";
-import { getMarriageTimingReading } from "@/lib/marriageTiming";
+import { getMarriageTimingReading, type MarriageTimingReading } from "@/lib/marriageTiming";
 import { getInitialBirthdate } from "@/lib/profile/getProfile";
+import { useClaudeReading } from "@/lib/ai/use-claude-reading";
 
 type MarriageTimingClientProps = {
   serverBirthdate: string | null;
@@ -17,13 +18,20 @@ export default function MarriageTimingClient({ serverBirthdate }: MarriageTiming
   const initialBirthdate = getInitialBirthdate(serverBirthdate);
   const [birthdate, setBirthdate] = useState(initialBirthdate);
   const [errorMessage, setErrorMessage] = useState("");
-  const [result, setResult] = useState(() => {
+  const [templateResult, setTemplateResult] = useState(() => {
     if (!initialBirthdate) return null;
     try {
       return getMarriageTimingReading(initialBirthdate);
     } catch {
       return null;
     }
+  });
+
+  const { reading: result, isEnhancing } = useClaudeReading<MarriageTimingReading>({
+    feature: "marriage-timing",
+    templateReading: templateResult,
+    context: birthdate ? `生年月日: ${birthdate}` : undefined,
+    interpretationFrame: templateResult?.interpretationFrame,
   });
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -36,9 +44,9 @@ export default function MarriageTimingClient({ serverBirthdate }: MarriageTiming
     }
 
     try {
-      setResult(getMarriageTimingReading(birthdate));
+      setTemplateResult(getMarriageTimingReading(birthdate));
     } catch {
-      setResult(null);
+      setTemplateResult(null);
       setErrorMessage("生年月日は YYYY-MM-DD の形式で正しく入力してください。");
     }
   };
@@ -82,6 +90,16 @@ export default function MarriageTimingClient({ serverBirthdate }: MarriageTiming
         {errorMessage ? <p className="mt-4 text-sm text-[#8b5e5e]">{errorMessage}</p> : null}
       </GlassCard>
 
+      {isEnhancing && !result && (
+        <div className="mt-4">
+          <GlassCard className="rounded-3xl">
+            <div className="flex min-h-[200px] flex-col items-center justify-center px-6 py-10">
+              <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-[#d4c5a9] border-t-transparent" />
+              <p className="text-sm tracking-[0.14em] text-[#8b7e6c] animate-pulse">ルミナが言葉を紡いでいます…</p>
+            </div>
+          </GlassCard>
+        </div>
+      )}
       {result ? (
         <div className="mt-4 space-y-4">
           <GlassCard className="rounded-3xl">

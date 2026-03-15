@@ -1,17 +1,18 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { LuminaButton } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/ui/page-shell";
 import { destinyNumberFromBirthdate } from "@/lib/fortune/fortuneNumber";
-import { getCompatibilityReading } from "@/lib/fortune/compatibility-map";
+import { getCompatibilityReading, type CompatibilityReading } from "@/lib/fortune/compatibility-map";
 import { fortuneNumberNames } from "@/lib/fortune/names";
 import { getSoulNameByNumber } from "@/lib/fortune/soul-names";
 import type { FortuneNumber } from "@/lib/fortune/types";
+import { useClaudeReading } from "@/lib/ai/use-claude-reading";
 
 const PROFILE_STORAGE_KEY = "lumina_profile";
 
@@ -73,9 +74,19 @@ export default function CompatibilityPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<CompatibilityResult | null>(null);
 
-  const strengthsParagraphs = result ? splitReadingParagraphs(result.reading.strengths) : [];
-  const pitfallsParagraphs = result ? splitReadingParagraphs(result.reading.pitfalls) : [];
-  const messageParagraphs = result ? splitReadingParagraphs(result.reading.luminaMessage) : [];
+  const templateReading = useMemo(() => result?.reading ?? null, [result]);
+
+  const { reading: enhancedReading, isEnhancing } = useClaudeReading<CompatibilityReading>({
+    feature: "compatibility",
+    templateReading: templateReading,
+    context: result ? `${fortuneNumberNames[result.myNumber]}と${fortuneNumberNames[result.partnerNumber]}の相性` : undefined,
+    interpretationFrame: templateReading?.interpretationFrame,
+  });
+
+  const activeReading = enhancedReading ?? result?.reading;
+  const strengthsParagraphs = activeReading ? splitReadingParagraphs(activeReading.strengths) : [];
+  const pitfallsParagraphs = activeReading ? splitReadingParagraphs(activeReading.pitfalls) : [];
+  const messageParagraphs = activeReading ? splitReadingParagraphs(activeReading.luminaMessage) : [];
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -200,6 +211,12 @@ export default function CompatibilityPage() {
             </div>
           </div>
 
+          {isEnhancing && (
+            <div className="mt-5 flex items-center justify-center gap-3 rounded-[1.35rem] border border-[#e9dcc9]/60 bg-[linear-gradient(180deg,rgba(255,252,248,0.9),rgba(249,244,236,0.8))] px-6 py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#d4c5a9] border-t-transparent" />
+              <p className="text-sm tracking-[0.14em] text-[#8b7e6c] animate-pulse">ルミナが言葉を紡いでいます…</p>
+            </div>
+          )}
           <div className="mt-5 space-y-4 sm:space-y-5">
             <section className="rounded-[1.35rem] border border-[#e1d5bf]/72 bg-white/72 px-4 py-4 sm:px-5 sm:py-5">
               <h2 className="text-sm font-medium tracking-[0.08em] text-[#2e2a26]">
@@ -228,7 +245,7 @@ export default function CompatibilityPage() {
                 うまくいくコツ
               </h2>
               <ul className="mt-3 space-y-2.5 text-sm leading-7 text-[#544c42] sm:space-y-3">
-                {result.reading.tips.map((tip, index) => (
+                {(activeReading?.tips ?? []).map((tip, index) => (
                   <li
                     key={tip}
                     className="flex items-start gap-3 rounded-2xl border border-[#eadfef] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,241,255,0.82))] px-3.5 py-3 shadow-[0_14px_30px_-26px_rgba(95,79,128,0.28)]"

@@ -117,9 +117,9 @@ const COLUMN_ARTICLES: ColumnArticle[] = [
       0: { src: "/gazou/column/honki/Gemini_Generated_Image_i64g6zi64g6zi64g.png", alt: "ネイルを変えた小さな変化に気づく" },
       1: { src: "/gazou/column/honki/Gemini_Generated_Image_dhuksddhuksddhuk.png", alt: "用事がないのに連絡してくる男性心理" },
       2: { src: "/gazou/column/honki/Gemini_Generated_Image_sgjp3msgjp3msgjp.png", alt: "カフェで楽しく話すカップル——あなたの話を覚えている" },
-      3: { src: "/gazou/column/honki/Gemini_Generated_Image_mnaalbmnaalbmnaa.png", alt: "他の男の話に反応が変わる瞬間" },
-      5: { src: "/gazou/column/honki/Gemini_Generated_Image_ckv6mnckv6mnckv6.png", alt: "遊園地デート——あなたのためだけに時間を作る" },
-      7: { src: "/gazou/column/honki/Gemini_Generated_Image_9xesj39xesj39xes.png", alt: "イルミネーションの夜に寄り添う——弱さを見せる信頼" },
+      5: { src: "/gazou/column/honki/Gemini_Generated_Image_mnaalbmnaalbmnaa.png", alt: "体調を気にかけてくれる——さりげない愛情表現" },
+      6: { src: "/gazou/column/honki/Gemini_Generated_Image_ckv6mnckv6mnckv6.png", alt: "遊園地デート——あなたのためだけに時間を作る" },
+      8: { src: "/gazou/column/honki/Gemini_Generated_Image_9xesj39xesj39xes.png", alt: "イルミネーションの夜——あの人の行動に心当たりは" },
     },
     preview: [
       "彼が何も言ってくれないのは、気持ちがないからじゃないかもしれません。",

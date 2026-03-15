@@ -1,12 +1,13 @@
 import { drawTarotSpread } from "@/lib/tarot/deck";
 import { findTarotCardByJaName } from "@/src/data/tarotCards";
+import { buildKareNoKimochiFrame, type InterpretationFrame } from "@/lib/ai/interpretation-frame";
 
 export const KARE_NO_KIMOCHI_QUESTION_CHIPS = [
   "今あの人は私をどう思っていますか？",
   "あの人の心の中に私はまだいますか？",
   "あの人は私を恋愛対象として見ていますか？",
   "あの人は今、私に会いたいと思っていますか？",
-  "あの人の本音はどこにありますか？",
+  "あの人の本音を教えてください。",
   "あの人は今、何に悩んでいますか？",
   "あの人は今、寂しいと感じていますか？",
   "あの人は今、幸せですか？",
@@ -32,6 +33,7 @@ export type KareNoKimochiReading = {
   heartTone: string;
   distanceLabel: string;
   guidanceLabel: string;
+  interpretationFrame: InterpretationFrame;
 };
 
 function hashString(value: string) {
@@ -59,6 +61,26 @@ function createSeededRandom(seed: number) {
 function pickBySeed<T>(items: readonly T[], seed: number, offset = 0): T {
   const index = (seed + offset) % items.length;
   return items[index]!;
+}
+
+/** 相談内容から現実的配慮が必要なケースを検出する */
+function detectRealisticContext(question: string): {
+  needsRealism: boolean;
+  isMarried: boolean;
+  longNoContact: boolean;
+  longNoMeet: boolean;
+} {
+  const isMarried = /既婚|結婚して(いる|る|た)|奥さん|妻|旦那|夫|嫁/.test(question);
+  const longNoContact = /連絡.*(ない|ない|途絶|取れ)|音信不通|ブロック|既読.*(つかない|無視)|未読/.test(question);
+  const longNoMeet =
+    /([5-9]|[1-9]\d)年.*会って(い?ない|ません)|何年も会って(い?ない|ません)|長年.*会って(い?ない|ません)|ずっと会って(い?ない|ません)/.test(question);
+
+  return {
+    needsRealism: isMarried || longNoContact || longNoMeet,
+    isMarried,
+    longNoContact,
+    longNoMeet,
+  };
 }
 
 function buildIntro() {
@@ -185,6 +207,127 @@ function buildLuminaMessage(card: DrawnCard, seed: number) {
   return `言葉にならない想いも、\n心の奥には静かに残っていることがあります。\n\n${close}`;
 }
 
+/* ── 現実的配慮が必要な場合の鑑定テンプレート ── */
+
+function buildRealisticPartnerEmotion(
+  seed: number,
+  ctx: { isMarried: boolean; longNoMeet: boolean },
+) {
+  if (ctx.isMarried) {
+    return pickBySeed(
+      [
+        "彼は今の生活の中で穏やかに過ごしているようです。ただ、人の記憶は完全に消えるものではありません。ふとした瞬間、あなたとの時間を思い出すこともあるかもしれません。",
+        "今のパートナーとの暮らしを大切にしながらも、過去の記憶として、あなたとの日々がやさしく残っているようです。",
+        "彼の日常は今の家庭の中にあります。けれど、かつてのあなたとの時間は、心のどこかに静かにしまわれているようです。",
+      ],
+      seed,
+      7,
+    );
+  }
+
+  if (ctx.longNoMeet) {
+    return pickBySeed(
+      [
+        "長い時間が経っているため、あの人の中であなたの存在は「過去の大切な記憶」として残っているようです。今の気持ちは、当時とは形を変えている可能性があります。",
+        "時間が距離をつくる一方で、ふとした瞬間にあなたのことを思い出すことはあるかもしれません。ただ、それは恋愛感情というより、懐かしさに近いもののようです。",
+        "あの頃の記憶は、あの人の中でやさしい思い出として残っています。ただ、今の生活の中では、別の日常が中心になっているようです。",
+      ],
+      seed,
+      7,
+    );
+  }
+
+  return pickBySeed(
+    [
+      "連絡が途絶えている今、あの人の中であなたの存在は少しずつ日常から離れているかもしれません。ただ、完全に忘れているわけではないようです。",
+      "距離ができたことで、あの人はあなたのことを考える頻度は減っているかもしれません。それでも、思い出がゼロになることはないようです。",
+      "今のあの人は、目の前の生活に集中しているようです。あなたとの記憶は心の奥にありますが、それを積極的に取り出すことは少なくなっているかもしれません。",
+    ],
+    seed,
+    7,
+  );
+}
+
+function buildRealisticPartnerFeeling(
+  seed: number,
+  ctx: { isMarried: boolean; longNoMeet: boolean },
+) {
+  if (ctx.isMarried) {
+    return pickBySeed(
+      [
+        "あの人は今、家庭という現実の中で日々を重ねています。\n\nあなたとの思い出は、心の引き出しの中にそっとしまわれているようなもの。開くことはあっても、それを今の生活に持ち込むことには慎重です。\n\n大切なのは、あの人の今の幸せを尊重しながら、あなた自身の心も大切にすることかもしれません。",
+        "彼の気持ちの中心は、今の生活にあります。\n\nかつてのあなたとの関係は、否定されているのではなく、過去の大切な一章として心に残っています。\n\nその記憶があるからこそ、あの人は今の日々を丁寧に生きようとしているのかもしれません。",
+      ],
+      seed,
+      13,
+    );
+  }
+
+  if (ctx.longNoMeet) {
+    return pickBySeed(
+      [
+        "長い年月は、人の気持ちをゆるやかに変えていきます。\n\nあの人の中にあなたの記憶は残っていますが、それは「今の感情」というより「かつての大切な思い出」に近いものかもしれません。\n\n今のあなたにとって大切なのは、過去に戻ることよりも、自分自身の今を満たしていくことではないでしょうか。",
+        "時間が経つほど、記憶はやさしく丸みを帯びていきます。\n\nあの人もきっと、あなたとの日々を否定はしていません。ただ、今の生活の中で新しい日常を積み重ねています。\n\nあなたの想いは本物です。だからこそ、その気持ちを未来の自分のために使ってほしいと、カードは伝えています。",
+      ],
+      seed,
+      13,
+    );
+  }
+
+  return pickBySeed(
+    [
+      "連絡が途絶えているということは、あの人にとって今は自分の生活に集中している時期なのかもしれません。\n\nあなたのことを完全に忘れたわけではないけれど、積極的に関係を動かそうという気持ちには至っていないようです。\n\n今は距離を受け入れながら、あなた自身の時間を充実させることが、結果的に良い方向へ向かう鍵になりそうです。",
+      "今のあの人は、あなたとの関係よりも目の前のことに意識が向いているようです。\n\nそれはあなたを否定しているのではなく、今の状況の中で精一杯なのかもしれません。\n\n無理に答えを急がず、あなた自身の心を整える時間にしてみてください。",
+    ],
+    seed,
+    13,
+  );
+}
+
+function buildRealisticRelationshipFlow(seed: number, ctx: { isMarried: boolean; longNoMeet: boolean }) {
+  if (ctx.isMarried) {
+    return pickBySeed(
+      [
+        "今の関係は、大きく動く時期ではないようです。\n\nあの人には守るべき日常があり、その中であなたの存在は「過去の大切な人」として位置づけられています。\n\n今あなたにできるのは、あの人の幸せを遠くから願いながら、自分自身の人生を豊かにしていくことかもしれません。",
+        "この関係が恋愛として再び動き出す可能性は、今のところ穏やかです。\n\nあの人は今の環境を大切にしています。あなたとの縁は消えていませんが、それが恋愛という形で再燃するかどうかは、慎重に見つめる必要があります。\n\nまずは、あなた自身の心の平穏を優先してください。",
+      ],
+      seed,
+      19,
+    );
+  }
+
+  return pickBySeed(
+    [
+      "今は関係が停滞しているように見えますが、それは「終わり」ではなく「間」の時期です。\n\nただし、この間が長く続くほど、お互いの日常は別々の方向に進んでいきます。\n\n動くべきときが来たら、あなたの直感がそれを教えてくれるでしょう。それまでは、自分を大切にする時間にしてみてください。",
+      "距離や時間が空いている今、関係をすぐに動かそうとするよりも、あなた自身が穏やかでいることが大切です。\n\n心が整ったときに見える景色は、焦っているときとはまったく違います。\n\nカードは「待つ」ことと「自分を満たす」ことを静かに伝えています。",
+    ],
+    seed,
+    19,
+  );
+}
+
+function buildRealisticLuminaMessage(seed: number, ctx: { isMarried: boolean; longNoMeet: boolean }) {
+  if (ctx.isMarried) {
+    return pickBySeed(
+      [
+        "あの人の幸せを願えるあなたは、とても強くてやさしい人です。\n\nたとえ今の答えが望んだものと違っても、あなたの想いは決して無駄ではありません。\n\n人を深く愛せるその心は、これからのあなたの人生を必ず豊かにしてくれます。\n\nルミナは、あなたの未来にやさしい光が届くことを信じています。",
+        "叶わない想いを抱えることは、とても苦しいことです。\n\nでも、その痛みの分だけ、あなたは人の気持ちがわかる人になっています。\n\n今は少しだけ、自分自身にやさしくしてあげてください。\n\nあなたの心が癒されるとき、新しい出会いの扉も静かに開き始めます。",
+      ],
+      seed,
+      29,
+    );
+  }
+
+  return pickBySeed(
+    [
+      "想い続けることは、決して弱さではありません。\n\nでも、その想いにずっと縛られていると、あなた自身の輝きが少しずつ曇ってしまうことがあります。\n\n今大切なのは、あの人の気持ちを追いかけることよりも、あなた自身が笑顔でいられる時間を増やすこと。\n\nカードは、あなたの中にある「前に進む力」を、静かに照らしています。",
+      "答えがすぐに見えない恋は、不安で胸がいっぱいになります。\n\nでも、あなたがこうして想い続けていること自体が、あなたの心の深さを証明しています。\n\n焦らなくていい。急がなくていい。\n\nあなたの心が穏やかになったとき、自然と次の一歩が見えてきます。ルミナはそう信じています。",
+    ],
+    seed,
+    29,
+  );
+}
+
 function buildHeartTone(card: DrawnCard) {
   if (card.reversed) return "揺れながらも意識している";
   if (card.card.arcana === "major") return "深く、はっきり響いている";
@@ -249,6 +392,33 @@ export function getKareNoKimochiReading(question: string): KareNoKimochiReading 
   }
 
   const cardImage = findTarotCardByJaName(drawn.card.nameJa);
+  const ctx = detectRealisticContext(normalizedQuestion);
+  const cardInfo = { arcana: drawn.card.arcana as "major" | "minor", suit: drawn.card.arcana === "minor" ? drawn.card.suit as "cups" | "wands" | "swords" | "pentacles" : undefined, reversed: drawn.reversed };
+  const frame = buildKareNoKimochiFrame(cardInfo, seed, ctx.needsRealism);
+
+  /* 現実的配慮が必要な場合は復縁を強く示唆しない鑑定に切り替え */
+  if (ctx.needsRealism) {
+    return {
+      question: normalizedQuestion,
+      cardName: drawn.card.nameJa,
+      cardMeaning: drawn.reversed ? drawn.card.reversedMeaning : drawn.card.uprightMeaning,
+      cardImagePath: cardImage?.imagePath ?? "/cards/00-the-fool.png",
+      isReversed: drawn.reversed,
+      intro: buildIntro(),
+      cardInterpretation: buildCardInterpretation(drawn, seed),
+      partnerEmotion: buildRealisticPartnerEmotion(seed, ctx),
+      partnerFeeling: buildRealisticPartnerFeeling(seed, ctx),
+      relationshipFlow: buildRealisticRelationshipFlow(seed, ctx),
+      luminaMessage: buildRealisticLuminaMessage(seed, ctx),
+      shortMessage: ctx.isMarried
+        ? "あの人の今の幸せを、静かに見守ることも愛の形です。"
+        : "想いの深さは、あなたの心の豊かさの証です。",
+      heartTone: ctx.isMarried ? "穏やかな記憶として残っている" : "過去の思い出として心にある",
+      distanceLabel: ctx.isMarried ? "今は別々の日常の中に" : "時間が距離をつくっている",
+      guidanceLabel: ctx.isMarried ? "あなた自身の幸せを優先する" : "自分の心を整える時間にする",
+      interpretationFrame: frame,
+    };
+  }
 
   return {
     question: normalizedQuestion,
@@ -274,5 +444,6 @@ export function getKareNoKimochiReading(question: string): KareNoKimochiReading 
     heartTone: buildHeartTone(drawn),
     distanceLabel: buildDistanceLabel(drawn),
     guidanceLabel: buildGuidanceLabel(drawn),
+    interpretationFrame: frame,
   };
 }

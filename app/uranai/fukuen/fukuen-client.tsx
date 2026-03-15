@@ -7,6 +7,7 @@ import { LuminaButton } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PageShell } from "@/components/ui/page-shell";
 import { FUKUEN_QUESTION_CHIPS, getFukuenReading, type FukuenReading } from "@/lib/fukuenReading";
+import { useClaudeReading } from "@/lib/ai/use-claude-reading";
 
 function splitParagraphs(text: string): string[] {
   return text.split(/\n+/).map((p) => p.trim()).filter(Boolean);
@@ -126,7 +127,7 @@ export default function FukuenClient() {
   const [errorMessage, setErrorMessage] = useState("");
   const resultRef = useRef<HTMLDivElement>(null);
 
-  const result = useMemo(() => {
+  const templateResult = useMemo(() => {
     if (!submittedQuestion) return null;
 
     try {
@@ -136,11 +137,18 @@ export default function FukuenClient() {
     }
   }, [submittedQuestion]);
 
+  const { reading: result, isEnhancing } = useClaudeReading<FukuenReading>({
+    feature: "fukuen",
+    templateReading: templateResult,
+    context: submittedQuestion,
+    interpretationFrame: templateResult?.interpretationFrame,
+  });
+
   useEffect(() => {
-    if (result && resultRef.current) {
+    if (templateResult && resultRef.current) {
       resultRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, [result]);
+  }, [templateResult]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -228,7 +236,7 @@ export default function FukuenClient() {
           />
 
           <div className="mt-4">
-            <p className="text-sm font-medium text-[#5b5348]">よくある質問</p>
+            <p className="text-sm font-medium text-[#5b5348]">こんなことが聞けます</p>
             <div className="mt-3 flex flex-wrap gap-2.5">
               {FUKUEN_QUESTION_CHIPS.map((chip) => (
                 <button
@@ -255,6 +263,11 @@ export default function FukuenClient() {
       <GlassCard className="mt-5 rounded-[2rem] p-5 sm:p-6">
         {result ? (
           <ResultView result={result} />
+        ) : isEnhancing ? (
+          <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[1.8rem] border border-[#e9dcc9]/60 bg-[linear-gradient(180deg,rgba(255,252,248,0.9),rgba(249,244,236,0.8))] px-6 py-10 text-center">
+            <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-[#d4c5a9] border-t-transparent" />
+            <p className="text-sm tracking-[0.14em] text-[#8b7e6c] animate-pulse">ルミナが言葉を紡いでいます…</p>
+          </div>
         ) : (
           <div className="flex min-h-[320px] flex-col justify-center rounded-[1.8rem] border border-dashed border-[#e4d9c7] bg-[linear-gradient(180deg,rgba(255,252,248,0.82),rgba(249,244,236,0.68))] px-6 py-10 text-center">
             <p className="text-sm tracking-[0.16em] text-[#8b7e6c]">RESULT</p>

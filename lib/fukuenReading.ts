@@ -1,5 +1,6 @@
 import { drawTarotSpread } from "@/lib/tarot/deck";
 import { findTarotCardByJaName } from "@/src/data/tarotCards";
+import { buildFukuenFrame, type InterpretationFrame } from "@/lib/ai/interpretation-frame";
 
 export const FUKUEN_QUESTION_CHIPS = [
   "元彼は今私をどう思っていますか？",
@@ -33,6 +34,8 @@ export type FukuenReading = {
   fateTone: string;
   reunionLabel: string;
   guidanceLabel: string;
+  /** Structured interpretation frame for Claude enhancement */
+  interpretationFrame: InterpretationFrame;
 };
 
 function hashString(value: string) {
@@ -115,31 +118,49 @@ function buildPartnerEcho(card: DrawnCard, seed: number) {
 }
 
 function buildPartnerFeeling(card: DrawnCard, seed: number) {
-  const suffix = card.reversed
+  /* 「あの人の心には〜が残っている」構文に埋め込む名詞句 */
+  const echoPhrase = card.reversed
     ? pickBySeed(
         [
-          "ただし、その想いはまだ過去の痛みや迷いと一緒に揺れているかもしれません。",
-          "今は気持ちよりも現実的な不安が前に出やすいタイミングです。",
+          "懐かしさや割り切れない想い",
+          "あなたとの記憶への未練",
+          "手放しきれなかった温もり",
         ],
         seed,
-        13,
+        7,
       )
     : pickBySeed(
         [
-          "あの人の心には\n\n" +
-            `${buildPartnerEcho(card, seed)}\n\n` +
-            "が残っている可能性があります。",
-          "あの人の中では、思い出がやさしく形を変えながら、今も心に触れています。",
+          "あなたとの温かい記憶",
+          "特別な存在としてのあなたへの想い",
+          "静かに残り続けている縁の感覚",
         ],
         seed,
-        17,
+        7,
       );
 
+  const coreSentence = `あの人の心には\n\n${echoPhrase}\n\nが残っている可能性があります。`;
+
   if (card.reversed) {
-    return `あの人の心には\n\n${buildPartnerEcho(card, seed)}\n\nが残っている可能性があります。\n${suffix}`;
+    const caveat = pickBySeed(
+      [
+        "ただし、その想いはまだ過去の痛みや迷いと一緒に揺れているかもしれません。",
+        "今は気持ちよりも現実的な不安が前に出やすいタイミングです。",
+      ],
+      seed,
+      13,
+    );
+    return `${coreSentence}\n${caveat}`;
   }
 
-  return suffix;
+  return pickBySeed(
+    [
+      coreSentence,
+      "あの人の中では、思い出がやさしく形を変えながら、今も心に触れています。",
+    ],
+    seed,
+    17,
+  );
 }
 
 function buildPossibility(card: DrawnCard, seed: number) {
@@ -294,5 +315,9 @@ export function getFukuenReading(question: string): FukuenReading {
     fateTone: buildFateTone(drawn),
     reunionLabel: buildReunionLabel(drawn),
     guidanceLabel: buildGuidanceLabel(drawn),
+    interpretationFrame: buildFukuenFrame(
+      { arcana: drawn.card.arcana, suit: drawn.card.arcana === "minor" ? drawn.card.suit : undefined, reversed: drawn.reversed },
+      seed,
+    ),
   };
 }

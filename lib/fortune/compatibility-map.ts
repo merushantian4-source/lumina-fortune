@@ -1,10 +1,12 @@
 import type { FortuneNumber } from "@/lib/fortune/types";
+import { buildCompatibilityFrame, type InterpretationFrame } from "@/lib/ai/interpretation-frame";
 
 export type CompatibilityReading = {
   strengths: string;
   pitfalls: string;
   tips: string[];
   luminaMessage: string;
+  interpretationFrame: InterpretationFrame;
 };
 
 type NumberArchetype = {
@@ -169,5 +171,6 @@ export function getCompatibilityReading(
     pitfalls: buildPitfalls(me, partner, mood),
     tips: buildTips(me, partner),
     luminaMessage: buildLuminaMessage(mood),
+    interpretationFrame: buildCompatibilityFrame(myNumber, partnerNumber),
   };
 }

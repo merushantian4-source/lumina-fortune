@@ -5,6 +5,7 @@ import {
   marriageYearTemplates,
   type MarriageYearTemplate,
 } from "./marriageTimingTemplate";
+import { buildMarriageTimingFrame, type InterpretationFrame } from "@/lib/ai/interpretation-frame";
 
 export type MarriageTimingYearReading = {
   year: number;
@@ -29,6 +30,7 @@ export type MarriageTimingReading = {
     headline: string;
     summary: string;
   };
+  interpretationFrame: InterpretationFrame;
 };
 
 function relativeLabel(index: number): MarriageTimingYearReading["label"] {
@@ -123,5 +125,9 @@ export function getMarriageTimingReading(
       headline: chooseHeadline(years),
       summary: `${years[0].label}から${years[2].label}にかけて、${years.map((year) => year.badge).join("、")}が順に巡ります。`,
     },
+    interpretationFrame: buildMarriageTimingFrame(
+      destinyNumber,
+      years.map((y) => y.personalYear),
+    ),
   };
 }

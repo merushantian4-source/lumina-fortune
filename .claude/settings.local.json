@@ -26,7 +26,10 @@
       "Bash(grep -r \"GA_MEASUREMENT_ID\\\\|gtag\\\\|analytics\\\\|GA_ID\" /c/Users/yuri3/lumina-fortune --include=*.tsx --include=*.ts)",
       "Bash(grep -r \"SUPABASE_URL\\\\|SUPABASE_SERVICE_ROLE_KEY\\\\|NEXT_PUBLIC_SUPABASE\" /c/Users/yuri3/lumina-fortune --include=*.ts --include=*.tsx)",
       "Bash(npm install:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(grep -E \"\\\\.ts$\")",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(find /c/Users/yuri3/lumina-fortune -type f \\\\\\(-name *compatibility* -o -name *soushoku* -o -name *相性* \\\\\\) -o -path */compatibility/* -o -path */相性/*)"
     ]
   }
 }

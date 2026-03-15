@@ -1,5 +1,6 @@
 import { drawTarotSpread } from "@/lib/tarot/deck";
 import { findTarotCardByJaName } from "@/src/data/tarotCards";
+import { buildKataomoiFrame, type InterpretationFrame } from "@/lib/ai/interpretation-frame";
 
 export const KATAOMOI_QUESTION_CHIPS = [
   "この恋は成就する可能性がありますか？",
@@ -34,6 +35,7 @@ export type KataomoiReading = {
   keyAction: string;
   advice: string;
   message: string;
+  interpretationFrame: InterpretationFrame;
 };
 
 function hashString(value: string) {
@@ -324,5 +326,9 @@ export function getKataomoiReading(question: string): KataomoiReading {
     keyAction: buildKeyAction(drawn),
     advice: buildAdvice(drawn, seed),
     message: buildMessage(drawn),
+    interpretationFrame: buildKataomoiFrame(
+      { arcana: drawn.card.arcana, suit: drawn.card.arcana === "minor" ? drawn.card.suit : undefined, reversed: drawn.reversed },
+      seed,
+    ),
   };
 }
